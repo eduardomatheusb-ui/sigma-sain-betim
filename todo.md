@@ -70,3 +70,21 @@
 - [x] Testar responsividade e acessibilidade
 - [x] Validar navegação e usabilidade
 - [x] Implementar testes unitários com Vitest
+
+## Melhorias da conversa ChatGPT (Fase 2)
+
+- [x] Buscar e fazer upload do logo da Prefeitura de Betim
+- [x] Criar constante com lista das 96 escolas reais de Betim
+- [x] Adicionar lista de escolas como dropdown nos formulários de alunos e mediadores
+- [x] Atualizar schema: campos de atendente compartilhado (isShared, additionalStudents) nos mediadores
+- [x] Atualizar schema: campos de motivo de inatividade, data de inatividade, data de retorno nos mediadores
+- [x] Atualizar schema: campos de deficiência, turno, turma nos alunos
+- [x] Adicionar procedures tRPC para dashboard expandido (rankings, gráficos)
+- [x] Reescrever formulário de mediadores com campo "atendente compartilhado" + alunos adicionais
+- [x] Validar duplicidade de alunos adicionais no frontend e backend
+- [x] Expandir Dashboard: cards alunos com/sem atendente, ranking 10 EMs e 10 CIMs, gráficos por deficiência/idade/turno
+- [x] Adicionar gráfico de motivos de inatividade no Dashboard
+- [x] Liberar cadastro de alunos para admin sem vínculo de escola
+- [x] Aplicar logo da Prefeitura de Betim no cabeçalho
+- [x] Atualizar cabeçalho com identidade visual SIGMA institucional
+- [ ] Adicionar rodapé institucional (pendente)

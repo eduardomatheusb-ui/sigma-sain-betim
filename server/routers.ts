@@ -6,7 +6,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { getSchools, getStudentsBySchool, getMediatorsBySchool, getAttendancesBySchool, getExternalDemandsBySchool } from "./db";
 import { getDb } from "./db";
-import { students, mediators, attendances, externalDemands, schools } from "../drizzle/schema";
+import { students, mediators, attendances, externalDemands, schools, users } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 
 // Status e tipos de alteração do Quadro de Atendentes (MVP integrado)
@@ -44,7 +44,7 @@ export const appRouter = router({
   dashboard: router({
     stats: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
-      if (!db) return { totalStudents: 0, activeMediators: 0, pendingAttendances: 0, externalDemands: 0, onLeave: 0, vacancies: 0, totalSchools: 0 };
+      if (!db) return { totalStudents: 0, activeMediators: 0, pendingAttendances: 0, externalDemands: 0, onLeave: 0, vacancies: 0, totalSchools: 0, totalMediators: 0, studentsWithMediator: 0, studentsWithoutMediator: 0 };
 
       try {
         const [studentList, mediatorList, pendingList, demandList, schoolList] = await Promise.all([
@@ -59,6 +59,52 @@ export const appRouter = router({
         const onLeave = mediatorList.filter(m => m.status === "on_leave" || m.status === "temp_leave").length;
         const vacancies = mediatorList.filter(m => m.status === "vacancy").length;
 
+        // Alunos com e sem atendente (baseado em linkedStudents dos mediadores ativos)
+        const linkedStudentNames = new Set<string>();
+        mediatorList.filter(m => m.status === "active").forEach(m => {
+          if (m.linkedStudents) {
+            m.linkedStudents.split(",").map(s => s.trim()).filter(Boolean).forEach(s => linkedStudentNames.add(s.toLowerCase()));
+          }
+        });
+        const studentsWithMediator = studentList.filter(s => linkedStudentNames.has(s.name.toLowerCase())).length;
+        const studentsWithoutMediator = studentList.length - studentsWithMediator;
+
+        // Ranking de escolas por demanda (mediadores com status vacancy ou on_leave)
+        const schoolDemandMap = new Map<number, number>();
+        mediatorList.filter(m => m.status === "vacancy" || m.status === "on_leave" || m.status === "temp_leave").forEach(m => {
+          schoolDemandMap.set(m.schoolId, (schoolDemandMap.get(m.schoolId) || 0) + 1);
+        });
+        const schoolRanking = schoolList
+          .map(s => ({ id: s.id, name: s.name, demand: schoolDemandMap.get(s.id) || 0 }))
+          .filter(s => s.demand > 0)
+          .sort((a, b) => b.demand - a.demand);
+        const emRanking = schoolRanking.filter(s => s.name.startsWith("E M")).slice(0, 10);
+        const cimRanking = schoolRanking.filter(s => s.name.startsWith("CIM")).slice(0, 10);
+
+        // Gráfico por deficiência
+        const disabilityMap = new Map<string, number>();
+        studentList.forEach(s => {
+          const key = s.disability || "Não informado";
+          disabilityMap.set(key, (disabilityMap.get(key) || 0) + 1);
+        });
+        const byDisability = Array.from(disabilityMap.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+
+        // Gráfico por turno
+        const shiftMap = new Map<string, number>();
+        studentList.forEach(s => {
+          const key = s.shift === "morning" ? "Manhã" : s.shift === "afternoon" ? "Tarde" : s.shift === "full" ? "Integral" : "Não informado";
+          shiftMap.set(key, (shiftMap.get(key) || 0) + 1);
+        });
+        const byShift = Array.from(shiftMap.entries()).map(([name, value]) => ({ name, value }));
+
+        // Motivos de inatividade
+        const inactivityMap = new Map<string, number>();
+        mediatorList.filter(m => m.status !== "active" && m.inactivityReason).forEach(m => {
+          const key = m.inactivityReason!;
+          inactivityMap.set(key, (inactivityMap.get(key) || 0) + 1);
+        });
+        const byInactivity = Array.from(inactivityMap.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+
         return {
           totalStudents: studentList.length,
           activeMediators,
@@ -68,10 +114,17 @@ export const appRouter = router({
           vacancies,
           totalSchools: schoolList.length,
           totalMediators: mediatorList.length,
+          studentsWithMediator,
+          studentsWithoutMediator,
+          emRanking,
+          cimRanking,
+          byDisability,
+          byShift,
+          byInactivity,
         };
       } catch (error) {
         console.error("[Dashboard] Error fetching stats:", error);
-        return { totalStudents: 0, activeMediators: 0, pendingAttendances: 0, externalDemands: 0, onLeave: 0, vacancies: 0, totalSchools: 0, totalMediators: 0 };
+        return { totalStudents: 0, activeMediators: 0, pendingAttendances: 0, externalDemands: 0, onLeave: 0, vacancies: 0, totalSchools: 0, totalMediators: 0, studentsWithMediator: 0, studentsWithoutMediator: 0, emRanking: [], cimRanking: [], byDisability: [], byShift: [], byInactivity: [] };
       }
     }),
   }),
@@ -224,11 +277,20 @@ export const appRouter = router({
         specialNeeds: z.string().optional(),
         guardianName: z.string().optional(),
         guardianPhone: z.string().optional(),
+        schoolId: z.number().optional(),
+        disability: z.string().optional(),
+        shift: z.enum(["morning", "afternoon", "full"]).optional(),
+        grade: z.string().optional(),
+        notes: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
-        const schoolId = ctx.user.schoolId || 1;
+        // Admin pode cadastrar sem escola vinculada (schoolId = 0 = sem escola)
+        const schoolId = input.schoolId ?? ctx.user.schoolId ?? 0;
+        if (!schoolId && ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Usuário escola deve estar vinculado a uma escola" });
+        }
         try {
           await db.insert(students).values({
             name: input.name,
@@ -238,8 +300,12 @@ export const appRouter = router({
             specialNeeds: input.specialNeeds,
             guardianName: input.guardianName,
             guardianPhone: input.guardianPhone,
-            schoolId,
+            schoolId: schoolId || 1,
             status: "active",
+            disability: input.disability,
+            shift: input.shift,
+            grade: input.grade,
+            notes: input.notes,
           });
           return { success: true };
         } catch (error) {
@@ -356,6 +422,11 @@ export const appRouter = router({
         note: z.string().optional(),
         maxAttendances: z.number().optional(),
         schoolId: z.number().optional(),
+        isShared: z.boolean().optional(),
+        additionalStudents: z.string().optional(),
+        inactivityReason: z.string().optional(),
+        inactivityDate: z.string().optional(),
+        returnDate: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
@@ -375,6 +446,11 @@ export const appRouter = router({
             note: input.note,
             maxAttendances: input.maxAttendances || 20,
             schoolId,
+            isShared: input.isShared || false,
+            additionalStudents: input.additionalStudents,
+            inactivityReason: input.inactivityReason,
+            inactivityDate: input.inactivityDate ? new Date(input.inactivityDate) : null,
+            returnDate: input.returnDate ? new Date(input.returnDate) : null,
           });
           return { success: true };
         } catch (error) {
@@ -398,11 +474,21 @@ export const appRouter = router({
         note: z.string().optional(),
         maxAttendances: z.number().optional(),
         schoolId: z.number().optional(),
+        isShared: z.boolean().optional(),
+        additionalStudents: z.string().optional(),
+        inactivityReason: z.string().optional(),
+        inactivityDate: z.string().optional(),
+        returnDate: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
-        const { id, ...data } = input;
+        const { id, inactivityDate, returnDate, ...rest } = input;
+        const data = {
+          ...rest,
+          inactivityDate: inactivityDate ? new Date(inactivityDate) : undefined,
+          returnDate: returnDate ? new Date(returnDate) : undefined,
+        };
         try {
           await db.update(mediators).set(data).where(eq(mediators.id, id));
           return { success: true };
@@ -476,6 +562,67 @@ export const appRouter = router({
   /**
    * ExternalDemands - Gestão de demandas externas
    */
+  /**
+   * Users - Gestão de usuários pelo admin
+   */
+  users: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem listar usuários" });
+      const db = await getDb();
+      if (!db) return [];
+      const allUsers = await db.select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        role: users.role,
+        schoolId: users.schoolId,
+        isActive: users.isActive,
+        createdAt: users.createdAt,
+        lastSignedIn: users.lastSignedIn,
+      }).from(users);
+      return allUsers;
+    }),
+
+    updateRole: protectedProcedure
+      .input(z.object({
+        userId: z.number(),
+        role: z.enum(["admin", "school_user"]),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await db.update(users).set({ role: input.role }).where(eq(users.id, input.userId));
+        return { success: true };
+      }),
+
+    linkSchool: protectedProcedure
+      .input(z.object({
+        userId: z.number(),
+        schoolId: z.number().nullable(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await db.update(users).set({ schoolId: input.schoolId }).where(eq(users.id, input.userId));
+        return { success: true };
+      }),
+
+    toggleActive: protectedProcedure
+      .input(z.object({
+        userId: z.number(),
+        isActive: z.boolean(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await db.update(users).set({ isActive: input.isActive }).where(eq(users.id, input.userId));
+        return { success: true };
+      }),
+  }),
+
   externalDemands: router({
     listBySchool: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user.role === "admin") {

@@ -57,6 +57,10 @@ export const students = mysqlTable("students", {
   guardianName: varchar("guardianName", { length: 255 }),
   guardianPhone: varchar("guardianPhone", { length: 20 }),
   notes: text("notes"),
+  // Campos adicionais para dashboard e relatórios
+  disability: varchar("disability", { length: 255 }),
+  shift: mysqlEnum("shift", ["morning", "afternoon", "full"]),
+  grade: varchar("grade", { length: 50 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -82,6 +86,13 @@ export const mediators = mysqlTable("mediators", {
   linkedStudents: text("linkedStudents"),
   note: text("note"),
   maxAttendances: int("maxAttendances").default(0),
+  // Campos de atendente compartilhado
+  isShared: boolean("isshared").default(false),
+  additionalStudents: text("additionalstudents"),
+  // Campos de inatividade
+  inactivityReason: varchar("inactivityreason", { length: 255 }),
+  inactivityDate: date("inactivitydate"),
+  returnDate: date("returndate"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

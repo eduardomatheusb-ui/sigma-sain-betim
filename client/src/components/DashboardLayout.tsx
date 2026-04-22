@@ -89,12 +89,17 @@ export default function DashboardLayout({
         <div className="max-w-md w-full">
           <div className="bg-white rounded-xl shadow-xl p-8 text-center border border-border">
             <div className="mb-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-xl mb-4">
-                <span className="text-white font-bold text-2xl">S</span>
+              <div className="flex items-center justify-center mb-4">
+                <img
+                  src="/manus-storage/logo-prefeitura-betim_1714c7e3.png"
+                  alt="Prefeitura de Betim"
+                  className="h-16 w-16 object-contain"
+                />
               </div>
               <h1 className="text-3xl font-bold text-primary">SIGMA</h1>
               <p className="text-sm text-muted-foreground mt-1">Sistema Integrado de Gestão de Mediadores e Atendimentos</p>
-              <p className="text-xs text-muted-foreground mt-1">SAIN — Prefeitura de Betim</p>
+              <p className="text-xs text-muted-foreground mt-1">SAIN — Secretaria Adjunta de Inclusão</p>
+              <p className="text-xs text-muted-foreground">Prefeitura Municipal de Betim</p>
             </div>
             <Button
               onClick={() => { window.location.href = getLoginUrl(); }}
@@ -182,12 +187,14 @@ function DashboardLayoutContent({
               </button>
               {!isCollapsed && (
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="flex items-center justify-center w-7 h-7 bg-white/20 rounded-md shrink-0">
-                    <span className="text-white font-bold text-sm">S</span>
-                  </div>
+                  <img
+                    src="/manus-storage/logo-prefeitura-betim_1714c7e3.png"
+                    alt="Prefeitura de Betim"
+                    className="h-7 w-7 rounded-md object-contain bg-white p-0.5 shrink-0"
+                  />
                   <div className="min-w-0">
                     <p className="font-bold text-white text-sm leading-none truncate">SIGMA</p>
-                    <p className="text-white/60 text-xs truncate">SAIN / Betim</p>
+                    <p className="text-white/60 text-xs truncate">SAIN — Betim</p>
                   </div>
                 </div>
               )}

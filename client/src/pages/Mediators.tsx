@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Download, Users, Briefcase, AlertCircle, Clock } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, Users, Briefcase, AlertCircle, Clock, UserPlus, X } from "lucide-react";
+import { BETIM_SCHOOLS, INACTIVITY_REASONS } from "@/lib/schools";
 
 const STATUS_OPTIONS = [
   { value: "active",      label: "Ativo(a)" },
@@ -71,6 +72,11 @@ const defaultForm = {
   specialization: "", responsible: "", status: "active" as StatusValue,
   changeType: "Sem alteração", linkedStudents: "", note: "",
   schoolId: "" as string | number, maxAttendances: 20,
+  isShared: false,
+  additionalStudents: [] as string[],
+  inactivityReason: "",
+  inactivityDate: "",
+  returnDate: "",
 };
 
 export default function Mediators() {
@@ -115,12 +121,20 @@ export default function Mediators() {
   function resetForm() { setForm(defaultForm); setEditingId(null); }
 
   function handleEdit(row: any) {
+    const addStudents = row.additionalStudents
+      ? row.additionalStudents.split("|").map((s: string) => s.trim()).filter(Boolean)
+      : [];
     setForm({
       name: row.name ?? "", registration: row.registration ?? "", cpf: row.cpf ?? "",
       professionalLicense: row.professionalLicense ?? "", specialization: row.specialization ?? "",
       responsible: row.responsible ?? "", status: (row.status as StatusValue) ?? "active",
       changeType: row.changeType ?? "Sem alteração", linkedStudents: row.linkedStudents ?? "",
       note: row.note ?? "", schoolId: row.schoolId ?? "", maxAttendances: row.maxAttendances ?? 20,
+      isShared: row.isShared ?? false,
+      additionalStudents: addStudents,
+      inactivityReason: row.inactivityReason ?? "",
+      inactivityDate: row.inactivityDate ? String(row.inactivityDate).substring(0, 10) : "",
+      returnDate: row.returnDate ? String(row.returnDate).substring(0, 10) : "",
     });
     setEditingId(row.id);
     setShowForm(true);
@@ -129,10 +143,21 @@ export default function Mediators() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name.trim()) return;
+    // Validar duplicidade de alunos adicionais
+    if (form.isShared) {
+      const mainName = form.linkedStudents.trim().toLowerCase();
+      const addNames = form.additionalStudents.map(s => s.trim().toLowerCase()).filter(Boolean);
+      const hasDuplicate = addNames.includes(mainName) || addNames.length !== new Set(addNames).size;
+      if (hasDuplicate) {
+        toast.error("Aluno duplicado: verifique se o aluno principal ou os alunos adicionais estão repetidos.");
+        return;
+      }
+    }
     const payload = {
       ...form,
       schoolId: form.schoolId ? Number(form.schoolId) : undefined,
       maxAttendances: Number(form.maxAttendances),
+      additionalStudents: form.isShared ? form.additionalStudents.filter(Boolean).join(" | ") : "",
     };
     if (editingId) {
       updateMutation.mutate({ id: editingId, ...payload });
@@ -349,9 +374,75 @@ export default function Mediators() {
               </Select>
             </div>
             <div className="sm:col-span-2">
-              <Label>Aluno(s) vinculado(s)</Label>
-              <Input className="mt-1" value={form.linkedStudents} onChange={e => setForm(f => ({ ...f, linkedStudents: e.target.value }))} placeholder="Ex.: Aluno A, Aluno B" />
+              <Label>Aluno principal vinculado</Label>
+              <Input className="mt-1" value={form.linkedStudents} onChange={e => setForm(f => ({ ...f, linkedStudents: e.target.value }))} placeholder="Nome do aluno principal" />
             </div>
+
+            {/* Atendente compartilhado */}
+            <div className="sm:col-span-2">
+              <Label>O atendente é compartilhado?</Label>
+              <Select value={form.isShared ? "yes" : "no"} onValueChange={v => setForm(f => ({ ...f, isShared: v === "yes", additionalStudents: v === "yes" ? f.additionalStudents : [] }))}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="no">Não</SelectItem>
+                  <SelectItem value="yes">Sim</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {form.isShared && (
+              <div className="sm:col-span-2 border rounded-lg p-4 bg-muted/20">
+                <div className="flex items-center justify-between mb-3">
+                  <Label className="text-sm font-semibold">Alunos adicionais vinculados</Label>
+                  <Button type="button" size="sm" variant="outline" onClick={() => setForm(f => ({ ...f, additionalStudents: [...f.additionalStudents, ""] }))}>
+                    <UserPlus className="w-3.5 h-3.5 mr-1" /> Adicionar aluno
+                  </Button>
+                </div>
+                {form.additionalStudents.length === 0 && (
+                  <p className="text-xs text-muted-foreground">Clique em "Adicionar aluno" para vincular alunos adicionais.</p>
+                )}
+                {form.additionalStudents.map((student, idx) => (
+                  <div key={idx} className="flex gap-2 mt-2">
+                    <Input
+                      value={student}
+                      onChange={e => setForm(f => {
+                        const arr = [...f.additionalStudents];
+                        arr[idx] = e.target.value;
+                        return { ...f, additionalStudents: arr };
+                      })}
+                      placeholder={`Nome do aluno adicional ${idx + 1}`}
+                    />
+                    <Button type="button" size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => setForm(f => ({ ...f, additionalStudents: f.additionalStudents.filter((_, i) => i !== idx) }))}>
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Campos de inatividade (visível quando status não é ativo) */}
+            {form.status !== "active" && (
+              <>
+                <div>
+                  <Label>Motivo do afastamento/inatividade</Label>
+                  <Select value={form.inactivityReason} onValueChange={v => setForm(f => ({ ...f, inactivityReason: v }))}>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Selecionar motivo..." /></SelectTrigger>
+                    <SelectContent>
+                      {INACTIVITY_REASONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Data de início do afastamento</Label>
+                  <Input type="date" className="mt-1" value={form.inactivityDate} onChange={e => setForm(f => ({ ...f, inactivityDate: e.target.value }))} />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Previsão de retorno</Label>
+                  <Input type="date" className="mt-1" value={form.returnDate} onChange={e => setForm(f => ({ ...f, returnDate: e.target.value }))} />
+                </div>
+              </>
+            )}
+
             <div className="sm:col-span-2">
               <Label>Observação</Label>
               <Textarea className="mt-1" rows={3} value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Justificativa, observação ou informação complementar" />

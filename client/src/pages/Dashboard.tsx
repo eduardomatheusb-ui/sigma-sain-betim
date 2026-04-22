@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
-import { Users, Briefcase, ClipboardList, AlertCircle, TrendingUp, School, Download, CheckCircle2, Clock } from "lucide-react";
+import { Users, Briefcase, ClipboardList, AlertCircle, TrendingUp, School, Download, CheckCircle2, Clock, UserCheck, UserX } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 function formatDateTime(value: string | Date | null | undefined) {
@@ -106,6 +107,15 @@ export default function Dashboard() {
   const totalSchools = (stats as any)?.totalSchools ?? 0;
   const updatedSchools = schoolPanel.filter((s: any) => s.weeklyStatus === "updated").length;
   const pendingSchools = schoolPanel.filter((s: any) => !s.weeklyStatus || s.weeklyStatus === "pending").length;
+  const studentsWithMediator = (stats as any)?.studentsWithMediator ?? 0;
+  const studentsWithoutMediator = (stats as any)?.studentsWithoutMediator ?? 0;
+  const emRanking = (stats as any)?.emRanking ?? [];
+  const cimRanking = (stats as any)?.cimRanking ?? [];
+  const byDisability = (stats as any)?.byDisability ?? [];
+  const byShift = (stats as any)?.byShift ?? [];
+  const byInactivity = (stats as any)?.byInactivity ?? [];
+
+  const CHART_COLORS = ["#004B99", "#9AC331", "#F59E0B", "#EF4444", "#8B5CF6", "#06B6D4", "#EC4899", "#14B8A6"];
 
   return (
     <div className="space-y-8">
@@ -142,6 +152,147 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Cards: alunos com e sem atendente */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Card>
+          <CardContent className="pt-5">
+            <div className="flex items-center gap-3">
+              <UserCheck className="w-8 h-8 text-green-600 opacity-80" />
+              <div>
+                <p className="text-xs text-muted-foreground">Alunos com atendente</p>
+                <p className="text-2xl font-bold">{studentsWithMediator}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-5">
+            <div className="flex items-center gap-3">
+              <UserX className="w-8 h-8 text-red-500 opacity-80" />
+              <div>
+                <p className="text-xs text-muted-foreground">Alunos sem atendente</p>
+                <p className="text-2xl font-bold">{studentsWithoutMediator}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Gráficos: deficiência, turno, motivos de inatividade */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Por deficiência */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Alunos por tipo de deficiência</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {byDisability.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">Sem dados cadastrados ainda.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={byDisability.slice(0, 8)} layout="vertical" margin={{ left: 8, right: 8 }}>
+                  <XAxis type="number" tick={{ fontSize: 11 }} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={120} />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#004B99" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Por turno */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Alunos por turno</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {byShift.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">Sem dados cadastrados ainda.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie data={byShift} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                    {byShift.map((_: any, idx: number) => (
+                      <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Motivos de inatividade */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Motivos de afastamento</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {byInactivity.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">Sem afastamentos registrados.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={byInactivity.slice(0, 6)} layout="vertical" margin={{ left: 8, right: 8 }}>
+                  <XAxis type="number" tick={{ fontSize: 11 }} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={130} />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#F59E0B" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Rankings: Top 10 EMs e CIMs com mais demanda */}
+      {(emRanking.length > 0 || cimRanking.length > 0) && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {emRanking.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Top 10 Escolas Municipais com mais demanda</CardTitle>
+                <CardDescription>Vagas em aberto + afastamentos</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={emRanking} layout="vertical" margin={{ left: 8, right: 8 }}>
+                    <XAxis type="number" tick={{ fontSize: 11 }} />
+                    <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={160} />
+                    <Tooltip />
+                    <Bar dataKey="demand" fill="#EF4444" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
+          {cimRanking.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Top 10 CIMs com mais demanda</CardTitle>
+                <CardDescription>Vagas em aberto + afastamentos</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={cimRanking} layout="vertical" margin={{ left: 8, right: 8 }}>
+                    <XAxis type="number" tick={{ fontSize: 11 }} />
+                    <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={160} />
+                    <Tooltip />
+                    <Bar dataKey="demand" fill="#8B5CF6" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Linha separadora para o painel de escolas */}
+      <div className="border-t pt-4">
+        <h2 className="text-lg font-semibold mb-4">Painel de Escolas</h2>
       </div>
 
       {/* Layout principal: painel de escolas + sidebar */}
