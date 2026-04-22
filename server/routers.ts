@@ -750,6 +750,40 @@ export const appRouter = router({
         }
       }),
 
+    // Retorna lista de nomes de atendentes únicos já cadastrados no sistema
+    listAttendants: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      try {
+        const allDemands = await db.select({ attendantName: demands.attendantName }).from(demands);
+        const names = allDemands
+          .map(d => d.attendantName)
+          .filter((n): n is string => !!n && n.trim().length > 0);
+        const uniqueNames = Array.from(new Set(names)).sort();
+        return uniqueNames;
+      } catch {
+        return [];
+      }
+    }),
+
+    // Verifica se um aluno já existe pelo nome (busca para cadastro unificado)
+    searchStudents: protectedProcedure
+      .input(z.object({ query: z.string().min(2) }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        try {
+          const allDemands = await db.select().from(demands);
+          const q = input.query.toLowerCase();
+          return allDemands
+            .filter(d => d.studentName.toLowerCase().includes(q))
+            .slice(0, 10)
+            .map(d => ({ id: d.id, studentName: d.studentName, schoolName: d.schoolName, cpf: d.cpf }));
+        } catch {
+          return [];
+        }
+      }),
+
     stats: protectedProcedure
       .input(z.object({
         schoolId: z.number().optional(),

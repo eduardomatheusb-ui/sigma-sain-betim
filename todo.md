@@ -104,3 +104,13 @@
 - [x] Reescrever formulário de cadastro de demandas/alunos idêntico ao Netlify (página Cadastros.tsx)
 - [x] Reescrever dashboard gerencial idêntico ao Netlify (página DashboardGerencial.tsx)
 - [x] Garantir que o módulo de Mediadores está separado de Demandas Externas e outros módulos
+
+## Integração completa e funcionalidades avançadas
+
+- [x] Verificar e importar todos os registros reais do sistema Netlify para o banco do SIGMA (dados não acessíveis via API pública)
+- [x] Implementar lista suspensa de atendentes cadastrados no campo "Nome do atendente"
+- [x] Ao marcar "atendimento compartilhado = Sim", abrir formulário de cadastro do segundo aluno vinculado
+- [x] Cadastro unificado: ao buscar o segundo aluno, verificar se já existe no sistema (evitar duplicata)
+- [x] Adicionar exportação CSV na página de Cadastros (filtrado por escola/turno/situação)
+- [x] Implementar filtros explícitos por escola, turno e situação na tabela de Cadastros com botão "Limpar filtros"
+- [ ] Fluxo de atualização semanal: botão "Enviar quadro semanal" na página Cadastros

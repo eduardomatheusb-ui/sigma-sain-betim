@@ -31,7 +31,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Pencil, Trash2, Download, Search, ChevronDown, ChevronUp } from "lucide-react";
+import { Pencil, Trash2, Download, Search, UserPlus, X } from "lucide-react";
 
 // Lista completa de deficiências/transtornos (idêntica ao Netlify)
 const DISABILITY_OPTIONS = [
@@ -97,6 +97,16 @@ type FormData = {
   notes: string;
 };
 
+// Segundo aluno (para atendimento compartilhado)
+type SharedStudentData = {
+  studentName: string;
+  dateOfBirth: string;
+  cpf: string;
+  grade: string;
+  disabilities: string[];
+  existingId?: number; // se vinculado a um aluno já existente
+};
+
 const EMPTY_FORM: FormData = {
   email: "",
   schoolName: "",
@@ -114,6 +124,14 @@ const EMPTY_FORM: FormData = {
   notes: "",
 };
 
+const EMPTY_SHARED: SharedStudentData = {
+  studentName: "",
+  dateOfBirth: "",
+  cpf: "",
+  grade: "",
+  disabilities: [],
+};
+
 export default function Cadastros() {
   const { user } = useAuth();
   const utils = trpc.useUtils();
@@ -121,8 +139,9 @@ export default function Cadastros() {
   // Dados
   const { data: demands = [], isLoading } = trpc.demands.list.useQuery();
   const { data: schools = [] } = trpc.schools.list.useQuery();
+  const { data: attendantNames = [] } = trpc.demands.listAttendants.useQuery();
 
-  // Estado do formulário
+  // Estado do formulário principal
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -130,8 +149,27 @@ export default function Cadastros() {
   const [schoolSearch, setSchoolSearch] = useState("");
   const [showSchoolDropdown, setShowSchoolDropdown] = useState(false);
 
+  // Estado para lista suspensa de atendentes
+  const [attendantSearch, setAttendantSearch] = useState("");
+  const [showAttendantDropdown, setShowAttendantDropdown] = useState(false);
+
+  // Estado para segundo aluno (compartilhado)
+  const [sharedStudent, setSharedStudent] = useState<SharedStudentData>(EMPTY_SHARED);
+  const [sharedStudentSearch, setSharedStudentSearch] = useState("");
+  const [showSharedStudentDropdown, setShowSharedStudentDropdown] = useState(false);
+  const [sharedStudentMode, setSharedStudentMode] = useState<"search" | "new">("search");
+
   // Filtros da tabela
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterSchool, setFilterSchool] = useState("all");
+  const [filterShift, setFilterShift] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+
+  // Busca de alunos existentes para atendimento compartilhado
+  const { data: existingStudents = [] } = trpc.demands.searchStudents.useQuery(
+    { query: sharedStudentSearch },
+    { enabled: sharedStudentSearch.length >= 2 }
+  );
 
   // Mutations
   const createMutation = trpc.demands.create.useMutation({
@@ -139,7 +177,11 @@ export default function Cadastros() {
       toast.success("Registro cadastrado com sucesso!");
       setForm(EMPTY_FORM);
       setSchoolSearch("");
+      setAttendantSearch("");
+      setSharedStudent(EMPTY_SHARED);
+      setSharedStudentSearch("");
       utils.demands.list.invalidate();
+      utils.demands.listAttendants.invalidate();
     },
     onError: (err) => toast.error(err.message),
   });
@@ -150,7 +192,11 @@ export default function Cadastros() {
       setEditingId(null);
       setForm(EMPTY_FORM);
       setSchoolSearch("");
+      setAttendantSearch("");
+      setSharedStudent(EMPTY_SHARED);
+      setSharedStudentSearch("");
       utils.demands.list.invalidate();
+      utils.demands.listAttendants.invalidate();
     },
     onError: (err) => toast.error(err.message),
   });
@@ -173,21 +219,49 @@ export default function Cadastros() {
     );
   }, [schools, schoolSearch]);
 
+  // Atendentes filtrados para autocomplete
+  const filteredAttendants = useMemo(() => {
+    if (!attendantSearch) return attendantNames;
+    return attendantNames.filter((n) =>
+      n.toLowerCase().includes(attendantSearch.toLowerCase())
+    );
+  }, [attendantNames, attendantSearch]);
+
   // Registros filtrados
   const filteredDemands = useMemo(() => {
-    if (!searchQuery) return demands;
-    const q = searchQuery.toLowerCase();
-    return demands.filter(
-      (d) =>
-        d.studentName.toLowerCase().includes(q) ||
-        d.schoolName.toLowerCase().includes(q) ||
-        (d.attendantName && d.attendantName.toLowerCase().includes(q)) ||
-        (d.email && d.email.toLowerCase().includes(q))
-    );
-  }, [demands, searchQuery]);
+    return demands.filter((d) => {
+      if (filterSchool !== "all" && d.schoolName !== filterSchool) return false;
+      if (filterShift !== "all" && d.shift !== filterShift) return false;
+      if (filterStatus !== "all" && d.attendanceStatus !== filterStatus) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        return (
+          d.studentName.toLowerCase().includes(q) ||
+          d.schoolName.toLowerCase().includes(q) ||
+          (d.attendantName && d.attendantName.toLowerCase().includes(q)) ||
+          (d.email && d.email.toLowerCase().includes(q))
+        );
+      }
+      return true;
+    });
+  }, [demands, searchQuery, filterSchool, filterShift, filterStatus]);
+
+  // Escolas únicas para o filtro
+  const uniqueSchools = useMemo(() => {
+    return Array.from(new Set(demands.map((d) => d.schoolName))).sort();
+  }, [demands]);
 
   const toggleDisability = (disability: string) => {
     setForm((prev) => ({
+      ...prev,
+      disabilities: prev.disabilities.includes(disability)
+        ? prev.disabilities.filter((d) => d !== disability)
+        : [...prev.disabilities, disability],
+    }));
+  };
+
+  const toggleSharedDisability = (disability: string) => {
+    setSharedStudent((prev) => ({
       ...prev,
       disabilities: prev.disabilities.includes(disability)
         ? prev.disabilities.filter((d) => d !== disability)
@@ -205,6 +279,22 @@ export default function Cadastros() {
       toast.error("Selecione ao menos uma deficiência/transtorno.");
       return;
     }
+    if (form.isShared && !sharedStudent.studentName) {
+      toast.error("Informe o nome do segundo aluno para o atendimento compartilhado.");
+      return;
+    }
+
+    // Montar observação com dados do segundo aluno se compartilhado
+    let notes = form.notes;
+    if (form.isShared && sharedStudent.studentName) {
+      const sharedInfo = [
+        `2º ALUNO VINCULADO: ${sharedStudent.studentName}`,
+        sharedStudent.cpf ? `CPF/Certidão: ${sharedStudent.cpf}` : null,
+        sharedStudent.grade ? `Turma: ${sharedStudent.grade}` : null,
+        sharedStudent.disabilities.length > 0 ? `Deficiências: ${sharedStudent.disabilities.join(", ")}` : null,
+      ].filter(Boolean).join(" | ");
+      notes = notes ? `${notes}\n${sharedInfo}` : sharedInfo;
+    }
 
     const payload = {
       email: form.email || undefined,
@@ -220,7 +310,7 @@ export default function Cadastros() {
       hasAttendant: form.hasAttendant,
       attendantName: form.hasAttendant ? form.attendantName || undefined : undefined,
       isShared: form.isShared,
-      notes: form.notes || undefined,
+      notes: notes || undefined,
     };
 
     if (editingId !== null) {
@@ -249,6 +339,7 @@ export default function Cadastros() {
       notes: demand.notes || "",
     });
     setSchoolSearch(demand.schoolName);
+    setAttendantSearch(demand.attendantName || "");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -256,6 +347,9 @@ export default function Cadastros() {
     setEditingId(null);
     setForm(EMPTY_FORM);
     setSchoolSearch("");
+    setAttendantSearch("");
+    setSharedStudent(EMPTY_SHARED);
+    setSharedStudentSearch("");
   };
 
   const handleDelete = (id: number) => {
@@ -268,14 +362,16 @@ export default function Cadastros() {
   };
 
   const exportCSV = () => {
-    const headers = ["Aluno", "Unidade", "Turno", "Turma", "Deficiências", "Situação", "Atendente", "Compartilhado", "Observação", "Atualizado"];
+    const headers = ["Aluno", "CPF/Certidão", "Unidade", "Turno", "Turma", "Deficiências", "Situação", "Situação Atendente", "Atendente", "Compartilhado", "Observação", "Atualizado"];
     const rows = filteredDemands.map((d) => [
       d.studentName,
+      d.cpf || "",
       d.schoolName,
       SHIFT_LABELS[d.shift] || d.shift,
       d.grade || "",
       d.disabilities ? JSON.parse(d.disabilities).join("; ") : "",
       ATTENDANCE_STATUS_LABELS[d.attendanceStatus] || d.attendanceStatus,
+      d.attendantStatus === "active" ? "Ativo" : "Inativo",
       d.attendantName || "",
       d.isShared ? "Sim" : "Não",
       d.notes || "",
@@ -315,13 +411,14 @@ export default function Cadastros() {
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  placeholder="email@escola.betim.mg.gov.br"
+                  placeholder="email@exemplo.com"
                 />
               </div>
+
+              {/* Autocomplete de escola */}
               <div className="space-y-1 relative">
-                <Label htmlFor="schoolName">Unidade educacional*</Label>
+                <Label>Unidade educacional*</Label>
                 <Input
-                  id="schoolName"
                   value={schoolSearch}
                   onChange={(e) => {
                     setSchoolSearch(e.target.value);
@@ -331,14 +428,14 @@ export default function Cadastros() {
                   onFocus={() => setShowSchoolDropdown(true)}
                   onBlur={() => setTimeout(() => setShowSchoolDropdown(false), 200)}
                   placeholder="Selecione ou digite a unidade educacional"
-                  autoComplete="off"
                 />
                 {showSchoolDropdown && filteredSchools.length > 0 && (
-                  <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto mt-1">
+                  <div className="absolute z-50 top-full left-0 right-0 bg-white border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
                     {filteredSchools.slice(0, 20).map((school) => (
-                      <div
+                      <button
                         key={school.id}
-                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                        type="button"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
                         onMouseDown={() => {
                           setSchoolSearch(school.name);
                           setForm({ ...form, schoolName: school.name });
@@ -346,7 +443,7 @@ export default function Cadastros() {
                         }}
                       >
                         {school.name}
-                      </div>
+                      </button>
                     ))}
                   </div>
                 )}
@@ -360,8 +457,7 @@ export default function Cadastros() {
                 id="studentName"
                 value={form.studentName}
                 onChange={(e) => setForm({ ...form, studentName: e.target.value })}
-                placeholder="Nome completo"
-                required
+                placeholder="Nome completo do aluno"
               />
             </div>
 
@@ -420,18 +516,15 @@ export default function Cadastros() {
             {/* Deficiências/Transtornos */}
             <div className="space-y-2">
               <Label>Deficiência/Transtorno*</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 border rounded-md p-3 bg-gray-50">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border border-border rounded-md p-3 bg-muted/30">
                 {DISABILITY_OPTIONS.map((disability) => (
-                  <div key={disability} className="flex items-center space-x-2">
+                  <div key={disability} className="flex items-center gap-2">
                     <Checkbox
-                      id={`disability-${disability}`}
+                      id={`dis-${disability}`}
                       checked={form.disabilities.includes(disability)}
                       onCheckedChange={() => toggleDisability(disability)}
                     />
-                    <label
-                      htmlFor={`disability-${disability}`}
-                      className="text-sm cursor-pointer leading-tight"
-                    >
+                    <label htmlFor={`dis-${disability}`} className="text-sm cursor-pointer">
                       {disability}
                     </label>
                   </div>
@@ -444,7 +537,7 @@ export default function Cadastros() {
               )}
             </div>
 
-            {/* Situação do atendimento */}
+            {/* Situação do atendimento + situação do atendente */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label>Situação do atendimento*</Label>
@@ -499,16 +592,52 @@ export default function Cadastros() {
               </Select>
             </div>
 
-            {/* Nome do atendente (condicional) */}
+            {/* Nome do atendente — lista suspensa com atendentes cadastrados */}
             {form.hasAttendant && (
-              <div className="space-y-1">
+              <div className="space-y-1 relative">
                 <Label htmlFor="attendantName">Nome completo do atendente</Label>
-                <Input
-                  id="attendantName"
-                  value={form.attendantName}
-                  onChange={(e) => setForm({ ...form, attendantName: e.target.value })}
-                  placeholder="Nome completo do atendente"
-                />
+                <div className="relative">
+                  <Input
+                    id="attendantName"
+                    value={attendantSearch || form.attendantName}
+                    onChange={(e) => {
+                      setAttendantSearch(e.target.value);
+                      setForm({ ...form, attendantName: e.target.value });
+                      setShowAttendantDropdown(true);
+                    }}
+                    onFocus={() => setShowAttendantDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowAttendantDropdown(false), 200)}
+                    placeholder="Digite ou selecione o nome do atendente"
+                  />
+                  {showAttendantDropdown && filteredAttendants.length > 0 && (
+                    <div className="absolute z-50 top-full left-0 right-0 bg-white border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                      {filteredAttendants.map((name) => (
+                        <button
+                          key={name}
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
+                          onMouseDown={() => {
+                            setAttendantSearch(name);
+                            setForm({ ...form, attendantName: name });
+                            setShowAttendantDropdown(false);
+                          }}
+                        >
+                          {name}
+                        </button>
+                      ))}
+                      {attendantSearch && !filteredAttendants.includes(attendantSearch) && (
+                        <div className="px-3 py-2 text-xs text-muted-foreground border-t">
+                          Novo atendente: "{attendantSearch}" será cadastrado
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {attendantNames.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {attendantNames.length} atendente(s) cadastrado(s) no sistema. Digite para filtrar ou insira um novo nome.
+                  </p>
+                )}
               </div>
             )}
 
@@ -517,7 +646,13 @@ export default function Cadastros() {
               <Label>O atendente é compartilhado?*</Label>
               <Select
                 value={form.isShared ? "yes" : "no"}
-                onValueChange={(v) => setForm({ ...form, isShared: v === "yes" })}
+                onValueChange={(v) => {
+                  setForm({ ...form, isShared: v === "yes" });
+                  if (v === "no") {
+                    setSharedStudent(EMPTY_SHARED);
+                    setSharedStudentSearch("");
+                  }
+                }}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -528,6 +663,165 @@ export default function Cadastros() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Segundo aluno (quando compartilhado = Sim) */}
+            {form.isShared && (
+              <Card className="border-blue-200 bg-blue-50/50">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-semibold text-blue-800 flex items-center gap-2">
+                      <UserPlus className="h-4 w-4" />
+                      2º Aluno vinculado ao atendente compartilhado
+                    </CardTitle>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={sharedStudentMode === "search" ? "default" : "outline"}
+                        onClick={() => setSharedStudentMode("search")}
+                        className="text-xs h-7"
+                      >
+                        Buscar existente
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={sharedStudentMode === "new" ? "default" : "outline"}
+                        onClick={() => setSharedStudentMode("new")}
+                        className="text-xs h-7"
+                      >
+                        Novo cadastro
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {sharedStudentMode === "search" ? (
+                    /* Modo busca: procurar aluno já cadastrado */
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          value={sharedStudentSearch}
+                          onChange={(e) => {
+                            setSharedStudentSearch(e.target.value);
+                            setShowSharedStudentDropdown(true);
+                          }}
+                          onFocus={() => setShowSharedStudentDropdown(true)}
+                          onBlur={() => setTimeout(() => setShowSharedStudentDropdown(false), 200)}
+                          placeholder="Buscar aluno pelo nome..."
+                          className="pl-8"
+                        />
+                        {showSharedStudentDropdown && existingStudents.length > 0 && (
+                          <div className="absolute z-50 top-full left-0 right-0 bg-white border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                            {existingStudents.map((s) => (
+                              <button
+                                key={s.id}
+                                type="button"
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
+                                onMouseDown={() => {
+                                  setSharedStudent({
+                                    studentName: s.studentName,
+                                    dateOfBirth: "",
+                                    cpf: s.cpf || "",
+                                    grade: "",
+                                    disabilities: [],
+                                    existingId: s.id,
+                                  });
+                                  setSharedStudentSearch(s.studentName);
+                                  setShowSharedStudentDropdown(false);
+                                }}
+                              >
+                                <div className="font-medium">{s.studentName}</div>
+                                <div className="text-xs text-muted-foreground">{s.schoolName}</div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {sharedStudent.studentName && (
+                        <div className="flex items-center gap-2 p-2 bg-blue-100 rounded-md">
+                          <span className="text-sm font-medium text-blue-800">{sharedStudent.studentName}</span>
+                          {sharedStudent.cpf && <span className="text-xs text-blue-600">CPF: {sharedStudent.cpf}</span>}
+                          <button
+                            type="button"
+                            onClick={() => { setSharedStudent(EMPTY_SHARED); setSharedStudentSearch(""); }}
+                            className="ml-auto text-blue-600 hover:text-blue-800"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                      {sharedStudentSearch.length >= 2 && existingStudents.length === 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Nenhum aluno encontrado. Use "Novo cadastro" para registrar.
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    /* Modo novo cadastro */
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Nome completo do aluno*</Label>
+                        <Input
+                          value={sharedStudent.studentName}
+                          onChange={(e) => setSharedStudent({ ...sharedStudent, studentName: e.target.value })}
+                          placeholder="Nome completo"
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Data de nascimento</Label>
+                          <Input
+                            type="date"
+                            value={sharedStudent.dateOfBirth}
+                            onChange={(e) => setSharedStudent({ ...sharedStudent, dateOfBirth: e.target.value })}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">CPF ou certidão</Label>
+                          <Input
+                            value={sharedStudent.cpf}
+                            onChange={(e) => setSharedStudent({ ...sharedStudent, cpf: e.target.value })}
+                            placeholder="000.000.000-00"
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Turma</Label>
+                        <Input
+                          value={sharedStudent.grade}
+                          onChange={(e) => setSharedStudent({ ...sharedStudent, grade: e.target.value })}
+                          placeholder="Ex: 3º ano B"
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Deficiências/Transtornos</Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 border border-border rounded-md p-2 bg-white max-h-32 overflow-y-auto">
+                          {DISABILITY_OPTIONS.map((disability) => (
+                            <div key={disability} className="flex items-center gap-1.5">
+                              <Checkbox
+                                id={`shared-dis-${disability}`}
+                                checked={sharedStudent.disabilities.includes(disability)}
+                                onCheckedChange={() => toggleSharedDisability(disability)}
+                                className="h-3 w-3"
+                              />
+                              <label htmlFor={`shared-dis-${disability}`} className="text-xs cursor-pointer">
+                                {disability}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Observação */}
             <div className="space-y-1">
@@ -559,12 +853,19 @@ export default function Cadastros() {
       {/* Tabela de Registros */}
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <CardTitle className="text-lg font-semibold">
-              Registros ({filteredDemands.length})
-            </CardTitle>
-            <div className="flex gap-2 w-full sm:w-auto">
-              <div className="relative flex-1 sm:w-72">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <CardTitle className="text-lg font-semibold">
+                Registros ({filteredDemands.length})
+              </CardTitle>
+              <Button variant="outline" size="sm" onClick={exportCSV}>
+                <Download className="h-4 w-4 mr-1" />
+                Exportar CSV
+              </Button>
+            </div>
+            {/* Filtros */}
+            <div className="flex flex-wrap gap-2">
+              <div className="relative flex-1 min-w-48">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por aluno, atendente, unidade ou e-mail"
@@ -573,10 +874,51 @@ export default function Cadastros() {
                   className="pl-8"
                 />
               </div>
-              <Button variant="outline" size="sm" onClick={exportCSV}>
-                <Download className="h-4 w-4 mr-1" />
-                Exportar CSV
-              </Button>
+              <Select value={filterSchool} onValueChange={setFilterSchool}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Todas as escolas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as escolas</SelectItem>
+                  {uniqueSchools.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filterShift} onValueChange={setFilterShift}>
+                <SelectTrigger className="w-36">
+                  <SelectValue placeholder="Todos os turnos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os turnos</SelectItem>
+                  <SelectItem value="full">Integral</SelectItem>
+                  <SelectItem value="morning">Manhã</SelectItem>
+                  <SelectItem value="afternoon">Tarde</SelectItem>
+                  <SelectItem value="evening">Noite</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Todas as situações" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as situações</SelectItem>
+                  <SelectItem value="with_attendant">Com atendente</SelectItem>
+                  <SelectItem value="without_attendant">Sem atendente</SelectItem>
+                  <SelectItem value="awaiting_substitution">Aguardando substituição</SelectItem>
+                  <SelectItem value="partially_attended">Parcialmente atendido</SelectItem>
+                </SelectContent>
+              </Select>
+              {(filterSchool !== "all" || filterShift !== "all" || filterStatus !== "all" || searchQuery) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { setFilterSchool("all"); setFilterShift("all"); setFilterStatus("all"); setSearchQuery(""); }}
+                  className="text-muted-foreground"
+                >
+                  <X className="h-4 w-4 mr-1" /> Limpar filtros
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
