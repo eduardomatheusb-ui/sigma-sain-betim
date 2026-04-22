@@ -88,3 +88,10 @@
 - [x] Aplicar logo da Prefeitura de Betim no cabeçalho
 - [x] Atualizar cabeçalho com identidade visual SIGMA institucional
 - [x] Adicionar rodapé institucional
+
+## Migração do projeto quadrodemediadores (Netlify)
+
+- [ ] Investigar estrutura dos dados do localStorage do projeto antigo
+- [ ] Criar página de importação no SIGMA (upload JSON/CSV)
+- [ ] Implementar procedure tRPC para processar e salvar dados importados
+- [ ] Criar script de exportação do localStorage para o usuário rodar no navegador

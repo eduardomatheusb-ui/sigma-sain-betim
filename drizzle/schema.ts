@@ -59,7 +59,7 @@ export const students = mysqlTable("students", {
   notes: text("notes"),
   // Campos adicionais para dashboard e relatórios
   disability: varchar("disability", { length: 255 }),
-  shift: mysqlEnum("shift", ["morning", "afternoon", "full"]),
+  shift: mysqlEnum("shift", ["morning", "afternoon", "full", "evening"]),
   grade: varchar("grade", { length: 50 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
