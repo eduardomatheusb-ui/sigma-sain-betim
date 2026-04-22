@@ -120,3 +120,13 @@
 - [x] Adicionar botão e formulário de criação de novo usuário na página Usuários
 - [x] Formulário deve ter: nome, e-mail, perfil (admin/escola), escola vinculada (se perfil escola)
 - [x] Implementar procedure users.create no backend
+
+## Permissões do Perfil Escola e Reorganização de Abas
+
+- [ ] Remover abas Atendimentos e Demandas Externas da sidebar para perfil escola
+- [ ] Dashboard do perfil escola: mostrar apenas dados da própria escola
+- [ ] Mediadores: perfil escola só vê/cadastra mediadores da própria escola
+- [x] Mover formulário de cadastro (Cadastros.tsx) para dentro da aba Alunos (formulário de alunos já estava em Students.tsx)
+- [x] Aba Cadastros: transformar em quadro semanal (lista de mediadores da escola + botão enviar)
+- [x] Renomear item "Cadastros" para "Quadro Semanal" na sidebar (admin e escola)
+- [ ] Alunos: perfil escola só vê/cadastra alunos da própria escola
