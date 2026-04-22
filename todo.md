@@ -26,15 +26,15 @@
 ## Gestão de Alunos
 - [x] Criar formulário de cadastro de alunos
 - [x] Implementar listagem com filtros e busca
-- [ ] Criar página de detalhes do aluno com histórico
+- [x] Criar página de detalhes do aluno com histórico
 - [x] Adicionar campos: dados pessoais, necessidades, escola, status
 
 ## Gestão de Mediadores
 - [x] Criar formulário de cadastro de mediadores
 - [x] Implementar listagem com filtros
-- [ ] Criar página de detalhes do mediador
+- [x] Criar página de detalhes do mediador
 - [x] Adicionar vinculação com alunos e escolas
-- [ ] Implementar carga de atendimentos
+- [x] Implementar carga de atendimentos
 
 ## Controle por Escola
 - [x] Criar visão consolidada por escola
@@ -45,13 +45,13 @@
 - [x] Criar formulário de registro de atendimento
 - [x] Implementar listagem com histórico
 - [x] Adicionar suporte a atendimentos compartilhados
-- [ ] Criar página de detalhes com acompanhamento
+- [x] Criar página de detalhes com acompanhamento
 
 ## Demandas Externas
 - [x] Criar formulário de registro de demanda
 - [x] Implementar listagem com filtros
-- [ ] Adicionar acompanhamento institucional
-- [ ] Criar página de detalhes
+- [x] Adicionar acompanhamento institucional
+- [x] Criar página de detalhes
 
 ## Gestão de Usuários (Admin)
 - [x] Criar página de gerenciamento de usuários
@@ -60,13 +60,13 @@
 - [x] Implementar listagem com filtros
 
 ## Relatórios e Exportação
-- [ ] Implementar filtros por escola, período e status
-- [ ] Criar exportação em formato de tabela
-- [ ] Adicionar funcionalidade de download
+- [x] Implementar filtros por escola, período e status
+- [x] Criar exportação em formato de tabela
+- [x] Adicionar funcionalidade de download
 
 ## Testes e Validação
 - [x] Testar fluxos de autenticação
 - [x] Validar controle de acesso por perfil
-- [ ] Testar responsividade e acessibilidade
-- [ ] Validar navegação e usabilidade
+- [x] Testar responsividade e acessibilidade
+- [x] Validar navegação e usabilidade
 - [x] Implementar testes unitários com Vitest

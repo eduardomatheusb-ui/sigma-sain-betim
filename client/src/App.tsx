@@ -13,6 +13,7 @@ import Mediators from "./pages/Mediators";
 import Attendances from "./pages/Attendances";
 import ExternalDemands from "./pages/ExternalDemands";
 import Users from "./pages/Users";
+import Reports from "./pages/Reports";
 
 function Router() {
   return (
@@ -25,6 +26,7 @@ function Router() {
       <Route path="/atendimentos" component={Attendances} />
       <Route path="/demandas" component={ExternalDemands} />
       <Route path="/usuarios" component={Users} />
+      <Route path="/relatorios" component={Reports} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
