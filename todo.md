@@ -91,7 +91,7 @@
 
 ## Migração do projeto quadrodemediadores (Netlify)
 
-- [ ] Investigar estrutura dos dados do localStorage do projeto antigo
-- [ ] Criar página de importação no SIGMA (upload JSON/CSV)
-- [ ] Implementar procedure tRPC para processar e salvar dados importados
-- [ ] Criar script de exportação do localStorage para o usuário rodar no navegador
+- [x] Investigar estrutura dos dados do localStorage do projeto antigo
+- [x] Migrar 10 registros do sistema antigo para o banco do SIGMA (2 escolas, 10 alunos, 9 mediadores)
+- [x] Criar script de migração (scripts/migrate-from-netlify.mjs) para uso futuro
+- [x] Atualizar schema: enum 'evening' adicionado ao campo shift dos alunos
