@@ -42,7 +42,7 @@ import { Button } from "./ui/button";
 
 const adminMenuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { icon: FileText, label: "Quadro Semanal", path: "/cadastros" },
+  { icon: FileText, label: "Quadro AAP", path: "/cadastros" },
   { icon: BarChart3, label: "Dashboard Gerencial", path: "/dashboard-gerencial" },
   { icon: School, label: "Escolas", path: "/escolas" },
   { icon: GraduationCap, label: "Alunos", path: "/alunos" },
@@ -57,7 +57,7 @@ const schoolMenuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
   { icon: GraduationCap, label: "Alunos", path: "/alunos" },
   { icon: UserCheck, label: "Mediadores", path: "/mediadores" },
-  { icon: FileText, label: "Quadro Semanal", path: "/cadastros" },
+  { icon: FileText, label: "Quadro AAP", path: "/cadastros" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";

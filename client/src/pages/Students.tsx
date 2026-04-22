@@ -82,6 +82,12 @@ type FormData = {
   attendantName: string;
   isShared: boolean;
   notes: string;
+  // Campos AAP
+  usesWheelchair: boolean;
+  usesWalker: boolean;
+  usesProsthesis: boolean;
+  homeCare: boolean;
+  needsAttendant: "yes" | "no" | "nam";
 };
 
 type SharedStudentData = {
@@ -108,6 +114,12 @@ const EMPTY_FORM: FormData = {
   attendantName: "",
   isShared: false,
   notes: "",
+  // Campos AAP
+  usesWheelchair: false,
+  usesWalker: false,
+  usesProsthesis: false,
+  homeCare: false,
+  needsAttendant: "yes",
 };
 
 const EMPTY_SHARED: SharedStudentData = {
@@ -292,6 +304,12 @@ export default function Students() {
       attendantName: form.hasAttendant ? form.attendantName || undefined : undefined,
       isShared: form.isShared,
       notes: notes || undefined,
+      // Campos AAP
+      usesWheelchair: form.usesWheelchair,
+      usesWalker: form.usesWalker,
+      usesProsthesis: form.usesProsthesis,
+      homeCare: form.homeCare,
+      needsAttendant: form.needsAttendant,
     };
 
     if (editingId !== null) {
@@ -318,6 +336,12 @@ export default function Students() {
       attendantName: demand.attendantName || "",
       isShared: demand.isShared,
       notes: demand.notes || "",
+      // Campos AAP
+      usesWheelchair: (demand as any).usesWheelchair || false,
+      usesWalker: (demand as any).usesWalker || false,
+      usesProsthesis: (demand as any).usesProsthesis || false,
+      homeCare: (demand as any).homeCare || false,
+      needsAttendant: (demand as any).needsAttendant || "yes",
     });
     setSchoolSearch(demand.schoolName);
     setAttendantSearch(demand.attendantName || "");
@@ -832,6 +856,68 @@ export default function Students() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Mobilidade (para Quadro AAP) */}
+            <div className="space-y-2">
+              <Label className="font-semibold">Mobilidade do aluno</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 border border-border rounded-md p-3 bg-muted/30">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="usesWheelchair"
+                    checked={form.usesWheelchair}
+                    onCheckedChange={(v) => setForm({ ...form, usesWheelchair: !!v })}
+                  />
+                  <label htmlFor="usesWheelchair" className="text-sm cursor-pointer">Cadeira de rodas</label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="usesWalker"
+                    checked={form.usesWalker}
+                    onCheckedChange={(v) => setForm({ ...form, usesWalker: !!v })}
+                  />
+                  <label htmlFor="usesWalker" className="text-sm cursor-pointer">Andador</label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="usesProsthesis"
+                    checked={form.usesProsthesis}
+                    onCheckedChange={(v) => setForm({ ...form, usesProsthesis: !!v })}
+                  />
+                  <label htmlFor="usesProsthesis" className="text-sm cursor-pointer">Prótese</label>
+                </div>
+              </div>
+            </div>
+
+            {/* Atendimento domiciliar */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label>Atendimento domiciliar?</Label>
+                <Select
+                  value={form.homeCare ? "yes" : "no"}
+                  onValueChange={(v) => setForm({ ...form, homeCare: v === "yes" })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="yes">Sim</SelectItem>
+                    <SelectItem value="no">Não</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Necessita de atendente?</Label>
+                <Select
+                  value={form.needsAttendant}
+                  onValueChange={(v) => setForm({ ...form, needsAttendant: v as "yes" | "no" | "nam" })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="yes">Sim</SelectItem>
+                    <SelectItem value="no">Não necessita</SelectItem>
+                    <SelectItem value="nam">NAM (Não Atendido por Mediador)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
             {/* Observação */}
             <div className="space-y-1">

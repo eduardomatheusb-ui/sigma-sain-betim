@@ -5,6 +5,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { getSchools, getStudentsBySchool, getMediatorsBySchool, getAttendancesBySchool, getExternalDemandsBySchool } from "./db";
+import { notifyOwner } from "./_core/notification";
 import { getDb } from "./db";
 import { students, mediators, attendances, externalDemands, schools, users, demands, mediatorStudents, statusHistory, weeklySnapshots } from "../drizzle/schema";
 import { eq, and, like, sql, desc, inArray } from "drizzle-orm";
@@ -1241,6 +1242,11 @@ export const appRouter = router({
         attendantName: z.string().optional(),
         isShared: z.boolean().optional(),
         notes: z.string().optional(),
+        usesWheelchair: z.boolean().optional(),
+        usesWalker: z.boolean().optional(),
+        usesProsthesis: z.boolean().optional(),
+        homeCare: z.boolean().optional(),
+        needsAttendant: z.enum(["yes", "no", "nam"]).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
@@ -1266,6 +1272,11 @@ export const appRouter = router({
             attendantName: input.attendantName,
             isShared: input.isShared || false,
             notes: input.notes,
+            usesWheelchair: input.usesWheelchair || false,
+            usesWalker: input.usesWalker || false,
+            usesProsthesis: input.usesProsthesis || false,
+            homeCare: input.homeCare || false,
+            needsAttendant: input.needsAttendant || "yes",
             schoolId,
             createdBy: ctx.user.id,
             updatedBy: ctx.user.id,
@@ -1294,6 +1305,11 @@ export const appRouter = router({
         attendantName: z.string().optional(),
         isShared: z.boolean().optional(),
         notes: z.string().optional(),
+        usesWheelchair: z.boolean().optional(),
+        usesWalker: z.boolean().optional(),
+        usesProsthesis: z.boolean().optional(),
+        homeCare: z.boolean().optional(),
+        needsAttendant: z.enum(["yes", "no", "nam"]).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
@@ -1505,7 +1521,261 @@ export const appRouter = router({
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create demand" });
         }
       }),
+   }),
+
+  /**
+   * Quadro AAP - Quadro de Atendentes de Apoio Pedagógico
+   * Gera a tabela completa por escola, fiel ao documento Word da SAIN
+   */
+  quadroAAP: router({
+    generate: protectedProcedure
+      .input(z.object({ schoolId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) return { school: null, rows: [], responsible: "", date: "" };
+        try {
+          // Buscar escola
+          const [school] = await db.select().from(schools).where(eq(schools.id, input.schoolId));
+          if (!school) return { school: null, rows: [], responsible: "", date: "" };
+
+          // Buscar todos os alunos da escola
+          const studentList = await db.select().from(students).where(eq(students.schoolId, input.schoolId));
+
+          // Buscar mediadores da escola
+          const mediatorList = await db.select().from(mediators).where(eq(mediators.schoolId, input.schoolId));
+
+          // Buscar vínculos mediator_students
+          const allLinks = await db.select().from(mediatorStudents);
+
+          // Buscar escolas para nome da escola do outro turno
+          const schoolList = await db.select({ id: schools.id, name: schools.name }).from(schools);
+          const schoolMap = Object.fromEntries(schoolList.map(s => [s.id, s.name]));
+
+          // Montar mapa de alunos
+          const studentMap = Object.fromEntries(studentList.map(s => [s.id, s]));
+
+          // Montar mapa de mediador -> alunos vinculados
+          const mediatorToStudents: Record<number, number[]> = {};
+          const studentToMediator: Record<number, number> = {};
+          for (const link of allLinks) {
+            if (!mediatorToStudents[link.mediatorId]) mediatorToStudents[link.mediatorId] = [];
+            mediatorToStudents[link.mediatorId].push(link.studentId);
+            studentToMediator[link.studentId] = link.mediatorId;
+          }
+
+          // Montar linhas do quadro
+          type QuadroRow = {
+            numero: number;
+            nomeAAP: string;
+            turno1: boolean;
+            turno2: boolean;
+            alunos: {
+              nome: string;
+              anoTurma: string;
+              cadeiradeRodas: boolean;
+              andador: boolean;
+              protese: boolean;
+              deficiencia: string;
+              atendimentoDomiciliar: boolean;
+            }[];
+            escolaOutroTurno: string;
+            mediatorId: number | null;
+            status: string;
+          };
+
+          const rows: QuadroRow[] = [];
+          let numero = 1;
+
+          // 1) Mediadores ativos com alunos vinculados
+          for (const med of mediatorList.filter(m => m.status === "active" || m.status === "on_leave" || m.status === "temp_leave")) {
+            const linkedIds = mediatorToStudents[med.id] || [];
+            // Também incluir alunos do campo texto livre (legado)
+            let linkedStudentsList = linkedIds.map(id => studentMap[id]).filter(Boolean);
+
+            // Se não tem vínculos formais, tentar pelo campo linkedStudents (legado)
+            if (linkedStudentsList.length === 0 && med.linkedStudents) {
+              const names = med.linkedStudents.split(",").map(n => n.trim()).filter(Boolean);
+              for (const name of names) {
+                const found = studentList.find(s => s.name.toLowerCase().trim() === name.toLowerCase().trim());
+                if (found) linkedStudentsList.push(found);
+              }
+            }
+
+            const alunos = linkedStudentsList.map(s => ({
+              nome: s.name,
+              anoTurma: s.grade || "",
+              cadeiradeRodas: s.usesWheelchair || false,
+              andador: s.usesWalker || false,
+              protese: s.usesProsthesis || false,
+              deficiencia: s.disability || "",
+              atendimentoDomiciliar: s.homeCare || false,
+            }));
+
+            if (alunos.length === 0) {
+              alunos.push({ nome: "(sem aluno vinculado)", anoTurma: "", cadeiradeRodas: false, andador: false, protese: false, deficiencia: "", atendimentoDomiciliar: false });
+            }
+
+            const shift = linkedStudentsList[0]?.shift;
+            rows.push({
+              numero,
+              nomeAAP: med.name,
+              turno1: shift === "morning" || shift === "full" || !shift,
+              turno2: shift === "afternoon" || shift === "full",
+              alunos,
+              escolaOutroTurno: med.otherSchoolId ? (schoolMap[med.otherSchoolId] || "") : "",
+              mediatorId: med.id,
+              status: med.status,
+            });
+            numero++;
+          }
+
+          // 2) Alunos sem mediador vinculado
+          const studentsWithMediator = new Set<number>();
+          for (const ids of Object.values(mediatorToStudents)) {
+            for (const id of ids) studentsWithMediator.add(id);
+          }
+          // Também marcar alunos vinculados por texto livre
+          for (const med of mediatorList) {
+            if (med.linkedStudents) {
+              const names = med.linkedStudents.split(",").map(n => n.trim()).filter(Boolean);
+              for (const name of names) {
+                const found = studentList.find(s => s.name.toLowerCase().trim() === name.toLowerCase().trim());
+                if (found) studentsWithMediator.add(found.id);
+              }
+            }
+          }
+
+          const studentsWithout = studentList.filter(s => !studentsWithMediator.has(s.id) && s.status === "active");
+          // Verificar se o aluno deveria ter atendimento compartilhado
+          const sharedMediatorIds = new Set(mediatorList.filter(m => m.isShared).map(m => m.id));
+          for (const s of studentsWithout) {
+            const needsLabel = s.needsAttendant === "no" ? "NÃO NECESSITA" :
+              s.needsAttendant === "nam" ? "Sem atendente – NAM" :
+              s.specialNeeds?.includes("compartilhado") ? "Sem atendente (compartilhado)" :
+              "Sem atendente (individual)";
+
+            rows.push({
+              numero,
+              nomeAAP: needsLabel,
+              turno1: s.shift === "morning" || s.shift === "full" || !s.shift,
+              turno2: s.shift === "afternoon" || s.shift === "full",
+              alunos: [{
+                nome: s.name,
+                anoTurma: s.grade || "",
+                cadeiradeRodas: s.usesWheelchair || false,
+                andador: s.usesWalker || false,
+                protese: s.usesProsthesis || false,
+                deficiencia: s.disability || "",
+                atendimentoDomiciliar: s.homeCare || false,
+              }],
+              escolaOutroTurno: "",
+              mediatorId: null,
+              status: "sem_atendente",
+            });
+            numero++;
+          }
+
+          // Buscar responsável (usuário da escola)
+          const schoolUsers = await db.select().from(users).where(eq(users.schoolId, input.schoolId));
+          const responsible = school.responsible || schoolUsers[0]?.name || "";
+
+          return {
+            school: { id: school.id, name: school.name, code: school.code },
+            rows,
+            responsible,
+            date: new Date().toLocaleDateString("pt-BR"),
+            totalAlunos: studentList.filter(s => s.status === "active").length,
+            totalMediadores: mediatorList.filter(m => m.status === "active").length,
+            totalSemAtendente: studentsWithout.length,
+          };
+        } catch (error) {
+          console.error("[QuadroAAP] Error generating:", error);
+          return { school: null, rows: [], responsible: "", date: "" };
+        }
+      }),
+
+    submit: protectedProcedure
+      .input(z.object({
+        schoolId: z.number(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        try {
+          // Gerar o quadro para snapshot
+          const mediatorList = await db.select().from(mediators).where(eq(mediators.schoolId, input.schoolId));
+          const studentList = await db.select().from(students).where(eq(students.schoolId, input.schoolId));
+          const allLinks = await db.select().from(mediatorStudents);
+
+          const snapshotData = JSON.stringify({
+            mediators: mediatorList.map(m => ({
+              id: m.id, name: m.name, status: m.status, changeType: m.changeType,
+              linkedStudents: m.linkedStudents, isShared: m.isShared,
+              inactivityReason: m.inactivityReason, note: m.note,
+              otherSchoolId: m.otherSchoolId,
+            })),
+            students: studentList.map(s => ({
+              id: s.id, name: s.name, disability: s.disability, shift: s.shift,
+              grade: s.grade, status: s.status, needsAttendant: s.needsAttendant,
+              usesWheelchair: s.usesWheelchair, usesWalker: s.usesWalker,
+              usesProsthesis: s.usesProsthesis, homeCare: s.homeCare,
+            })),
+            links: allLinks.filter(l => mediatorList.some(m => m.id === l.mediatorId)),
+          });
+
+          const weekRef = getWeekReference();
+          await db.insert(weeklySnapshots).values({
+            schoolId: input.schoolId,
+            weekReference: weekRef,
+            submittedBy: ctx.user.id,
+            submittedByName: ctx.user.name || "Usuário",
+            snapshotData,
+            notes: input.notes,
+            status: "submitted",
+          });
+
+          await db.update(schools).set({
+            weeklyStatus: "updated",
+            responsible: ctx.user.name || undefined,
+            lastWeeklyUpdate: new Date(),
+          }).where(eq(schools.id, input.schoolId));
+
+          // Buscar nome da escola para notificação
+          const [schoolInfo] = await db.select({ name: schools.name }).from(schools).where(eq(schools.id, input.schoolId));
+          const schoolName = schoolInfo?.name || `Escola #${input.schoolId}`;
+
+          // Notificar a SAIN (owner)
+          try {
+            await notifyOwner({
+              title: `Quadro AAP Enviado - ${schoolName}`,
+              content: `A escola ${schoolName} enviou o Quadro de Atendentes (AAP) da semana ${weekRef}.\nMediadores ativos: ${mediatorList.filter(m => m.status === "active").length}\nAlunos: ${studentList.filter(s => s.status === "active").length}\nEnviado por: ${ctx.user.name || "Usu\u00e1rio"}` + (input.notes ? `\nObs: ${input.notes}` : ""),
+            });
+          } catch (notifErr) {
+            console.warn("[QuadroAAP] Notification failed:", notifErr);
+          }
+
+          return { success: true, weekReference: weekRef };
+        } catch (error) {
+          console.error("[QuadroAAP] Error submitting:", error);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao enviar quadro" });
+        }
+      }),
+
+    history: protectedProcedure
+      .input(z.object({ schoolId: z.number() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        try {
+          return await db.select().from(weeklySnapshots)
+            .where(eq(weeklySnapshots.schoolId, input.schoolId))
+            .orderBy(desc(weeklySnapshots.createdAt));
+        } catch (error) {
+          console.error("[QuadroAAP] Error listing history:", error);
+          return [];
+        }
+      }),
   }),
 });
-
 export type AppRouter = typeof appRouter;

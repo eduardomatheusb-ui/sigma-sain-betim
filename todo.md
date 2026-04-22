@@ -155,3 +155,24 @@
 - [x] Adicionar campo resultado/evolução nos atendimentos
 - [x] Mediadores: perfil escola só vê/cadastra mediadores da própria escola (backend já filtra por schoolId)
 - [x] Alunos: perfil escola só vê/cadastra alunos da própria escola (backend já filtra por schoolId)
+
+## Quadro de Atendentes de Apoio Pedagógico (AAP) — Fase 4
+
+- [x] Adicionar campos de mobilidade nos alunos (cadeira de rodas, andador, prótese)
+- [x] Adicionar campo atendimento domiciliar nos alunos (sim/não)
+- [x] Adicionar campo escola do outro turno nos mediadores
+- [x] Criar procedure backend quadroAAP.generate que monta a tabela completa por escola
+- [x] Reescrever Cadastros.tsx como Quadro AAP com tabela fiel ao documento Word
+- [x] Tabela deve mostrar: N°, Nome AAP, Turno (1°/2°), Alunos Atendidos, Ano/Turma, Mobilidade, Deficiência, Atend. Domiciliar, Escola outro turno
+- [x] Agrupar alunos por mediador (múltiplos alunos por mediador em linhas agrupadas)
+- [x] Incluir alunos sem mediador com status "Sem atendente (individual/compartilhado)"
+- [x] Incluir alunos que não necessitam de atendente com "NÃO NECESSITA"
+- [x] Botão "Enviar para SAIN" que registra snapshot e notifica a secretaria
+- [x] Exportação em Excel (.xls) com formatação do quadro
+- [x] Exportação em PDF via impressão com cabeçalho institucional
+- [x] Visão admin: visualizar quadro de qualquer escola com seletor
+- [x] Visão escola: visualizar e enviar quadro da própria escola
+- [x] Adicionar campos mobilidade, atend. domiciliar e "necessita atendente" no formulário de alunos (demands)
+- [x] Exportação Excel real (.xlsx) com biblioteca xlsx no Quadro AAP
+- [x] Notificação ao owner quando quadro AAP é enviado
+- [x] Renomear sidebar "Quadro Semanal" para "Quadro AAP"

@@ -61,6 +61,14 @@ export const students = mysqlTable("students", {
   disability: varchar("disability", { length: 255 }),
   shift: mysqlEnum("shift", ["morning", "afternoon", "full", "evening"]),
   grade: varchar("grade", { length: 50 }),
+  // Mobilidade (Quadro AAP)
+  usesWheelchair: boolean("usesWheelchair").default(false),
+  usesWalker: boolean("usesWalker").default(false),
+  usesProsthesis: boolean("usesProsthesis").default(false),
+  // Atendimento domiciliar
+  homeCare: boolean("homeCare").default(false),
+  // Necessita de atendente?
+  needsAttendant: mysqlEnum("needsAttendant", ["yes", "no", "nam"]).default("yes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -87,12 +95,14 @@ export const mediators = mysqlTable("mediators", {
   note: text("note"),
   maxAttendances: int("maxAttendances").default(0),
   // Campos de atendente compartilhado
-  isShared: boolean("isshared").default(false),
-  additionalStudents: text("additionalstudents"),
+  isShared: boolean("isShared").default(false),
+  additionalStudents: text("additionalStudents"),
   // Campos de inatividade
-  inactivityReason: varchar("inactivityreason", { length: 255 }),
-  inactivityDate: date("inactivitydate"),
-  returnDate: date("returndate"),
+  inactivityReason: varchar("inactivityReason", { length: 255 }),
+  inactivityDate: date("inactivityDate"),
+  returnDate: date("returnDate"),
+  // Escola do outro turno (para mediadores que trabalham em 2 turnos)
+  otherSchoolId: int("otherSchoolId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -232,6 +242,12 @@ export const demands = mysqlTable("demands", {
   attendantName: varchar("attendantName", { length: 255 }),
   isShared: boolean("isShared").default(false).notNull(),
   notes: text("notes"),
+  // Mobilidade e atendimento domiciliar (para Quadro AAP)
+  usesWheelchair: boolean("usesWheelchair").default(false),
+  usesWalker: boolean("usesWalker").default(false),
+  usesProsthesis: boolean("usesProsthesis").default(false),
+  homeCare: boolean("homeCare").default(false),
+  needsAttendant: mysqlEnum("needsAttendant", ["yes", "no", "nam"]).default("yes"),
   // Metadados
   schoolId: int("schoolId"),
   createdBy: int("createdBy"),
