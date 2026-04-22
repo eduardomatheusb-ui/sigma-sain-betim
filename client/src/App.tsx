@@ -6,6 +6,8 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import DashboardLayout from "./components/DashboardLayout";
 import Home from "./pages/Home";
+import Dashboard from "./pages/Dashboard";
+import Schools from "./pages/Schools";
 import Students from "./pages/Students";
 import Mediators from "./pages/Mediators";
 import Attendances from "./pages/Attendances";
@@ -15,14 +17,15 @@ import Users from "./pages/Users";
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/alunos"} component={Students} />
-      <Route path={"/mediadores"} component={Mediators} />
-      <Route path={"/atendimentos"} component={Attendances} />
-      <Route path={"/demandas"} component={ExternalDemands} />
-      <Route path={"/usuarios"} component={Users} />
-      <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
+      <Route path="/" component={Home} />
+      <Route path="/dashboard" component={Dashboard} />
+      <Route path="/escolas" component={Schools} />
+      <Route path="/alunos" component={Students} />
+      <Route path="/mediadores" component={Mediators} />
+      <Route path="/atendimentos" component={Attendances} />
+      <Route path="/demandas" component={ExternalDemands} />
+      <Route path="/usuarios" component={Users} />
+      <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
   );

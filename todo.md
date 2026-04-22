@@ -18,10 +18,10 @@
 - [x] Implementar proteção de rotas por perfil
 
 ## Dashboard Gerencial (SAIN)
-- [ ] Criar página de dashboard com indicadores principais
-- [ ] Implementar gráficos: total de alunos, mediadores ativos, atendimentos, demandas pendentes
-- [ ] Adicionar distribuição por escola
-- [ ] Criar cards de resumo e status
+- [x] Criar página de dashboard com indicadores principais
+- [x] Implementar gráficos: total de alunos, mediadores ativos, atendimentos, demandas pendentes
+- [x] Adicionar distribuição por escola
+- [x] Criar cards de resumo e status
 
 ## Gestão de Alunos
 - [x] Criar formulário de cadastro de alunos
@@ -37,9 +37,9 @@
 - [ ] Implementar carga de atendimentos
 
 ## Controle por Escola
-- [ ] Criar visão consolidada por escola
-- [ ] Implementar filtros e busca
-- [ ] Exibir alunos, mediadores e atendimentos por unidade
+- [x] Criar visão consolidada por escola
+- [x] Implementar filtros e busca
+- [x] Exibir alunos, mediadores e atendimentos por unidade
 
 ## Gestão de Atendimentos
 - [x] Criar formulário de registro de atendimento
