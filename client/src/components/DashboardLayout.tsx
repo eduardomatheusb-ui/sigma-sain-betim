@@ -58,7 +58,6 @@ const schoolMenuItems = [
   { icon: GraduationCap, label: "Alunos", path: "/alunos" },
   { icon: UserCheck, label: "Mediadores", path: "/mediadores" },
   { icon: FileText, label: "Quadro Semanal", path: "/cadastros" },
-  { icon: BarChart3, label: "Dashboard Gerencial", path: "/dashboard-gerencial" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";

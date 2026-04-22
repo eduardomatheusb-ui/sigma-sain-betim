@@ -6,71 +6,61 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
-import { Users, Briefcase, ClipboardList, AlertCircle, TrendingUp, School, Download, CheckCircle2, Clock, UserCheck, UserX } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { Users, Briefcase, ClipboardList, AlertCircle, TrendingUp, School, Download, CheckCircle2, Clock, UserCheck, UserX, GraduationCap, Calendar } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { Link } from "wouter";
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
 function formatDateTime(value: string | Date | null | undefined) {
-  if (!value) return "—";
+  if (!value) return "-";
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
 }
 
 const WEEKLY_STATUS_LABEL: Record<string, string> = {
-  updated: "Atualizada",
-  pending: "Pendente",
-  with_vacancy: "Com vaga",
-  with_leave: "Com afastamento",
+  updated: "Atualizada", pending: "Pendente",
+  with_vacancy: "Com vaga", with_leave: "Com afastamento",
 };
-
 const WEEKLY_STATUS_CLASS: Record<string, string> = {
   updated: "bg-green-100 text-green-700 hover:bg-green-100",
   pending: "bg-amber-100 text-amber-700 hover:bg-amber-100",
   with_vacancy: "bg-blue-100 text-blue-700 hover:bg-blue-100",
   with_leave: "bg-orange-100 text-orange-700 hover:bg-orange-100",
 };
-
 const ATTENDANT_STATUS_LABEL: Record<string, string> = {
-  active: "Ativo(a)",
-  inactive: "Inativo(a)",
-  on_leave: "Licença médica",
-  temp_leave: "Afastamento",
-  dismissed: "Desligado(a)",
-  substituted: "Substituído(a)",
-  vacancy: "Vaga em aberto",
+  active: "Ativo(a)", inactive: "Inativo(a)", on_leave: "Licenca medica",
+  temp_leave: "Afastamento", dismissed: "Desligado(a)",
+  substituted: "Substituido(a)", vacancy: "Vaga em aberto",
 };
-
 const ATTENDANT_STATUS_CLASS: Record<string, string> = {
-  active: "bg-green-100 text-green-800",
-  on_leave: "bg-yellow-100 text-yellow-800",
-  temp_leave: "bg-orange-100 text-orange-800",
-  dismissed: "bg-red-100 text-red-800",
-  substituted: "bg-purple-100 text-purple-800",
-  vacancy: "bg-blue-100 text-blue-800",
+  active: "bg-green-100 text-green-800", on_leave: "bg-yellow-100 text-yellow-800",
+  temp_leave: "bg-orange-100 text-orange-800", dismissed: "bg-red-100 text-red-800",
+  substituted: "bg-purple-100 text-purple-800", vacancy: "bg-blue-100 text-blue-800",
   inactive: "bg-gray-100 text-gray-700",
 };
 
-// Fluxo de uso do sistema
 const FLOW_STEPS = [
-  "A escola acessa com login próprio e encontra o quadro da semana anterior já carregado.",
-  "O responsável confirma os registros sem alteração e edita apenas o que mudou.",
-  "O sistema permite incluir novo atendente, aluno, troca de vínculo ou vaga em aberto.",
-  "Alterações como licença, atestado, substituição e desligamento ficam registradas com data e justificativa.",
-  "Ao enviar, a Secretaria recebe tudo em painel único e pode validar, acompanhar ou cobrar pendências.",
+  "A escola acessa com login proprio e encontra o quadro da semana anterior ja carregado.",
+  "O responsavel confirma os registros sem alteracao e edita apenas o que mudou.",
+  "O sistema permite incluir novo atendente, aluno, troca de vinculo ou vaga em aberto.",
+  "Alteracoes como licenca, atestado, substituicao e desligamento ficam registradas com data e justificativa.",
+  "Ao enviar, a Secretaria recebe tudo em painel unico e pode validar, acompanhar ou cobrar pendencias.",
 ];
 
-// Relatórios possíveis
 const REPORTS = [
-  "Relatório semanal por escola",
-  "Relatório de atendentes ativos e afastados",
-  "Relatório de vagas e novas demandas",
-  "Histórico por aluno",
-  "Histórico por atendente",
-  "Escolas pendentes de envio",
-  "Mapa geral da rede por território",
+  "Relatorio semanal por escola", "Relatorio de atendentes ativos e afastados",
+  "Relatorio de vagas e novas demandas", "Historico por aluno",
+  "Historico por atendente", "Escolas pendentes de envio",
 ];
 
 export default function Dashboard() {
   const { user } = useAuth();
+  if (user?.role === "admin") return <AdminDashboard />;
+  return <SchoolDashboard />;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ADMIN DASHBOARD
+// ═══════════════════════════════════════════════════════════════════════════════
+function AdminDashboard() {
   const { data: stats } = trpc.dashboard.stats.useQuery();
   const { data: schoolPanel = [] } = trpc.schools.panel.useQuery();
   const { data: alerts = [] } = trpc.schools.alerts.useQuery();
@@ -91,19 +81,6 @@ export default function Dashboard() {
     });
   }, [schoolPanel, search, statusFilter]);
 
-  if (user?.role !== "admin") {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Acesso Negado</CardTitle>
-            <CardDescription>Apenas administradores da SAIN podem acessar o dashboard gerencial.</CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-    );
-  }
-
   const totalSchools = (stats as any)?.totalSchools ?? 0;
   const updatedSchools = schoolPanel.filter((s: any) => s.weeklyStatus === "updated").length;
   const pendingSchools = schoolPanel.filter((s: any) => !s.weeklyStatus || s.weeklyStatus === "pending").length;
@@ -119,10 +96,9 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Cabeçalho */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Secretaria Adjunta de Inclusão</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Secretaria Adjunta de Inclusao</p>
           <h1 className="text-2xl font-bold mt-1">Painel da Secretaria</h1>
           <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
             Acompanhamento em tempo real das escolas atualizadas, pendentes, afastamentos, vagas e novas demandas.
@@ -130,12 +106,12 @@ export default function Dashboard() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm">
-            <Download className="w-4 h-4 mr-2" /> Exportar relatório
+            <Download className="w-4 h-4 mr-2" /> Exportar relatorio
           </Button>
         </div>
       </div>
 
-      {/* Métricas principais — 6 cards como no protótipo */}
+      {/* Metricas */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         {[
           { label: "Escolas", value: totalSchools, icon: <School className="w-5 h-5 text-primary" /> },
@@ -154,7 +130,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Cards: alunos com e sem atendente */}
+      {/* Alunos com/sem atendente */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Card>
           <CardContent className="pt-5">
@@ -180,13 +156,10 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Gráficos: deficiência, turno, motivos de inatividade */}
+      {/* Graficos */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Por deficiência */}
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Alunos por tipo de deficiência</CardTitle>
-          </CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Alunos por tipo de deficiencia</CardTitle></CardHeader>
           <CardContent>
             {byDisability.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">Sem dados cadastrados ainda.</p>
@@ -195,29 +168,22 @@ export default function Dashboard() {
                 <BarChart data={byDisability.slice(0, 8)} layout="vertical" margin={{ left: 8, right: 8 }}>
                   <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={120} />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#004B99" radius={[0, 4, 4, 0]} />
+                  <Tooltip /><Bar dataKey="value" fill="#004B99" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
           </CardContent>
         </Card>
-
-        {/* Por turno */}
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Alunos por turno</CardTitle>
-          </CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Alunos por turno</CardTitle></CardHeader>
           <CardContent>
             {byShift.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">Sem dados cadastrados ainda.</p>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
-                  <Pie data={byShift} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                    {byShift.map((_: any, idx: number) => (
-                      <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
-                    ))}
+                  <Pie data={byShift} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }: { name: string; percent: number }) => name + " " + (percent * 100).toFixed(0) + "%"}>
+                    {byShift.map((_: any, idx: number) => <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />)}
                   </Pie>
                   <Tooltip />
                 </PieChart>
@@ -225,12 +191,8 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
-
-        {/* Motivos de inatividade */}
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Motivos de afastamento</CardTitle>
-          </CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Motivos de afastamento</CardTitle></CardHeader>
           <CardContent>
             {byInactivity.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">Sem afastamentos registrados.</p>
@@ -239,8 +201,7 @@ export default function Dashboard() {
                 <BarChart data={byInactivity.slice(0, 6)} layout="vertical" margin={{ left: 8, right: 8 }}>
                   <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={130} />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#F59E0B" radius={[0, 4, 4, 0]} />
+                  <Tooltip /><Bar dataKey="value" fill="#F59E0B" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -248,13 +209,13 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Rankings: Top 10 EMs e CIMs com mais demanda */}
+      {/* Rankings */}
       {(emRanking.length > 0 || cimRanking.length > 0) && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {emRanking.length > 0 && (
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Top 10 Escolas Municipais com mais demanda</CardTitle>
+                <CardTitle className="text-base">Top 10 EMs com mais demanda</CardTitle>
                 <CardDescription>Vagas em aberto + afastamentos</CardDescription>
               </CardHeader>
               <CardContent>
@@ -262,8 +223,7 @@ export default function Dashboard() {
                   <BarChart data={emRanking} layout="vertical" margin={{ left: 8, right: 8 }}>
                     <XAxis type="number" tick={{ fontSize: 11 }} />
                     <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={160} />
-                    <Tooltip />
-                    <Bar dataKey="demand" fill="#EF4444" radius={[0, 4, 4, 0]} />
+                    <Tooltip /><Bar dataKey="demand" fill="#EF4444" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -280,8 +240,7 @@ export default function Dashboard() {
                   <BarChart data={cimRanking} layout="vertical" margin={{ left: 8, right: 8 }}>
                     <XAxis type="number" tick={{ fontSize: 11 }} />
                     <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={160} />
-                    <Tooltip />
-                    <Bar dataKey="demand" fill="#8B5CF6" radius={[0, 4, 4, 0]} />
+                    <Tooltip /><Bar dataKey="demand" fill="#8B5CF6" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -290,35 +249,22 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Linha separadora para o painel de escolas */}
-      <div className="border-t pt-4">
-        <h2 className="text-lg font-semibold mb-4">Painel de Escolas</h2>
-      </div>
-
-      {/* Layout principal: painel de escolas + sidebar */}
+      {/* Painel de escolas */}
+      <div className="border-t pt-4"><h2 className="text-lg font-semibold mb-4">Painel de Escolas</h2></div>
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        {/* Painel geral das escolas */}
         <div className="xl:col-span-2 space-y-4">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle>Painel geral das escolas</CardTitle>
-              <CardDescription>Visão consolidada dos quadros enviados e das situações que exigem monitoramento.</CardDescription>
+              <CardDescription>Visao consolidada dos quadros enviados e das situacoes que exigem monitoramento.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {/* Filtros */}
               <div className="flex flex-col gap-2 sm:flex-row">
-                <Input
-                  placeholder="Buscar escola, aluno ou atendente..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="flex-1"
-                />
+                <Input placeholder="Buscar escola, aluno ou atendente..." value={search} onChange={e => setSearch(e.target.value)} className="flex-1" />
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full sm:w-48">
-                    <SelectValue placeholder="Todas as situações" />
-                  </SelectTrigger>
+                  <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Todas as situacoes" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todas as situações</SelectItem>
+                    <SelectItem value="all">Todas as situacoes</SelectItem>
                     <SelectItem value="updated">Atualizada</SelectItem>
                     <SelectItem value="pending">Pendente</SelectItem>
                     <SelectItem value="with_vacancy">Com vaga</SelectItem>
@@ -326,13 +272,9 @@ export default function Dashboard() {
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Lista de escolas */}
               {filteredSchools.length === 0 ? (
                 <div className="py-10 text-center text-muted-foreground text-sm">
-                  {schoolPanel.length === 0
-                    ? "Nenhuma escola cadastrada ainda. Acesse o módulo Escolas para cadastrar."
-                    : "Nenhuma escola encontrada com os filtros aplicados."}
+                  {schoolPanel.length === 0 ? "Nenhuma escola cadastrada ainda." : "Nenhuma escola encontrada com os filtros aplicados."}
                 </div>
               ) : (
                 filteredSchools.map((school: any) => (
@@ -340,24 +282,19 @@ export default function Dashboard() {
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                       <div>
                         <h3 className="font-semibold text-base">{school.name}</h3>
-                        {school.responsible && (
-                          <p className="text-xs text-muted-foreground">Responsável pelo envio: {school.responsible}</p>
-                        )}
-                        {school.lastWeeklyUpdate && (
-                          <p className="text-xs text-muted-foreground">Última atualização: {formatDateTime(school.lastWeeklyUpdate)}</p>
-                        )}
+                        {school.responsible && <p className="text-xs text-muted-foreground">Responsavel: {school.responsible}</p>}
+                        {school.lastWeeklyUpdate && <p className="text-xs text-muted-foreground">Ultima atualizacao: {formatDateTime(school.lastWeeklyUpdate)}</p>}
                       </div>
                       <Badge className={WEEKLY_STATUS_CLASS[school.weeklyStatus ?? "pending"] ?? "bg-gray-100 text-gray-700"}>
                         {WEEKLY_STATUS_LABEL[school.weeklyStatus ?? "pending"] ?? "Pendente"}
                       </Badge>
                     </div>
-
                     {school.attendants && school.attendants.length > 0 ? (
                       <div className="overflow-x-auto rounded-lg border">
                         <table className="min-w-full text-xs">
                           <thead className="bg-muted/40">
                             <tr>
-                              {["Atendente", "Aluno(s)", "Situação", "Registro da semana"].map(h => (
+                              {["Atendente", "Aluno(s)", "Situacao", "Registro da semana"].map(h => (
                                 <th key={h} className="px-3 py-2 text-left font-medium">{h}</th>
                               ))}
                             </tr>
@@ -366,13 +303,13 @@ export default function Dashboard() {
                             {school.attendants.map((a: any) => (
                               <tr key={a.id} className="border-t hover:bg-muted/10">
                                 <td className="px-3 py-2 font-medium">{a.name}</td>
-                                <td className="px-3 py-2 text-muted-foreground">{a.linkedStudents || "—"}</td>
+                                <td className="px-3 py-2 text-muted-foreground">{a.linkedStudents || "-"}</td>
                                 <td className="px-3 py-2">
-                                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${ATTENDANT_STATUS_CLASS[a.status] ?? "bg-gray-100 text-gray-700"}`}>
+                                  <span className={"inline-flex rounded-full px-2 py-0.5 text-xs font-medium " + (ATTENDANT_STATUS_CLASS[a.status] ?? "bg-gray-100 text-gray-700")}>
                                     {ATTENDANT_STATUS_LABEL[a.status] ?? a.status}
                                   </span>
                                 </td>
-                                <td className="px-3 py-2 text-muted-foreground">{a.changeType || "—"}</td>
+                                <td className="px-3 py-2 text-muted-foreground">{a.changeType || "-"}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -388,9 +325,8 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Sidebar: alertas, fluxo, relatórios */}
+        {/* Sidebar */}
         <div className="space-y-4">
-          {/* Alertas da semana */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
@@ -402,53 +338,36 @@ export default function Dashboard() {
                 <p className="text-sm text-muted-foreground">Nenhum alerta no momento.</p>
               ) : (
                 alerts.map((alert: string, i: number) => (
-                  <div key={i} className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
-                    {alert}
-                  </div>
+                  <div key={i} className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">{alert}</div>
                 ))
               )}
             </CardContent>
           </Card>
-
-          {/* Fluxo de uso */}
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Fluxo de uso</CardTitle>
-            </CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-base">Fluxo de uso</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {FLOW_STEPS.map((step, i) => (
                 <div key={i} className="flex items-start gap-3 text-sm">
-                  <div className="flex-shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-                    {i + 1}
-                  </div>
+                  <div className="flex-shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">{i + 1}</div>
                   <p className="text-muted-foreground pt-0.5">{step}</p>
                 </div>
               ))}
             </CardContent>
           </Card>
-
-          {/* Relatórios possíveis */}
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Relatórios disponíveis</CardTitle>
-            </CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-base">Relatorios disponiveis</CardTitle></CardHeader>
             <CardContent>
               <ul className="space-y-2">
                 {REPORTS.map(r => (
                   <li key={r} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <ClipboardList className="w-3.5 h-3.5 flex-shrink-0 text-primary" />
-                    {r}
+                    <ClipboardList className="w-3.5 h-3.5 flex-shrink-0 text-primary" />{r}
                   </li>
                 ))}
               </ul>
             </CardContent>
           </Card>
-
-          {/* KPIs secundários */}
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Resumo geral</CardTitle>
-            </CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-base">Resumo geral</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {[
                 { label: "Total de alunos", value: stats?.totalStudents ?? 0, color: "" },
@@ -458,13 +377,187 @@ export default function Dashboard() {
               ].map(item => (
                 <div key={item.label} className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">{item.label}</span>
-                  <span className={`text-lg font-bold ${item.color}`}>{item.value}</span>
+                  <span className={"text-lg font-bold " + item.color}>{item.value}</span>
                 </div>
               ))}
             </CardContent>
           </Card>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SCHOOL DASHBOARD
+// ═══════════════════════════════════════════════════════════════════════════════
+function SchoolDashboard() {
+  const { user } = useAuth();
+  const { data: mediatorsData = [] } = trpc.mediators.listBySchool.useQuery();
+  const { data: studentsData = [] } = trpc.students.listBySchool.useQuery();
+  const { data: attendancesData = [] } = trpc.attendances.listBySchool.useQuery();
+  const { data: schools = [] } = trpc.schools.list.useQuery();
+
+  const userSchool = useMemo(() => {
+    if (!user?.schoolId) return null;
+    return schools.find((s: any) => s.id === user.schoolId) || null;
+  }, [schools, user?.schoolId]);
+
+  const activeMediators = mediatorsData.filter((m: any) => m.status === "active").length;
+  const inactiveMediators = mediatorsData.filter((m: any) => m.status !== "active").length;
+  const pendingAttendances = attendancesData.filter((a: any) => a.status === "pending").length;
+  const weeklyStatus = (userSchool as any)?.weeklyStatus;
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    mediatorsData.forEach((m: any) => {
+      const s = m.status || "unknown";
+      counts[s] = (counts[s] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({
+      name: ATTENDANT_STATUS_LABEL[name] || name,
+      value,
+    }));
+  }, [mediatorsData]);
+
+  const CHART_COLORS = ["#004B99", "#9AC331", "#F59E0B", "#EF4444", "#8B5CF6", "#06B6D4"];
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold">Painel da Escola</h1>
+        <p className="text-sm text-muted-foreground mt-1">{(userSchool as any)?.name || "Carregando..."}</p>
+      </div>
+
+      {/* Status do quadro semanal */}
+      <Card className={weeklyStatus === "updated" ? "border-green-300 bg-green-50" : "border-yellow-300 bg-yellow-50"}>
+        <CardContent className="pt-4 pb-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              {weeklyStatus === "updated" ? (
+                <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0" />
+              ) : (
+                <Clock className="h-6 w-6 text-yellow-600 flex-shrink-0" />
+              )}
+              <div>
+                <p className={"font-semibold " + (weeklyStatus === "updated" ? "text-green-800" : "text-yellow-800")}>
+                  {weeklyStatus === "updated" ? "Quadro semanal enviado" : "Quadro semanal pendente"}
+                </p>
+                <p className={"text-sm " + (weeklyStatus === "updated" ? "text-green-700" : "text-yellow-700")}>
+                  {weeklyStatus === "updated"
+                    ? "Ultimo envio: " + ((userSchool as any)?.lastWeeklyUpdate ? formatDateTime((userSchool as any).lastWeeklyUpdate) : "-")
+                    : "Acesse o Quadro Semanal para enviar a atualizacao desta semana."}
+                </p>
+              </div>
+            </div>
+            <Link href="/cadastros">
+              <Button className={weeklyStatus === "updated" ? "bg-green-600 hover:bg-green-700 text-white" : "bg-yellow-600 hover:bg-yellow-700 text-white"}>
+                <Calendar className="h-4 w-4 mr-2" />
+                {weeklyStatus === "updated" ? "Ver quadro" : "Enviar quadro"}
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Metricas */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {[
+          { label: "Alunos cadastrados", value: studentsData.length, icon: <GraduationCap className="w-5 h-5 text-primary" /> },
+          { label: "Mediadores ativos", value: activeMediators, icon: <Users className="w-5 h-5 text-green-600" /> },
+          { label: "Mediadores inativos", value: inactiveMediators, icon: <Users className="w-5 h-5 text-red-500" /> },
+          { label: "Atend. pendentes", value: pendingAttendances, icon: <ClipboardList className="w-5 h-5 text-amber-600" /> },
+        ].map(m => (
+          <Card key={m.label}>
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center gap-2 mb-1">{m.icon}<p className="text-xs text-muted-foreground">{m.label}</p></div>
+              <p className="text-2xl font-bold">{m.value}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Distribuicao de status dos mediadores */}
+        {statusCounts.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-base">Status dos mediadores</CardTitle></CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie data={statusCounts} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }: { name: string; percent: number }) => name + " " + (percent * 100).toFixed(0) + "%"}>
+                    {statusCounts.map((_: any, idx: number) => <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Lista de mediadores */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Mediadores da escola ({mediatorsData.length})</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {mediatorsData.length === 0 ? (
+              <div className="p-6 text-center text-sm text-muted-foreground">
+                Nenhum mediador cadastrado. Acesse a aba Mediadores para cadastrar.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/30">
+                      <th className="text-left px-4 py-2 font-medium text-muted-foreground">Nome</th>
+                      <th className="text-left px-4 py-2 font-medium text-muted-foreground">Status</th>
+                      <th className="text-left px-4 py-2 font-medium text-muted-foreground">Alunos</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mediatorsData.slice(0, 10).map((m: any) => (
+                      <tr key={m.id} className="border-b last:border-0 hover:bg-muted/10">
+                        <td className="px-4 py-2 font-medium">{m.name}</td>
+                        <td className="px-4 py-2">
+                          <span className={"inline-flex rounded-full px-2 py-0.5 text-xs font-medium " + (ATTENDANT_STATUS_CLASS[m.status] ?? "bg-gray-100 text-gray-700")}>
+                            {ATTENDANT_STATUS_LABEL[m.status] ?? m.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-muted-foreground">{m.linkedStudents || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Acoes rapidas */}
+      <Card>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Acesso rapido</CardTitle></CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[
+              { label: "Quadro Semanal", desc: "Enviar atualizacao", href: "/cadastros", icon: <Calendar className="w-5 h-5" /> },
+              { label: "Alunos", desc: "Cadastrar e gerenciar", href: "/alunos", icon: <GraduationCap className="w-5 h-5" /> },
+              { label: "Mediadores", desc: "Gerenciar atendentes", href: "/mediadores", icon: <Users className="w-5 h-5" /> },
+            ].map(a => (
+              <Link key={a.label} href={a.href}>
+                <div className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 transition cursor-pointer">
+                  <div className="p-2 bg-primary/10 rounded-lg text-primary">{a.icon}</div>
+                  <div>
+                    <p className="font-medium text-sm">{a.label}</p>
+                    <p className="text-xs text-muted-foreground">{a.desc}</p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

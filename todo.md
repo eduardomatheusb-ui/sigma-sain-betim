@@ -123,10 +123,35 @@
 
 ## Permissões do Perfil Escola e Reorganização de Abas
 
-- [ ] Remover abas Atendimentos e Demandas Externas da sidebar para perfil escola
-- [ ] Dashboard do perfil escola: mostrar apenas dados da própria escola
-- [ ] Mediadores: perfil escola só vê/cadastra mediadores da própria escola
+- [x] Remover abas Atendimentos e Demandas Externas da sidebar para perfil escola
+- [x] Dashboard do perfil escola: mostrar apenas dados da própria escola
+- [x] Mediadores: perfil escola só vê/cadastra mediadores da própria escola (backend já filtra por schoolId)
 - [x] Mover formulário de cadastro (Cadastros.tsx) para dentro da aba Alunos (formulário de alunos já estava em Students.tsx)
 - [x] Aba Cadastros: transformar em quadro semanal (lista de mediadores da escola + botão enviar)
 - [x] Renomear item "Cadastros" para "Quadro Semanal" na sidebar (admin e escola)
-- [ ] Alunos: perfil escola só vê/cadastra alunos da própria escola
+- [x] Alunos: perfil escola só vê/cadastra alunos da própria escola (backend já filtra por schoolId)
+
+## Correções da Análise Crítica (Fase 3)
+
+### Prioridade 1 — Bloqueantes
+- [x] Reescrever Schools.tsx com dados reais do banco (remover dados mock)
+- [x] Implementar Reports.tsx com queries reais, filtros funcionais e exportação CSV
+- [x] Corrigir Attendances.tsx: exibir nomes de alunos/mediadores, adicionar filtros por data/escola/mediador, edição e exclusão
+- [x] Proteção de rotas por perfil no App.tsx (escola não pode acessar /usuarios, /relatorios, etc.)
+- [x] Home.tsx funcional com dados reais e ações rápidas
+
+### Prioridade 2 — Estruturais
+- [x] Criar tabela mediator_students (vínculo formal N:N entre mediador e aluno)
+- [x] Criar tabela status_history (log de mudanças de status dos mediadores)
+- [x] Criar tabela weekly_snapshots (registro do quadro semanal com semana de referência)
+- [x] Atualizar backend para usar mediator_students em vez de linkedStudents texto livre
+- [x] Dashboard stats: calcular "alunos com atendente" via mediator_students (não por string match)
+- [x] Quadro Semanal: registrar snapshot ao enviar, com semana de referência e responsável
+- [x] Quadro Semanal: dialog de confirmação com notas e histórico de envios
+
+### Prioridade 3 — Operacionais
+- [x] Implementar edição de alunos (students.update procedure + UI backend)
+- [x] Dashboard resumido para perfil escola (com metricas, graficos e acoes rapidas)
+- [x] Adicionar campo resultado/evolução nos atendimentos
+- [x] Mediadores: perfil escola só vê/cadastra mediadores da própria escola (backend já filtra por schoolId)
+- [x] Alunos: perfil escola só vê/cadastra alunos da própria escola (backend já filtra por schoolId)

@@ -6,8 +6,8 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { getSchools, getStudentsBySchool, getMediatorsBySchool, getAttendancesBySchool, getExternalDemandsBySchool } from "./db";
 import { getDb } from "./db";
-import { students, mediators, attendances, externalDemands, schools, users, demands } from "../drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { students, mediators, attendances, externalDemands, schools, users, demands, mediatorStudents, statusHistory, weeklySnapshots } from "../drizzle/schema";
+import { eq, and, like, sql, desc, inArray } from "drizzle-orm";
 
 // Status e tipos de alteração do Quadro de Atendentes (MVP integrado)
 const MEDIATOR_STATUS = ["active", "inactive", "on_leave", "dismissed", "substituted", "vacancy", "temp_leave"] as const;
@@ -25,6 +25,15 @@ const CHANGE_TYPES = [
   "Alteração de vínculo com aluno",
   "Vaga em aberto",
 ] as const;
+
+// Helper: calcular semana de referência (formato YYYY-Wnn)
+function getWeekReference(date?: Date): string {
+  const d = date || new Date();
+  const startOfYear = new Date(d.getFullYear(), 0, 1);
+  const days = Math.floor((d.getTime() - startOfYear.getTime()) / 86400000);
+  const weekNum = Math.ceil((days + startOfYear.getDay() + 1) / 7);
+  return `${d.getFullYear()}-W${String(weekNum).padStart(2, "0")}`;
+}
 
 export const appRouter = router({
   system: systemRouter,
@@ -47,29 +56,38 @@ export const appRouter = router({
       if (!db) return { totalStudents: 0, activeMediators: 0, pendingAttendances: 0, externalDemands: 0, onLeave: 0, vacancies: 0, totalSchools: 0, totalMediators: 0, studentsWithMediator: 0, studentsWithoutMediator: 0 };
 
       try {
-        const [studentList, mediatorList, pendingList, demandList, schoolList] = await Promise.all([
+        const [studentList, mediatorList, pendingList, demandList, schoolList, links] = await Promise.all([
           db.select().from(students),
           db.select().from(mediators),
           db.select().from(attendances).where(eq(attendances.status, "pending")),
           db.select().from(externalDemands).where(eq(externalDemands.status, "pending")),
           db.select().from(schools),
+          db.select().from(mediatorStudents),
         ]);
 
         const activeMediators = mediatorList.filter(m => m.status === "active").length;
         const onLeave = mediatorList.filter(m => m.status === "on_leave" || m.status === "temp_leave").length;
         const vacancies = mediatorList.filter(m => m.status === "vacancy").length;
 
-        // Alunos com e sem atendente (baseado em linkedStudents dos mediadores ativos)
+        // Alunos com e sem atendente (via mediator_students - vínculo formal)
+        const linkedStudentIds = new Set(
+          links
+            .filter(l => !l.endDate) // apenas vínculos ativos
+            .map(l => l.studentId)
+        );
+        // Fallback: também considerar linkedStudents texto (compatibilidade)
         const linkedStudentNames = new Set<string>();
         mediatorList.filter(m => m.status === "active").forEach(m => {
           if (m.linkedStudents) {
             m.linkedStudents.split(",").map(s => s.trim()).filter(Boolean).forEach(s => linkedStudentNames.add(s.toLowerCase()));
           }
         });
-        const studentsWithMediator = studentList.filter(s => linkedStudentNames.has(s.name.toLowerCase())).length;
+        const studentsWithMediator = studentList.filter(s =>
+          linkedStudentIds.has(s.id) || linkedStudentNames.has(s.name.toLowerCase())
+        ).length;
         const studentsWithoutMediator = studentList.length - studentsWithMediator;
 
-        // Ranking de escolas por demanda (mediadores com status vacancy ou on_leave)
+        // Ranking de escolas por demanda
         const schoolDemandMap = new Map<number, number>();
         mediatorList.filter(m => m.status === "vacancy" || m.status === "on_leave" || m.status === "temp_leave").forEach(m => {
           schoolDemandMap.set(m.schoolId, (schoolDemandMap.get(m.schoolId) || 0) + 1);
@@ -78,7 +96,7 @@ export const appRouter = router({
           .map(s => ({ id: s.id, name: s.name, demand: schoolDemandMap.get(s.id) || 0 }))
           .filter(s => s.demand > 0)
           .sort((a, b) => b.demand - a.demand);
-        const emRanking = schoolRanking.filter(s => s.name.startsWith("E M")).slice(0, 10);
+        const emRanking = schoolRanking.filter(s => s.name.startsWith("E M") || s.name.startsWith("EM ")).slice(0, 10);
         const cimRanking = schoolRanking.filter(s => s.name.startsWith("CIM")).slice(0, 10);
 
         // Gráfico por deficiência
@@ -92,7 +110,7 @@ export const appRouter = router({
         // Gráfico por turno
         const shiftMap = new Map<string, number>();
         studentList.forEach(s => {
-          const key = s.shift === "morning" ? "Manhã" : s.shift === "afternoon" ? "Tarde" : s.shift === "full" ? "Integral" : "Não informado";
+          const key = s.shift === "morning" ? "Manhã" : s.shift === "afternoon" ? "Tarde" : s.shift === "full" ? "Integral" : s.shift === "evening" ? "Noturno" : "Não informado";
           shiftMap.set(key, (shiftMap.get(key) || 0) + 1);
         });
         const byShift = Array.from(shiftMap.entries()).map(([name, value]) => ({ name, value }));
@@ -127,6 +145,56 @@ export const appRouter = router({
         return { totalStudents: 0, activeMediators: 0, pendingAttendances: 0, externalDemands: 0, onLeave: 0, vacancies: 0, totalSchools: 0, totalMediators: 0, studentsWithMediator: 0, studentsWithoutMediator: 0, emRanking: [], cimRanking: [], byDisability: [], byShift: [], byInactivity: [] };
       }
     }),
+
+    // Dashboard resumido para perfil escola
+    schoolStats: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return null;
+      const schoolId = ctx.user.schoolId;
+      if (!schoolId) return null;
+      try {
+        const [school] = await db.select().from(schools).where(eq(schools.id, schoolId));
+        const studentList = await db.select().from(students).where(eq(students.schoolId, schoolId));
+        const mediatorList = await db.select().from(mediators).where(eq(mediators.schoolId, schoolId));
+        const attendanceList = await db.select().from(attendances).where(eq(attendances.schoolId, schoolId));
+        const links = await db.select().from(mediatorStudents);
+
+        const activeMediators = mediatorList.filter(m => m.status === "active").length;
+        const onLeave = mediatorList.filter(m => m.status === "on_leave" || m.status === "temp_leave").length;
+        const vacancies = mediatorList.filter(m => m.status === "vacancy").length;
+
+        // Alunos com/sem atendente nesta escola
+        const mediatorIds = mediatorList.map(m => m.id);
+        const linkedStudentIds = new Set(
+          links.filter(l => !l.endDate && mediatorIds.includes(l.mediatorId)).map(l => l.studentId)
+        );
+        const linkedStudentNames = new Set<string>();
+        mediatorList.filter(m => m.status === "active").forEach(m => {
+          if (m.linkedStudents) {
+            m.linkedStudents.split(",").map(s => s.trim()).filter(Boolean).forEach(s => linkedStudentNames.add(s.toLowerCase()));
+          }
+        });
+        const studentsWithMediator = studentList.filter(s =>
+          linkedStudentIds.has(s.id) || linkedStudentNames.has(s.name.toLowerCase())
+        ).length;
+
+        return {
+          school,
+          totalStudents: studentList.length,
+          studentsWithMediator,
+          studentsWithoutMediator: studentList.length - studentsWithMediator,
+          totalMediators: mediatorList.length,
+          activeMediators,
+          onLeave,
+          vacancies,
+          totalAttendances: attendanceList.length,
+          pendingAttendances: attendanceList.filter(a => a.status === "pending").length,
+        };
+      } catch (error) {
+        console.error("[Dashboard] Error fetching school stats:", error);
+        return null;
+      }
+    }),
   }),
 
   /**
@@ -136,6 +204,33 @@ export const appRouter = router({
     list: protectedProcedure.query(async () => {
       return await getSchools();
     }),
+
+    // Dados detalhados de uma escola (para Schools.tsx)
+    detail: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return null;
+        try {
+          const [school] = await db.select().from(schools).where(eq(schools.id, input.id));
+          if (!school) return null;
+          const studentList = await db.select().from(students).where(eq(students.schoolId, input.id));
+          const mediatorList = await db.select().from(mediators).where(eq(mediators.schoolId, input.id));
+          const attendanceList = await db.select().from(attendances).where(eq(attendances.schoolId, input.id));
+          return {
+            ...school,
+            totalStudents: studentList.length,
+            totalMediators: mediatorList.length,
+            activeMediators: mediatorList.filter(m => m.status === "active").length,
+            onLeave: mediatorList.filter(m => m.status === "on_leave" || m.status === "temp_leave").length,
+            vacancies: mediatorList.filter(m => m.status === "vacancy").length,
+            totalAttendances: attendanceList.length,
+          };
+        } catch (error) {
+          console.error("[Schools] Error fetching detail:", error);
+          return null;
+        }
+      }),
 
     // Painel de escolas com mediadores agrupados (visão da Secretaria)
     panel: protectedProcedure.query(async () => {
@@ -168,6 +263,41 @@ export const appRouter = router({
       }
     }),
 
+    // Lista de escolas com contadores reais (para Schools.tsx)
+    listWithStats: protectedProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      try {
+        const schoolList = await db.select().from(schools);
+        const studentList = await db.select({ id: students.id, schoolId: students.schoolId }).from(students);
+        const mediatorList = await db.select({ id: mediators.id, schoolId: mediators.schoolId, status: mediators.status }).from(mediators);
+        const attendanceList = await db.select({ id: attendances.id, schoolId: attendances.schoolId }).from(attendances);
+        const demandList = await db.select({ id: externalDemands.id, schoolId: externalDemands.schoolId, status: externalDemands.status }).from(externalDemands);
+
+        return schoolList.map(school => ({
+          id: school.id,
+          name: school.name,
+          code: school.code,
+          address: school.address,
+          phone: school.phone,
+          principal: school.principal,
+          responsible: school.responsible,
+          weeklyStatus: school.weeklyStatus,
+          lastWeeklyUpdate: school.lastWeeklyUpdate,
+          students: studentList.filter(s => s.schoolId === school.id).length,
+          mediators: mediatorList.filter(m => m.schoolId === school.id).length,
+          activeMediators: mediatorList.filter(m => m.schoolId === school.id && m.status === "active").length,
+          onLeave: mediatorList.filter(m => m.schoolId === school.id && (m.status === "on_leave" || m.status === "temp_leave")).length,
+          vacancies: mediatorList.filter(m => m.schoolId === school.id && m.status === "vacancy").length,
+          attendances: attendanceList.filter(a => a.schoolId === school.id).length,
+          pendingDemands: demandList.filter(d => d.schoolId === school.id && d.status === "pending").length,
+        }));
+      } catch (error) {
+        console.error("[Schools] Error fetching listWithStats:", error);
+        return [];
+      }
+    }),
+
     // Alertas da semana gerados automaticamente
     alerts: protectedProcedure.query(async () => {
       const db = await getDb();
@@ -188,9 +318,9 @@ export const appRouter = router({
           alerts.push(`${newDemands.length} unidade${newDemands.length > 1 ? "s" : ""} informaram nova demanda de atendente`);
         }
 
-        const onLeave = mediatorList.filter(m => m.status === "on_leave");
-        if (onLeave.length > 0) {
-          alerts.push(`${onLeave.length} atendente${onLeave.length > 1 ? "s estão" : " está"} em licença médica com necessidade de substituição`);
+        const onLeaveList = mediatorList.filter(m => m.status === "on_leave");
+        if (onLeaveList.length > 0) {
+          alerts.push(`${onLeaveList.length} atendente${onLeaveList.length > 1 ? "s estão" : " está"} em licença médica com necessidade de substituição`);
         }
 
         const linkChange = mediatorList.filter(m => m.changeType === "Alteração de vínculo com aluno");
@@ -198,9 +328,9 @@ export const appRouter = router({
           alerts.push(`${linkChange.length} escola${linkChange.length > 1 ? "s" : ""} registraram alteração de vínculo nesta semana`);
         }
 
-        const vacancies = mediatorList.filter(m => m.status === "vacancy");
-        if (vacancies.length > 0) {
-          alerts.push(`${vacancies.length} vaga${vacancies.length > 1 ? "s em aberto" : " em aberto"} aguardando preenchimento`);
+        const vacancyList = mediatorList.filter(m => m.status === "vacancy");
+        if (vacancyList.length > 0) {
+          alerts.push(`${vacancyList.length} vaga${vacancyList.length > 1 ? "s em aberto" : " em aberto"} aguardando preenchimento`);
         }
 
         return alerts;
@@ -257,15 +387,201 @@ export const appRouter = router({
   }),
 
   /**
+   * Weekly Snapshots - Quadro semanal com histórico
+   */
+  weeklySnapshots: router({
+    submit: protectedProcedure
+      .input(z.object({
+        schoolId: z.number(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        try {
+          // Capturar snapshot dos mediadores da escola
+          const mediatorList = await db.select().from(mediators).where(eq(mediators.schoolId, input.schoolId));
+          const snapshotData = JSON.stringify(mediatorList.map(m => ({
+            id: m.id, name: m.name, status: m.status, changeType: m.changeType,
+            linkedStudents: m.linkedStudents, isShared: m.isShared,
+            inactivityReason: m.inactivityReason, note: m.note,
+          })));
+
+          const weekRef = getWeekReference();
+
+          await db.insert(weeklySnapshots).values({
+            schoolId: input.schoolId,
+            weekReference: weekRef,
+            submittedBy: ctx.user.id,
+            submittedByName: ctx.user.name || "Usuário",
+            snapshotData,
+            notes: input.notes,
+            status: "submitted",
+          });
+
+          // Atualizar status da escola
+          await db.update(schools).set({
+            weeklyStatus: "updated",
+            responsible: ctx.user.name || undefined,
+            lastWeeklyUpdate: new Date(),
+          }).where(eq(schools.id, input.schoolId));
+
+          return { success: true, weekReference: weekRef };
+        } catch (error) {
+          console.error("[WeeklySnapshots] Error submitting:", error);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao enviar quadro semanal" });
+        }
+      }),
+
+    listBySchool: protectedProcedure
+      .input(z.object({ schoolId: z.number() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        try {
+          return await db.select().from(weeklySnapshots)
+            .where(eq(weeklySnapshots.schoolId, input.schoolId))
+            .orderBy(desc(weeklySnapshots.createdAt));
+        } catch (error) {
+          console.error("[WeeklySnapshots] Error listing:", error);
+          return [];
+        }
+      }),
+  }),
+
+  /**
+   * MediatorStudents - Vínculos formais mediador↔aluno
+   */
+  mediatorStudentLinks: router({
+    list: protectedProcedure
+      .input(z.object({ mediatorId: z.number().optional(), studentId: z.number().optional() }).optional())
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        try {
+          let query = db.select({
+            id: mediatorStudents.id,
+            mediatorId: mediatorStudents.mediatorId,
+            studentId: mediatorStudents.studentId,
+            isPrimary: mediatorStudents.isPrimary,
+            startDate: mediatorStudents.startDate,
+            endDate: mediatorStudents.endDate,
+            mediatorName: mediators.name,
+            studentName: students.name,
+          })
+            .from(mediatorStudents)
+            .leftJoin(mediators, eq(mediatorStudents.mediatorId, mediators.id))
+            .leftJoin(students, eq(mediatorStudents.studentId, students.id));
+
+          if (input?.mediatorId) {
+            return await (query as any).where(eq(mediatorStudents.mediatorId, input.mediatorId));
+          }
+          if (input?.studentId) {
+            return await (query as any).where(eq(mediatorStudents.studentId, input.studentId));
+          }
+          return await query;
+        } catch (error) {
+          console.error("[MediatorStudents] Error listing:", error);
+          return [];
+        }
+      }),
+
+    link: protectedProcedure
+      .input(z.object({
+        mediatorId: z.number(),
+        studentId: z.number(),
+        isPrimary: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        try {
+          await db.insert(mediatorStudents).values({
+            mediatorId: input.mediatorId,
+            studentId: input.studentId,
+            isPrimary: input.isPrimary ?? true,
+            startDate: new Date(),
+          });
+          return { success: true };
+        } catch (error) {
+          console.error("[MediatorStudents] Error linking:", error);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao vincular" });
+        }
+      }),
+
+    unlink: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        try {
+          await db.update(mediatorStudents).set({ endDate: new Date() }).where(eq(mediatorStudents.id, input.id));
+          return { success: true };
+        } catch (error) {
+          console.error("[MediatorStudents] Error unlinking:", error);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao desvincular" });
+        }
+      }),
+  }),
+
+  /**
+   * StatusHistory - Log de mudanças de status
+   */
+  statusHistory: router({
+    list: protectedProcedure
+      .input(z.object({ mediatorId: z.number() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        try {
+          return await db.select().from(statusHistory)
+            .where(eq(statusHistory.mediatorId, input.mediatorId))
+            .orderBy(desc(statusHistory.changedAt));
+        } catch (error) {
+          console.error("[StatusHistory] Error listing:", error);
+          return [];
+        }
+      }),
+  }),
+
+  /**
    * Students - Gestão de alunos
    */
   students: router({
     listBySchool: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user.role === "admin") {
-        return await getDb().then(db => db ? db.select().from(students) : []);
+      const db = await getDb();
+      if (!db) return [];
+      try {
+        const studentRows = ctx.user.role === "admin"
+          ? await db.select().from(students)
+          : ctx.user.schoolId
+            ? await db.select().from(students).where(eq(students.schoolId, ctx.user.schoolId))
+            : [];
+
+        // Enriquecer com nome do mediador vinculado
+        if (studentRows.length === 0) return [];
+        const links = await db.select().from(mediatorStudents).where(
+          sql`${mediatorStudents.endDate} IS NULL`
+        );
+        const mediatorIds = Array.from(new Set(links.map(l => l.mediatorId)));
+        const mediatorNames = mediatorIds.length > 0
+          ? await db.select({ id: mediators.id, name: mediators.name }).from(mediators)
+          : [];
+        const mediatorMap = new Map(mediatorNames.map(m => [m.id, m.name]));
+
+        return studentRows.map(s => {
+          const studentLinks = links.filter(l => l.studentId === s.id);
+          const mediatorNamesList = studentLinks.map(l => mediatorMap.get(l.mediatorId) || "").filter(Boolean);
+          return {
+            ...s,
+            mediatorNames: mediatorNamesList.join(", ") || null,
+            hasMediatorLink: mediatorNamesList.length > 0,
+          };
+        });
+      } catch (error) {
+        console.error("[Students] Error listing:", error);
+        return [];
       }
-      if (!ctx.user.schoolId) return [];
-      return await getStudentsBySchool(ctx.user.schoolId);
     }),
 
     create: protectedProcedure
@@ -279,14 +595,13 @@ export const appRouter = router({
         guardianPhone: z.string().optional(),
         schoolId: z.number().optional(),
         disability: z.string().optional(),
-        shift: z.enum(["morning", "afternoon", "full"]).optional(),
+        shift: z.enum(["morning", "afternoon", "full", "evening"]).optional(),
         grade: z.string().optional(),
         notes: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
-        // Admin pode cadastrar sem escola vinculada (schoolId = 0 = sem escola)
         const schoolId = input.schoolId ?? ctx.user.schoolId ?? 0;
         if (!schoolId && ctx.user.role !== "admin") {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Usuário escola deve estar vinculado a uma escola" });
@@ -313,14 +628,61 @@ export const appRouter = router({
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create student" });
         }
       }),
+
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().min(1).optional(),
+        cpf: z.string().optional(),
+        dateOfBirth: z.string().optional(),
+        enrollmentNumber: z.string().optional(),
+        specialNeeds: z.string().optional(),
+        guardianName: z.string().optional(),
+        guardianPhone: z.string().optional(),
+        schoolId: z.number().optional(),
+        disability: z.string().optional(),
+        shift: z.enum(["morning", "afternoon", "full", "evening"]).optional(),
+        grade: z.string().optional(),
+        notes: z.string().optional(),
+        status: z.enum(["active", "inactive", "transferred"]).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        const { id, dateOfBirth, ...rest } = input;
+        const data: Record<string, unknown> = {
+          ...rest,
+          dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+        };
+        Object.keys(data).forEach(k => data[k] === undefined && delete data[k]);
+        try {
+          await db.update(students).set(data as any).where(eq(students.id, id));
+          return { success: true };
+        } catch (error) {
+          console.error("[Students] Error updating student:", error);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to update student" });
+        }
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        try {
+          await db.delete(students).where(eq(students.id, input.id));
+          return { success: true };
+        } catch (error) {
+          console.error("[Students] Error deleting:", error);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to delete student" });
+        }
+      }),
   }),
 
   /**
    * Mediators - Quadro de Atendentes (integrado com MVP)
-   * Inclui: create, update, delete, listWithSchool
    */
   mediators: router({
-    // Lista todos os mediadores com nome da escola (visão consolidada do MVP)
     listAll: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
@@ -356,54 +718,36 @@ export const appRouter = router({
       const db = await getDb();
       if (!db) return [];
       try {
+        const baseSelect = {
+          id: mediators.id,
+          name: mediators.name,
+          registration: mediators.registration,
+          cpf: mediators.cpf,
+          professionalLicense: mediators.professionalLicense,
+          specialization: mediators.specialization,
+          status: mediators.status,
+          changeType: mediators.changeType,
+          linkedStudents: mediators.linkedStudents,
+          note: mediators.note,
+          responsible: mediators.responsible,
+          maxAttendances: mediators.maxAttendances,
+          isShared: mediators.isShared,
+          schoolId: mediators.schoolId,
+          updatedAt: mediators.updatedAt,
+          schoolName: schools.name,
+          inactivityReason: mediators.inactivityReason,
+          inactivityDate: mediators.inactivityDate,
+          returnDate: mediators.returnDate,
+          additionalStudents: mediators.additionalStudents,
+        };
+
         if (ctx.user.role === "admin") {
-          const rows = await db
-            .select({
-              id: mediators.id,
-              name: mediators.name,
-              registration: mediators.registration,
-              cpf: mediators.cpf,
-              professionalLicense: mediators.professionalLicense,
-              specialization: mediators.specialization,
-              status: mediators.status,
-              changeType: mediators.changeType,
-              linkedStudents: mediators.linkedStudents,
-              note: mediators.note,
-              responsible: mediators.responsible,
-              maxAttendances: mediators.maxAttendances,
-              isShared: mediators.isShared,
-              schoolId: mediators.schoolId,
-              updatedAt: mediators.updatedAt,
-              schoolName: schools.name,
-            })
-            .from(mediators)
-            .leftJoin(schools, eq(mediators.schoolId, schools.id));
-          return rows;
+          return await db.select(baseSelect).from(mediators).leftJoin(schools, eq(mediators.schoolId, schools.id));
         }
         if (!ctx.user.schoolId) return [];
-        const rows = await db
-          .select({
-            id: mediators.id,
-            name: mediators.name,
-            registration: mediators.registration,
-            cpf: mediators.cpf,
-            professionalLicense: mediators.professionalLicense,
-            specialization: mediators.specialization,
-            status: mediators.status,
-            changeType: mediators.changeType,
-            linkedStudents: mediators.linkedStudents,
-            note: mediators.note,
-            responsible: mediators.responsible,
-            maxAttendances: mediators.maxAttendances,
-            isShared: mediators.isShared,
-            schoolId: mediators.schoolId,
-            updatedAt: mediators.updatedAt,
-            schoolName: schools.name,
-          })
-          .from(mediators)
+        return await db.select(baseSelect).from(mediators)
           .leftJoin(schools, eq(mediators.schoolId, schools.id))
           .where(eq(mediators.schoolId, ctx.user.schoolId));
-        return rows;
       } catch (error) {
         console.error("[Mediators] Error listing by school:", error);
         return [];
@@ -485,14 +829,35 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
-        const { id, inactivityDate, returnDate, ...rest } = input;
-        const data = {
+        const { id, inactivityDate, returnDate, status: newStatus, ...rest } = input;
+
+        // Log de mudança de status
+        if (newStatus) {
+          try {
+            const [current] = await db.select({ status: mediators.status }).from(mediators).where(eq(mediators.id, id));
+            if (current && current.status !== newStatus) {
+              await db.insert(statusHistory).values({
+                mediatorId: id,
+                previousStatus: current.status,
+                newStatus,
+                reason: input.inactivityReason || input.changeType || undefined,
+                changedBy: ctx.user.id,
+              });
+            }
+          } catch (e) {
+            console.error("[StatusHistory] Error logging:", e);
+          }
+        }
+
+        const data: Record<string, unknown> = {
           ...rest,
+          status: newStatus,
           inactivityDate: inactivityDate ? new Date(inactivityDate) : undefined,
           returnDate: returnDate ? new Date(returnDate) : undefined,
         };
+        Object.keys(data).forEach(k => data[k] === undefined && delete data[k]);
         try {
-          await db.update(mediators).set(data).where(eq(mediators.id, id));
+          await db.update(mediators).set(data as any).where(eq(mediators.id, id));
           return { success: true };
         } catch (error) {
           console.error("[Mediators] Error updating mediator:", error);
@@ -506,6 +871,9 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         try {
+          // Encerrar vínculos antes de deletar
+          await db.update(mediatorStudents).set({ endDate: new Date() })
+            .where(eq(mediatorStudents.mediatorId, input.id));
           await db.delete(mediators).where(eq(mediators.id, input.id));
           return { success: true };
         } catch (error) {
@@ -516,15 +884,66 @@ export const appRouter = router({
   }),
 
   /**
-   * Attendances - Gestão de atendimentos
+   * Attendances - Gestão de atendimentos (com nomes resolvidos)
    */
   attendances: router({
     listBySchool: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user.role === "admin") {
-        return await getDb().then(db => db ? db.select().from(attendances) : []);
+      const db = await getDb();
+      if (!db) return [];
+      try {
+        const rows = ctx.user.role === "admin"
+          ? await db.select({
+              id: attendances.id,
+              studentId: attendances.studentId,
+              mediatorId: attendances.mediatorId,
+              schoolId: attendances.schoolId,
+              attendanceDate: attendances.attendanceDate,
+              startTime: attendances.startTime,
+              endTime: attendances.endTime,
+              description: attendances.description,
+              result: attendances.result,
+              status: attendances.status,
+              type: attendances.type,
+              notes: attendances.notes,
+              createdAt: attendances.createdAt,
+              studentName: students.name,
+              mediatorName: mediators.name,
+              schoolName: schools.name,
+            })
+            .from(attendances)
+            .leftJoin(students, eq(attendances.studentId, students.id))
+            .leftJoin(mediators, eq(attendances.mediatorId, mediators.id))
+            .leftJoin(schools, eq(attendances.schoolId, schools.id))
+          : ctx.user.schoolId
+            ? await db.select({
+                id: attendances.id,
+                studentId: attendances.studentId,
+                mediatorId: attendances.mediatorId,
+                schoolId: attendances.schoolId,
+                attendanceDate: attendances.attendanceDate,
+                startTime: attendances.startTime,
+                endTime: attendances.endTime,
+                description: attendances.description,
+                result: attendances.result,
+                status: attendances.status,
+                type: attendances.type,
+                notes: attendances.notes,
+                createdAt: attendances.createdAt,
+                studentName: students.name,
+                mediatorName: mediators.name,
+                schoolName: schools.name,
+              })
+              .from(attendances)
+              .leftJoin(students, eq(attendances.studentId, students.id))
+              .leftJoin(mediators, eq(attendances.mediatorId, mediators.id))
+              .leftJoin(schools, eq(attendances.schoolId, schools.id))
+              .where(eq(attendances.schoolId, ctx.user.schoolId))
+            : [];
+        return rows;
+      } catch (error) {
+        console.error("[Attendances] Error listing:", error);
+        return [];
       }
-      if (!ctx.user.schoolId) return [];
-      return await getAttendancesBySchool(ctx.user.schoolId);
     }),
 
     create: protectedProcedure
@@ -535,7 +954,8 @@ export const appRouter = router({
         startTime: z.string().optional(),
         endTime: z.string().optional(),
         description: z.string().optional(),
-        type: z.enum(["individual", "shared"]),
+        result: z.string().optional(),
+        type: z.enum(["individual", "shared"]).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
@@ -549,7 +969,8 @@ export const appRouter = router({
             startTime: input.startTime,
             endTime: input.endTime,
             description: input.description,
-            type: input.type,
+            result: input.result,
+            type: input.type || "individual",
             schoolId,
             status: "completed",
           });
@@ -559,11 +980,146 @@ export const appRouter = router({
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create attendance" });
         }
       }),
+
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        attendanceDate: z.string().optional(),
+        startTime: z.string().optional(),
+        endTime: z.string().optional(),
+        description: z.string().optional(),
+        result: z.string().optional(),
+        status: z.enum(["completed", "pending", "cancelled"]).optional(),
+        type: z.enum(["individual", "shared"]).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { id, attendanceDate, ...rest } = input;
+        const data: Record<string, unknown> = {
+          ...rest,
+          attendanceDate: attendanceDate ? new Date(attendanceDate) : undefined,
+        };
+        Object.keys(data).forEach(k => data[k] === undefined && delete data[k]);
+        try {
+          await db.update(attendances).set(data as any).where(eq(attendances.id, id));
+          return { success: true };
+        } catch (error) {
+          console.error("[Attendances] Error updating:", error);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to update attendance" });
+        }
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        try {
+          await db.delete(attendances).where(eq(attendances.id, input.id));
+          return { success: true };
+        } catch (error) {
+          console.error("[Attendances] Error deleting:", error);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to delete attendance" });
+        }
+      }),
   }),
 
   /**
-   * ExternalDemands - Gestão de demandas externas
+   * Reports - Relatórios reais com dados do banco
    */
+  reports: router({
+    generate: protectedProcedure
+      .input(z.object({
+        type: z.enum(["students", "mediators", "attendances", "schools", "demands"]),
+        schoolId: z.number().optional(),
+        status: z.string().optional(),
+        dateFrom: z.string().optional(),
+        dateTo: z.string().optional(),
+      }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) return { rows: [], total: 0 };
+        try {
+          if (input.type === "students") {
+            let rows = await db.select({
+              id: students.id,
+              name: students.name,
+              cpf: students.cpf,
+              disability: students.disability,
+              shift: students.shift,
+              grade: students.grade,
+              status: students.status,
+              schoolId: students.schoolId,
+              schoolName: schools.name,
+              enrollmentNumber: students.enrollmentNumber,
+              guardianName: students.guardianName,
+            }).from(students).leftJoin(schools, eq(students.schoolId, schools.id));
+            if (input.schoolId) rows = rows.filter((r: any) => r.schoolId === input.schoolId);
+            if (input.status && input.status !== "all") rows = rows.filter((r: any) => r.status === input.status);
+            return { rows, total: rows.length };
+          }
+          if (input.type === "mediators") {
+            let rows = await db.select({
+              id: mediators.id,
+              name: mediators.name,
+              cpf: mediators.cpf,
+              registration: mediators.registration,
+              status: mediators.status,
+              changeType: mediators.changeType,
+              linkedStudents: mediators.linkedStudents,
+              inactivityReason: mediators.inactivityReason,
+              schoolId: mediators.schoolId,
+              schoolName: schools.name,
+            }).from(mediators).leftJoin(schools, eq(mediators.schoolId, schools.id));
+            if (input.schoolId) rows = rows.filter((r: any) => r.schoolId === input.schoolId);
+            if (input.status && input.status !== "all") rows = rows.filter((r: any) => r.status === input.status);
+            return { rows, total: rows.length };
+          }
+          if (input.type === "attendances") {
+            let rows = await db.select({
+              id: attendances.id,
+              attendanceDate: attendances.attendanceDate,
+              status: attendances.status,
+              type: attendances.type,
+              description: attendances.description,
+              result: attendances.result,
+              studentName: students.name,
+              mediatorName: mediators.name,
+              schoolName: schools.name,
+            }).from(attendances)
+              .leftJoin(students, eq(attendances.studentId, students.id))
+              .leftJoin(mediators, eq(attendances.mediatorId, mediators.id))
+              .leftJoin(schools, eq(attendances.schoolId, schools.id));
+            if (input.schoolId) rows = rows.filter((r: any) => r.schoolId === input.schoolId);
+            if (input.status && input.status !== "all") rows = rows.filter((r: any) => r.status === input.status);
+            return { rows, total: rows.length };
+          }
+          if (input.type === "schools") {
+            const schoolList = await db.select().from(schools);
+            const studentList = await db.select({ schoolId: students.schoolId }).from(students);
+            const mediatorList = await db.select({ schoolId: mediators.schoolId, status: mediators.status }).from(mediators);
+            const rows = schoolList.map(s => ({
+              id: s.id,
+              name: s.name,
+              code: s.code,
+              weeklyStatus: s.weeklyStatus,
+              lastWeeklyUpdate: s.lastWeeklyUpdate,
+              students: studentList.filter(st => st.schoolId === s.id).length,
+              mediators: mediatorList.filter(m => m.schoolId === s.id).length,
+              activeMediators: mediatorList.filter(m => m.schoolId === s.id && m.status === "active").length,
+              vacancies: mediatorList.filter(m => m.schoolId === s.id && m.status === "vacancy").length,
+            }));
+            return { rows, total: rows.length };
+          }
+          return { rows: [], total: 0 };
+        } catch (error) {
+          console.error("[Reports] Error generating:", error);
+          return { rows: [], total: 0 };
+        }
+      }),
+  }),
+
   /**
    * Users - Gestão de usuários pelo admin
    */
@@ -635,10 +1191,8 @@ export const appRouter = router({
         if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem criar usuários" });
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-        // Verificar se e-mail já existe
         const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, input.email));
         if (existing.length > 0) throw new TRPCError({ code: "CONFLICT", message: "Já existe um usuário com este e-mail" });
-        // Criar usuário pré-cadastrado (sem openId — será preenchido no primeiro login)
         await db.insert(users).values({
           openId: `pre_${Date.now()}_${Math.random().toString(36).slice(2)}`,
           name: input.name,
@@ -692,7 +1246,6 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         try {
-          // Resolver schoolId pelo nome da escola
           let schoolId: number | null = ctx.user.schoolId || null;
           if (input.schoolName) {
             const [school] = await db.select({ id: schools.id }).from(schools).where(eq(schools.name, input.schoolName)).limit(1);
@@ -752,10 +1305,8 @@ export const appRouter = router({
           disabilities: disabilities ? JSON.stringify(disabilities) : undefined,
           updatedBy: ctx.user.id,
         };
-        // Limpar undefined
         Object.keys(data).forEach(k => data[k] === undefined && delete data[k]);
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await db.update(demands).set(data as any).where(eq(demands.id, id));
           return { success: true };
         } catch (error) {
@@ -779,7 +1330,6 @@ export const appRouter = router({
         }
       }),
 
-    // Retorna lista de nomes de atendentes únicos já cadastrados no sistema
     listAttendants: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
@@ -795,9 +1345,8 @@ export const appRouter = router({
       }
     }),
 
-    // Verifica se um aluno já existe pelo nome (busca para cadastro unificado)
     searchStudents: protectedProcedure
-      .input(z.object({ query: z.string().min(2) }))
+      .input(z.object({ query: z.string().min(1) }))
       .query(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) return [];
@@ -824,17 +1373,15 @@ export const appRouter = router({
         if (!db) return null;
         try {
           let allDemands = await db.select().from(demands);
-          // Filtrar por escola do usuário se não for admin
           if (ctx.user.role !== "admin" && ctx.user.schoolId) {
             allDemands = allDemands.filter(d => d.schoolId === ctx.user.schoolId);
           }
-          // Filtros opcionais
           if (input?.schoolId) allDemands = allDemands.filter(d => d.schoolId === input.schoolId);
           if (input?.shift && input.shift !== "all") allDemands = allDemands.filter(d => d.shift === input.shift);
           if (input?.schoolType && input.schoolType !== "all") {
-            if (input.schoolType === "EM") allDemands = allDemands.filter(d => d.schoolName.startsWith("EM "));
+            if (input.schoolType === "EM") allDemands = allDemands.filter(d => d.schoolName.startsWith("EM ") || d.schoolName.startsWith("E M"));
             else if (input.schoolType === "CIM") allDemands = allDemands.filter(d => d.schoolName.startsWith("CIM "));
-            else allDemands = allDemands.filter(d => !d.schoolName.startsWith("EM ") && !d.schoolName.startsWith("CIM "));
+            else allDemands = allDemands.filter(d => !d.schoolName.startsWith("EM ") && !d.schoolName.startsWith("E M") && !d.schoolName.startsWith("CIM "));
           }
 
           const total = allDemands.length;
@@ -845,7 +1392,6 @@ export const appRouter = router({
           const inactiveAttendants = allDemands.filter(d => d.hasAttendant && d.attendantStatus === "inactive").length;
           const coverageRate = total > 0 ? Math.round((withAttendant / total) * 100) : 0;
 
-          // Contagem por deficiência
           const disabilityCount: Record<string, number> = {};
           allDemands.forEach(d => {
             if (d.disabilities) {
@@ -856,16 +1402,13 @@ export const appRouter = router({
             }
           });
 
-          // Contagem por turno
           const shiftCount: Record<string, number> = { full: 0, morning: 0, afternoon: 0, evening: 0 };
           allDemands.forEach(d => { shiftCount[d.shift] = (shiftCount[d.shift] || 0) + 1; });
 
-          // Contagem por situação de atendimento
           const statusCount: Record<string, number> = {};
           allDemands.forEach(d => { statusCount[d.attendanceStatus] = (statusCount[d.attendanceStatus] || 0) + 1; });
 
-          // Top 10 EMs com maior demanda
-          const emDemands = allDemands.filter(d => d.schoolName.startsWith("EM "));
+          const emDemands = allDemands.filter(d => d.schoolName.startsWith("EM ") || d.schoolName.startsWith("E M"));
           const emBySchool: Record<string, { name: string; withoutAttendant: number; open: number }> = {};
           emDemands.forEach(d => {
             if (!emBySchool[d.schoolName]) emBySchool[d.schoolName] = { name: d.schoolName, withoutAttendant: 0, open: 0 };
@@ -877,7 +1420,6 @@ export const appRouter = router({
             .slice(0, 10)
             .map(s => ({ ...s, deficit: s.withoutAttendant + s.open }));
 
-          // Top 10 CIMs com maior demanda
           const cimDemands = allDemands.filter(d => d.schoolName.startsWith("CIM "));
           const cimBySchool: Record<string, { name: string; withoutAttendant: number; open: number }> = {};
           cimDemands.forEach(d => {
@@ -890,10 +1432,8 @@ export const appRouter = router({
             .slice(0, 10)
             .map(s => ({ ...s, deficit: s.withoutAttendant + s.open }));
 
-          // Escolas com falta de atendente
           const schoolsWithDeficit = new Set(allDemands.filter(d => d.attendanceStatus !== "with_attendant").map(d => d.schoolName)).size;
 
-          // Faixa etária
           const ageCount: Record<string, number> = { "0-5": 0, "6-10": 0, "11-14": 0, "15-17": 0, "18+": 0 };
           const now = new Date();
           allDemands.forEach(d => {
@@ -908,7 +1448,6 @@ export const appRouter = router({
             }
           });
 
-          // Motivo de inatividade (dos atendentes inativos)
           const inactivityCount: Record<string, number> = {};
           allDemands.filter(d => d.attendantStatus === "inactive").forEach(d => {
             const reason = d.notes || "Não informado";
@@ -917,21 +1456,10 @@ export const appRouter = router({
           });
 
           return {
-            total,
-            withAttendant,
-            withoutAttendant,
-            awaitingSubstitution,
-            activeAttendants,
-            inactiveAttendants,
-            coverageRate,
-            schoolsWithDeficit,
-            disabilityCount,
-            shiftCount,
-            statusCount,
-            ageCount,
-            inactivityCount,
-            topEMs,
-            topCIMs,
+            total, withAttendant, withoutAttendant, awaitingSubstitution,
+            activeAttendants, inactiveAttendants, coverageRate, schoolsWithDeficit,
+            disabilityCount, shiftCount, statusCount, ageCount, inactivityCount,
+            topEMs, topCIMs,
           };
         } catch (error) {
           console.error("[Demands] Error getting stats:", error);

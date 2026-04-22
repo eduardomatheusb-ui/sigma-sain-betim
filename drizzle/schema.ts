@@ -114,6 +114,7 @@ export const attendances = mysqlTable("attendances", {
   description: text("description"),
   status: mysqlEnum("status", ["completed", "pending", "cancelled"]).default("pending").notNull(),
   type: mysqlEnum("type", ["individual", "shared"]).default("individual").notNull(),
+  result: text("result"),
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -121,6 +122,56 @@ export const attendances = mysqlTable("attendances", {
 
 export type Attendance = typeof attendances.$inferSelect;
 export type InsertAttendance = typeof attendances.$inferInsert;
+
+/**
+ * MediatorStudents - Vínculo formal N:N entre mediador e aluno
+ */
+export const mediatorStudents = mysqlTable("mediator_students", {
+  id: int("id").autoincrement().primaryKey(),
+  mediatorId: int("mediatorId").notNull(),
+  studentId: int("studentId").notNull(),
+  isPrimary: boolean("isPrimary").default(true).notNull(),
+  startDate: date("startDate"),
+  endDate: date("endDate"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type MediatorStudent = typeof mediatorStudents.$inferSelect;
+export type InsertMediatorStudent = typeof mediatorStudents.$inferInsert;
+
+/**
+ * StatusHistory - Log de mudanças de status dos mediadores
+ */
+export const statusHistory = mysqlTable("status_history", {
+  id: int("id").autoincrement().primaryKey(),
+  mediatorId: int("mediatorId").notNull(),
+  previousStatus: varchar("previousStatus", { length: 50 }).notNull(),
+  newStatus: varchar("newStatus", { length: 50 }).notNull(),
+  reason: text("reason"),
+  changedBy: int("changedBy"),
+  changedAt: timestamp("changedAt").defaultNow().notNull(),
+});
+
+export type StatusHistoryRow = typeof statusHistory.$inferSelect;
+export type InsertStatusHistory = typeof statusHistory.$inferInsert;
+
+/**
+ * WeeklySnapshots - Registro do quadro semanal com semana de referência
+ */
+export const weeklySnapshots = mysqlTable("weekly_snapshots", {
+  id: int("id").autoincrement().primaryKey(),
+  schoolId: int("schoolId").notNull(),
+  weekReference: varchar("weekReference", { length: 20 }).notNull(),
+  submittedBy: int("submittedBy"),
+  submittedByName: varchar("submittedByName", { length: 255 }),
+  snapshotData: text("snapshotData"),
+  status: mysqlEnum("status", ["submitted", "validated", "rejected"]).default("submitted").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});  
+
+export type WeeklySnapshot = typeof weeklySnapshots.$inferSelect;
+export type InsertWeeklySnapshot = typeof weeklySnapshots.$inferInsert;
 
 /**
  * SharedAttendances table - Vinculação de múltiplos mediadores a um atendimento

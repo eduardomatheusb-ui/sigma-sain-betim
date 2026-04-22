@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, Redirect } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import DashboardLayout from "./components/DashboardLayout";
@@ -16,21 +16,33 @@ import Users from "./pages/Users";
 import Reports from "./pages/Reports";
 import Cadastros from "./pages/Cadastros";
 import DashboardGerencial from "./pages/DashboardGerencial";
+import { useAuth } from "@/_core/hooks/useAuth";
+
+/** Componente que protege rotas exclusivas do admin */
+function AdminRoute({ component: Component }: { component: React.ComponentType }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user || user.role !== "admin") {
+    return <Redirect to="/dashboard" />;
+  }
+  return <Component />;
+}
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/dashboard" component={Dashboard} />
-      <Route path="/escolas" component={Schools} />
       <Route path="/alunos" component={Students} />
       <Route path="/mediadores" component={Mediators} />
-      <Route path="/atendimentos" component={Attendances} />
-      <Route path="/demandas" component={ExternalDemands} />
-      <Route path="/usuarios" component={Users} />
-      <Route path="/relatorios" component={Reports} />
       <Route path="/cadastros" component={Cadastros} />
       <Route path="/dashboard-gerencial" component={DashboardGerencial} />
+      {/* Rotas exclusivas do admin */}
+      <Route path="/escolas">{() => <AdminRoute component={Schools} />}</Route>
+      <Route path="/atendimentos" component={Attendances} />
+      <Route path="/demandas">{() => <AdminRoute component={ExternalDemands} />}</Route>
+      <Route path="/usuarios">{() => <AdminRoute component={Users} />}</Route>
+      <Route path="/relatorios">{() => <AdminRoute component={Reports} />}</Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

@@ -1,11 +1,14 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Briefcase, ClipboardList, AlertCircle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { trpc } from "@/lib/trpc";
+import { Users, Briefcase, ClipboardList, AlertCircle, GraduationCap, ArrowRight, Calendar, School, CheckCircle2, Clock } from "lucide-react";
 import { getLoginUrl } from "@/const";
+import { Link } from "wouter";
 
 export default function Home() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   if (!isAuthenticated) {
     return (
@@ -18,9 +21,9 @@ export default function Home() {
               </div>
             </div>
             <h1 className="text-3xl font-bold text-foreground mb-2">SIGMA</h1>
-            <p className="text-muted-foreground mb-2">Sistema Integrado de Gestão</p>
+            <p className="text-muted-foreground mb-2">Sistema Integrado de Gestao</p>
             <p className="text-sm text-muted-foreground mb-8">
-              Mediadores e Atendimentos — SAIN/Betim
+              Mediadores e Atendimentos - SAIN/Betim
             </p>
             <a href={getLoginUrl()}>
               <Button size="lg" className="w-full">
@@ -33,148 +36,229 @@ export default function Home() {
     );
   }
 
+  const isAdmin = user?.role === "admin";
+
+  return isAdmin ? <AdminHome userName={user?.name || ""} /> : <SchoolHome userName={user?.name || ""} />;
+}
+
+function AdminHome({ userName }: { userName: string }) {
+  const { data: stats } = trpc.dashboard.stats.useQuery();
+  const { data: schoolPanel = [] } = trpc.schools.panel.useQuery();
+  const { data: alerts = [] } = trpc.schools.alerts.useQuery();
+
+  const updatedSchools = schoolPanel.filter((s: any) => s.weeklyStatus === "updated").length;
+  const pendingSchools = schoolPanel.filter((s: any) => !s.weeklyStatus || s.weeklyStatus === "pending").length;
+
+  const metrics = [
+    { label: "Total de Alunos", value: stats?.totalStudents ?? 0, icon: <GraduationCap className="w-5 h-5 text-primary" />, href: "/alunos" },
+    { label: "Mediadores Ativos", value: (stats as any)?.activeMediators ?? 0, icon: <Users className="w-5 h-5 text-blue-600" />, href: "/mediadores" },
+    { label: "Escolas Atualizadas", value: updatedSchools, icon: <CheckCircle2 className="w-5 h-5 text-green-600" />, href: "/dashboard" },
+    { label: "Escolas Pendentes", value: pendingSchools, icon: <Clock className="w-5 h-5 text-amber-600" />, href: "/dashboard" },
+    { label: "Atend. Pendentes", value: stats?.pendingAttendances ?? 0, icon: <ClipboardList className="w-5 h-5 text-orange-600" />, href: "/atendimentos" },
+    { label: "Vagas em Aberto", value: (stats as any)?.vacancies ?? 0, icon: <AlertCircle className="w-5 h-5 text-red-500" />, href: "/dashboard" },
+  ];
+
+  const quickActions = [
+    { label: "Painel da Secretaria", desc: "Visao consolidada de todas as escolas", href: "/dashboard", icon: <School className="w-5 h-5" /> },
+    { label: "Gestao de Alunos", desc: "Cadastrar e acompanhar alunos", href: "/alunos", icon: <GraduationCap className="w-5 h-5" /> },
+    { label: "Mediadores", desc: "Gerenciar atendentes e vinculos", href: "/mediadores", icon: <Users className="w-5 h-5" /> },
+    { label: "Atendimentos", desc: "Registrar e consultar atendimentos", href: "/atendimentos", icon: <ClipboardList className="w-5 h-5" /> },
+    { label: "Relatorios", desc: "Gerar relatorios e exportar dados", href: "/relatorios", icon: <Briefcase className="w-5 h-5" /> },
+    { label: "Escolas", desc: "Cadastro e gestao de unidades", href: "/escolas", icon: <School className="w-5 h-5" /> },
+  ];
+
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Bem-vindo, {user?.name}!</h1>
-          <p className="text-muted-foreground mt-1">
-            {user?.role === "admin"
-              ? "Dashboard Gerencial - SAIN"
-              : "Painel da Escola"}
-          </p>
-        </div>
-        <Button variant="outline" onClick={logout}>
-          Sair
-        </Button>
+      <div>
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Secretaria Adjunta de Inclusao</p>
+        <h1 className="text-2xl font-bold mt-1">Bem-vindo, {userName}!</h1>
+        <p className="text-sm text-muted-foreground mt-1">Visao geral do sistema SIGMA</p>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total de Alunos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">--</div>
-            <p className="text-xs text-muted-foreground mt-1">Carregando...</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Mediadores Ativos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">--</div>
-            <p className="text-xs text-muted-foreground mt-1">Carregando...</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Atendimentos Pendentes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">--</div>
-            <p className="text-xs text-muted-foreground mt-1">Carregando...</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Demandas Externas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">--</div>
-            <p className="text-xs text-muted-foreground mt-1">Carregando...</p>
-          </CardContent>
-        </Card>
+      {/* Metricas */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        {metrics.map(m => (
+          <Link key={m.label} href={m.href}>
+            <Card className="hover:shadow-md transition-shadow cursor-pointer">
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-center gap-2 mb-1">{m.icon}<p className="text-xs text-muted-foreground">{m.label}</p></div>
+                <p className="text-2xl font-bold">{m.value}</p>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
       </div>
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Módulos Principais */}
-        <div className="lg:col-span-2 space-y-6">
+      {/* Acoes rapidas + Alertas */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
           <Card>
-            <CardHeader>
-              <CardTitle>Módulos do Sistema</CardTitle>
-              <CardDescription>
-                Acesse os principais módulos através da barra lateral
-              </CardDescription>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Acesso rapido</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 border border-border rounded-lg hover:bg-muted/50 cursor-pointer transition">
-                  <Users className="w-6 h-6 text-primary mb-2" />
-                  <h3 className="font-semibold text-sm">Alunos</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Cadastro e acompanhamento
-                  </p>
-                </div>
-
-                <div className="p-4 border border-border rounded-lg hover:bg-muted/50 cursor-pointer transition">
-                  <Briefcase className="w-6 h-6 text-primary mb-2" />
-                  <h3 className="font-semibold text-sm">Mediadores</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Gestão de profissionais
-                  </p>
-                </div>
-
-                <div className="p-4 border border-border rounded-lg hover:bg-muted/50 cursor-pointer transition">
-                  <ClipboardList className="w-6 h-6 text-primary mb-2" />
-                  <h3 className="font-semibold text-sm">Atendimentos</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Registro e histórico
-                  </p>
-                </div>
-
-                <div className="p-4 border border-border rounded-lg hover:bg-muted/50 cursor-pointer transition">
-                  <AlertCircle className="w-6 h-6 text-primary mb-2" />
-                  <h3 className="font-semibold text-sm">Demandas</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Solicitações externas
-                  </p>
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {quickActions.map(a => (
+                  <Link key={a.label} href={a.href}>
+                    <div className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 transition cursor-pointer group">
+                      <div className="p-2 bg-primary/10 rounded-lg text-primary">{a.icon}</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm">{a.label}</p>
+                        <p className="text-xs text-muted-foreground truncate">{a.desc}</p>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition" />
+                    </div>
+                  </Link>
+                ))}
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Informações do Usuário */}
-        <div>
+        <div className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Seu Perfil</CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-500" /> Alertas
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-xs text-muted-foreground uppercase">Nome</p>
-                <p className="font-medium">{user?.name}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase">Email</p>
-                <p className="font-medium text-sm">{user?.email}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase">Perfil</p>
-                <p className="font-medium capitalize">
-                  {user?.role === "admin" ? "Administrador SAIN" : "Usuário de Escola"}
-                </p>
-              </div>
+            <CardContent className="space-y-2">
+              {alerts.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum alerta no momento.</p>
+              ) : (
+                alerts.slice(0, 5).map((alert: string, i: number) => (
+                  <div key={i} className="rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-xs text-amber-800">
+                    {alert}
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Resumo geral</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {[
+                { label: "Total de escolas", value: (stats as any)?.totalSchools ?? 0 },
+                { label: "Total de mediadores", value: (stats as any)?.totalMediators ?? 0 },
+                { label: "Demandas externas", value: stats?.externalDemands ?? 0 },
+              ].map(item => (
+                <div key={item.label} className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{item.label}</span>
+                  <span className="font-semibold">{item.value}</span>
+                </div>
+              ))}
             </CardContent>
           </Card>
         </div>
       </div>
+    </div>
+  );
+}
+
+function SchoolHome({ userName }: { userName: string }) {
+  const { data: mediatorsData } = trpc.mediators.listBySchool.useQuery();
+  const { data: studentsData } = trpc.students.listBySchool.useQuery();
+  const { data: attendancesData } = trpc.attendances.listBySchool.useQuery();
+
+  const mediators = mediatorsData || [];
+  const studentsList = studentsData || [];
+  const attendancesList = attendancesData || [];
+
+  const activeMediators = mediators.filter((m: any) => m.status === "active").length;
+  const inactiveMediators = mediators.length - activeMediators;
+  const pendingAttendances = attendancesList.filter((a: any) => a.status === "pending").length;
+
+  const quickActions = [
+    { label: "Quadro Semanal", desc: "Enviar atualizacao semanal", href: "/cadastros", icon: <Calendar className="w-5 h-5" /> },
+    { label: "Alunos", desc: "Cadastrar e gerenciar alunos", href: "/alunos", icon: <GraduationCap className="w-5 h-5" /> },
+    { label: "Mediadores", desc: "Gerenciar atendentes", href: "/mediadores", icon: <Users className="w-5 h-5" /> },
+    { label: "Atendimentos", desc: "Registrar atendimentos", href: "/atendimentos", icon: <ClipboardList className="w-5 h-5" /> },
+  ];
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold">Bem-vindo, {userName}!</h1>
+        <p className="text-sm text-muted-foreground mt-1">Painel da sua escola</p>
+      </div>
+
+      {/* Metricas da escola */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {[
+          { label: "Alunos", value: studentsList.length, icon: <GraduationCap className="w-5 h-5 text-primary" /> },
+          { label: "Mediadores Ativos", value: activeMediators, icon: <Users className="w-5 h-5 text-green-600" /> },
+          { label: "Mediadores Inativos", value: inactiveMediators, icon: <Users className="w-5 h-5 text-red-500" /> },
+          { label: "Atend. Pendentes", value: pendingAttendances, icon: <ClipboardList className="w-5 h-5 text-amber-600" /> },
+        ].map(m => (
+          <Card key={m.label}>
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center gap-2 mb-1">{m.icon}<p className="text-xs text-muted-foreground">{m.label}</p></div>
+              <p className="text-2xl font-bold">{m.value}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Acoes rapidas */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Acesso rapido</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {quickActions.map(a => (
+              <Link key={a.label} href={a.href}>
+                <div className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 transition cursor-pointer group">
+                  <div className="p-2 bg-primary/10 rounded-lg text-primary">{a.icon}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">{a.label}</p>
+                    <p className="text-xs text-muted-foreground truncate">{a.desc}</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Ultimos mediadores */}
+      {mediators.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Mediadores da escola</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/30">
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground">Nome</th>
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground">Status</th>
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground">Alunos vinculados</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {mediators.slice(0, 8).map((m: any) => (
+                    <tr key={m.id} className="border-b last:border-0 hover:bg-muted/10">
+                      <td className="px-4 py-2 font-medium">{m.name}</td>
+                      <td className="px-4 py-2">
+                        <Badge className={m.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
+                          {m.status === "active" ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-2 text-muted-foreground">{m.linkedStudents || "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
