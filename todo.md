@@ -176,3 +176,15 @@
 - [x] Exportação Excel real (.xlsx) com biblioteca xlsx no Quadro AAP
 - [x] Notificação ao owner quando quadro AAP é enviado
 - [x] Renomear sidebar "Quadro Semanal" para "Quadro AAP"
+
+## Simplificação do Quadro de Mediadores — Fase 5
+
+- [x] Renomear "AAP" para "Mediador" em toda a interface (sidebar, cabeçalhos, botões)
+- [x] Remover coluna "Atend. Domiciliar" do quadro
+- [x] Remover coluna "Escola outro turno" do quadro
+- [x] Remover cabeçalho institucional excessivo do quadro (simplificar)
+- [x] Remover legendas desnecessárias (copy-paste do documento Word)
+- [x] Usar dados do cadastro de alunos existente (não duplicar campos)
+- [x] No cadastro de alunos: puxar automaticamente mediadores disponíveis da escola do aluno
+- [x] Corrigir textos desconfigurados no quadro
+- [x] Simplificar exportação Excel (sem cabeçalho institucional excessivo)

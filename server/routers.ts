@@ -755,6 +755,27 @@ export const appRouter = router({
       }
     }),
 
+    // Lista mediadores por schoolId explícito (para admin selecionar escola no formulário de alunos)
+    listBySchoolId: protectedProcedure
+      .input(z.object({ schoolId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        try {
+          const targetSchoolId = ctx.user.role === "admin" ? input.schoolId : ctx.user.schoolId;
+          if (!targetSchoolId) return [];
+          return await db.select({
+            id: mediators.id,
+            name: mediators.name,
+            status: mediators.status,
+            isShared: mediators.isShared,
+          }).from(mediators).where(eq(mediators.schoolId, targetSchoolId));
+        } catch (error) {
+          console.error("[Mediators] Error listing by schoolId:", error);
+          return [];
+        }
+      }),
+
     create: protectedProcedure
       .input(z.object({
         name: z.string().min(1),
@@ -1572,13 +1593,8 @@ export const appRouter = router({
             alunos: {
               nome: string;
               anoTurma: string;
-              cadeiradeRodas: boolean;
-              andador: boolean;
-              protese: boolean;
               deficiencia: string;
-              atendimentoDomiciliar: boolean;
             }[];
-            escolaOutroTurno: string;
             mediatorId: number | null;
             status: string;
           };
@@ -1604,15 +1620,11 @@ export const appRouter = router({
             const alunos = linkedStudentsList.map(s => ({
               nome: s.name,
               anoTurma: s.grade || "",
-              cadeiradeRodas: s.usesWheelchair || false,
-              andador: s.usesWalker || false,
-              protese: s.usesProsthesis || false,
               deficiencia: s.disability || "",
-              atendimentoDomiciliar: s.homeCare || false,
             }));
 
             if (alunos.length === 0) {
-              alunos.push({ nome: "(sem aluno vinculado)", anoTurma: "", cadeiradeRodas: false, andador: false, protese: false, deficiencia: "", atendimentoDomiciliar: false });
+              alunos.push({ nome: "(sem aluno vinculado)", anoTurma: "", deficiencia: "" });
             }
 
             const shift = linkedStudentsList[0]?.shift;
@@ -1622,7 +1634,6 @@ export const appRouter = router({
               turno1: shift === "morning" || shift === "full" || !shift,
               turno2: shift === "afternoon" || shift === "full",
               alunos,
-              escolaOutroTurno: med.otherSchoolId ? (schoolMap[med.otherSchoolId] || "") : "",
               mediatorId: med.id,
               status: med.status,
             });
@@ -1662,13 +1673,8 @@ export const appRouter = router({
               alunos: [{
                 nome: s.name,
                 anoTurma: s.grade || "",
-                cadeiradeRodas: s.usesWheelchair || false,
-                andador: s.usesWalker || false,
-                protese: s.usesProsthesis || false,
                 deficiencia: s.disability || "",
-                atendimentoDomiciliar: s.homeCare || false,
               }],
-              escolaOutroTurno: "",
               mediatorId: null,
               status: "sem_atendente",
             });

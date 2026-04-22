@@ -82,11 +82,6 @@ type FormData = {
   attendantName: string;
   isShared: boolean;
   notes: string;
-  // Campos AAP
-  usesWheelchair: boolean;
-  usesWalker: boolean;
-  usesProsthesis: boolean;
-  homeCare: boolean;
   needsAttendant: "yes" | "no" | "nam";
 };
 
@@ -114,11 +109,6 @@ const EMPTY_FORM: FormData = {
   attendantName: "",
   isShared: false,
   notes: "",
-  // Campos AAP
-  usesWheelchair: false,
-  usesWalker: false,
-  usesProsthesis: false,
-  homeCare: false,
   needsAttendant: "yes",
 };
 
@@ -137,10 +127,23 @@ export default function Students() {
   // Dados
   const { data: demands = [], isLoading } = trpc.demands.list.useQuery();
   const { data: schools = [] } = trpc.schools.list.useQuery();
-  const { data: attendantNames = [] } = trpc.demands.listAttendants.useQuery();
 
   // Estado do formulário
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
+
+  // Encontrar schoolId pela escola selecionada no formulário
+  const selectedSchoolId = useMemo(() => {
+    if (!form.schoolName) return null;
+    const found = schools.find((s) => s.name === form.schoolName);
+    return found?.id ?? null;
+  }, [form.schoolName, schools]);
+
+  // Buscar mediadores da escola selecionada no formulário (reativo)
+  const { data: mediatorsList = [] } = trpc.mediators.listBySchoolId.useQuery(
+    { schoolId: selectedSchoolId! },
+    { enabled: !!selectedSchoolId }
+  );
+  const mediatorNames = useMemo(() => mediatorsList.map((m: any) => m.name), [mediatorsList]);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -213,13 +216,13 @@ export default function Students() {
     );
   }, [schools, schoolSearch]);
 
-  // Atendentes filtrados para autocomplete
+  // Mediadores filtrados para autocomplete de atendente
   const filteredAttendants = useMemo(() => {
-    if (!attendantSearch) return attendantNames;
-    return attendantNames.filter((n) =>
+    if (!attendantSearch) return mediatorNames;
+    return mediatorNames.filter((n: string) =>
       n.toLowerCase().includes(attendantSearch.toLowerCase())
     );
-  }, [attendantNames, attendantSearch]);
+  }, [mediatorNames, attendantSearch]);
 
   // Registros filtrados
   const filteredDemands = useMemo(() => {
@@ -304,11 +307,6 @@ export default function Students() {
       attendantName: form.hasAttendant ? form.attendantName || undefined : undefined,
       isShared: form.isShared,
       notes: notes || undefined,
-      // Campos AAP
-      usesWheelchair: form.usesWheelchair,
-      usesWalker: form.usesWalker,
-      usesProsthesis: form.usesProsthesis,
-      homeCare: form.homeCare,
       needsAttendant: form.needsAttendant,
     };
 
@@ -336,11 +334,6 @@ export default function Students() {
       attendantName: demand.attendantName || "",
       isShared: demand.isShared,
       notes: demand.notes || "",
-      // Campos AAP
-      usesWheelchair: (demand as any).usesWheelchair || false,
-      usesWalker: (demand as any).usesWalker || false,
-      usesProsthesis: (demand as any).usesProsthesis || false,
-      homeCare: (demand as any).homeCare || false,
       needsAttendant: (demand as any).needsAttendant || "yes",
     });
     setSchoolSearch(demand.schoolName);
@@ -630,10 +623,10 @@ export default function Students() {
               </Select>
             </div>
 
-            {/* Nome do atendente — lista suspensa com atendentes cadastrados */}
+            {/* Mediador — dropdown com mediadores cadastrados na escola */}
             {form.hasAttendant && (
               <div className="space-y-1 relative">
-                <Label htmlFor="attendantName">Nome completo do atendente</Label>
+                <Label htmlFor="attendantName">Mediador (atendente)</Label>
                 <div className="relative">
                   <Input
                     id="attendantName"
@@ -645,11 +638,11 @@ export default function Students() {
                     }}
                     onFocus={() => setShowAttendantDropdown(true)}
                     onBlur={() => setTimeout(() => setShowAttendantDropdown(false), 200)}
-                    placeholder="Digite ou selecione o nome do atendente"
+                    placeholder="Selecione um mediador cadastrado na escola"
                   />
                   {showAttendantDropdown && filteredAttendants.length > 0 && (
                     <div className="absolute z-50 top-full left-0 right-0 bg-white border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                      {filteredAttendants.map((name) => (
+                      {filteredAttendants.map((name: string) => (
                         <button
                           key={name}
                           type="button"
@@ -663,17 +656,16 @@ export default function Students() {
                           {name}
                         </button>
                       ))}
-                      {attendantSearch && !filteredAttendants.includes(attendantSearch) && (
-                        <div className="px-3 py-2 text-xs text-muted-foreground border-t">
-                          Novo atendente: "{attendantSearch}" será cadastrado
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>
-                {attendantNames.length > 0 && (
+                {mediatorNames.length > 0 ? (
                   <p className="text-xs text-muted-foreground">
-                    {attendantNames.length} atendente(s) cadastrado(s). Digite para filtrar ou insira um novo nome.
+                    {mediatorNames.length} mediador(es) cadastrado(s) na escola. Selecione um da lista.
+                  </p>
+                ) : (
+                  <p className="text-xs text-amber-600">
+                    Nenhum mediador cadastrado nesta escola. Cadastre primeiro na aba Mediadores.
                   </p>
                 )}
               </div>
@@ -857,66 +849,20 @@ export default function Students() {
               </Card>
             )}
 
-            {/* Mobilidade (para Quadro AAP) */}
-            <div className="space-y-2">
-              <Label className="font-semibold">Mobilidade do aluno</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 border border-border rounded-md p-3 bg-muted/30">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="usesWheelchair"
-                    checked={form.usesWheelchair}
-                    onCheckedChange={(v) => setForm({ ...form, usesWheelchair: !!v })}
-                  />
-                  <label htmlFor="usesWheelchair" className="text-sm cursor-pointer">Cadeira de rodas</label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="usesWalker"
-                    checked={form.usesWalker}
-                    onCheckedChange={(v) => setForm({ ...form, usesWalker: !!v })}
-                  />
-                  <label htmlFor="usesWalker" className="text-sm cursor-pointer">Andador</label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="usesProsthesis"
-                    checked={form.usesProsthesis}
-                    onCheckedChange={(v) => setForm({ ...form, usesProsthesis: !!v })}
-                  />
-                  <label htmlFor="usesProsthesis" className="text-sm cursor-pointer">Prótese</label>
-                </div>
-              </div>
-            </div>
-
-            {/* Atendimento domiciliar */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <Label>Atendimento domiciliar?</Label>
-                <Select
-                  value={form.homeCare ? "yes" : "no"}
-                  onValueChange={(v) => setForm({ ...form, homeCare: v === "yes" })}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="yes">Sim</SelectItem>
-                    <SelectItem value="no">Não</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label>Necessita de atendente?</Label>
-                <Select
-                  value={form.needsAttendant}
-                  onValueChange={(v) => setForm({ ...form, needsAttendant: v as "yes" | "no" | "nam" })}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="yes">Sim</SelectItem>
-                    <SelectItem value="no">Não necessita</SelectItem>
-                    <SelectItem value="nam">NAM (Não Atendido por Mediador)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Necessita de mediador? */}
+            <div className="space-y-1">
+              <Label>Necessita de mediador?</Label>
+              <Select
+                value={form.needsAttendant}
+                onValueChange={(v) => setForm({ ...form, needsAttendant: v as "yes" | "no" | "nam" })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yes">Sim</SelectItem>
+                  <SelectItem value="no">Não necessita</SelectItem>
+                  <SelectItem value="nam">NAM (Não Atendido por Mediador)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Observação */}
