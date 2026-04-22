@@ -6,7 +6,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { getSchools, getStudentsBySchool, getMediatorsBySchool, getAttendancesBySchool, getExternalDemandsBySchool } from "./db";
 import { getDb } from "./db";
-import { students, mediators, attendances, externalDemands, schools, users } from "../drizzle/schema";
+import { students, mediators, attendances, externalDemands, schools, users, demands } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 
 // Status e tipos de alteração do Quadro de Atendentes (MVP integrado)
@@ -620,6 +620,260 @@ export const appRouter = router({
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         await db.update(users).set({ isActive: input.isActive }).where(eq(users.id, input.userId));
         return { success: true };
+      }),
+  }),
+
+  /**
+   * Demands - Quadro de Atendentes (fiel ao sistema Netlify)
+   */
+  demands: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      try {
+        if (ctx.user.role === "admin") {
+          return await db.select().from(demands).orderBy(demands.updatedAt);
+        }
+        if (!ctx.user.schoolId) return [];
+        return await db.select().from(demands).where(eq(demands.schoolId, ctx.user.schoolId)).orderBy(demands.updatedAt);
+      } catch (error) {
+        console.error("[Demands] Error listing:", error);
+        return [];
+      }
+    }),
+
+    create: protectedProcedure
+      .input(z.object({
+        email: z.string().optional(),
+        schoolName: z.string().min(1),
+        studentName: z.string().min(1),
+        dateOfBirth: z.string().optional(),
+        cpf: z.string().optional(),
+        shift: z.enum(["morning", "afternoon", "full", "evening"]),
+        grade: z.string().optional(),
+        disabilities: z.array(z.string()).optional(),
+        attendanceStatus: z.enum(["with_attendant", "without_attendant", "awaiting_substitution", "partially_attended"]),
+        attendantStatus: z.enum(["active", "inactive"]),
+        hasAttendant: z.boolean(),
+        attendantName: z.string().optional(),
+        isShared: z.boolean().optional(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        try {
+          // Resolver schoolId pelo nome da escola
+          let schoolId: number | null = ctx.user.schoolId || null;
+          if (input.schoolName) {
+            const [school] = await db.select({ id: schools.id }).from(schools).where(eq(schools.name, input.schoolName)).limit(1);
+            if (school) schoolId = school.id;
+          }
+          await db.insert(demands).values({
+            email: input.email || ctx.user.email || undefined,
+            schoolName: input.schoolName,
+            studentName: input.studentName,
+            dateOfBirth: input.dateOfBirth ? new Date(input.dateOfBirth) : null,
+            cpf: input.cpf,
+            shift: input.shift,
+            grade: input.grade,
+            disabilities: input.disabilities ? JSON.stringify(input.disabilities) : null,
+            attendanceStatus: input.attendanceStatus,
+            attendantStatus: input.attendantStatus,
+            hasAttendant: input.hasAttendant,
+            attendantName: input.attendantName,
+            isShared: input.isShared || false,
+            notes: input.notes,
+            schoolId,
+            createdBy: ctx.user.id,
+            updatedBy: ctx.user.id,
+          });
+          return { success: true };
+        } catch (error) {
+          console.error("[Demands] Error creating:", error);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create demand" });
+        }
+      }),
+
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        email: z.string().optional(),
+        schoolName: z.string().optional(),
+        studentName: z.string().optional(),
+        dateOfBirth: z.string().optional(),
+        cpf: z.string().optional(),
+        shift: z.enum(["morning", "afternoon", "full", "evening"]).optional(),
+        grade: z.string().optional(),
+        disabilities: z.array(z.string()).optional(),
+        attendanceStatus: z.enum(["with_attendant", "without_attendant", "awaiting_substitution", "partially_attended"]).optional(),
+        attendantStatus: z.enum(["active", "inactive"]).optional(),
+        hasAttendant: z.boolean().optional(),
+        attendantName: z.string().optional(),
+        isShared: z.boolean().optional(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        const { id, dateOfBirth, disabilities, ...rest } = input;
+        const data: Record<string, unknown> = {
+          ...rest,
+          dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+          disabilities: disabilities ? JSON.stringify(disabilities) : undefined,
+          updatedBy: ctx.user.id,
+        };
+        // Limpar undefined
+        Object.keys(data).forEach(k => data[k] === undefined && delete data[k]);
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await db.update(demands).set(data as any).where(eq(demands.id, id));
+          return { success: true };
+        } catch (error) {
+          console.error("[Demands] Error updating:", error);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to update demand" });
+        }
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem excluir registros" });
+        try {
+          await db.delete(demands).where(eq(demands.id, input.id));
+          return { success: true };
+        } catch (error) {
+          console.error("[Demands] Error deleting:", error);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to delete demand" });
+        }
+      }),
+
+    stats: protectedProcedure
+      .input(z.object({
+        schoolId: z.number().optional(),
+        schoolType: z.enum(["all", "EM", "CIM", "other"]).optional(),
+        shift: z.enum(["all", "morning", "afternoon", "full", "evening"]).optional(),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) return null;
+        try {
+          let allDemands = await db.select().from(demands);
+          // Filtrar por escola do usuário se não for admin
+          if (ctx.user.role !== "admin" && ctx.user.schoolId) {
+            allDemands = allDemands.filter(d => d.schoolId === ctx.user.schoolId);
+          }
+          // Filtros opcionais
+          if (input?.schoolId) allDemands = allDemands.filter(d => d.schoolId === input.schoolId);
+          if (input?.shift && input.shift !== "all") allDemands = allDemands.filter(d => d.shift === input.shift);
+          if (input?.schoolType && input.schoolType !== "all") {
+            if (input.schoolType === "EM") allDemands = allDemands.filter(d => d.schoolName.startsWith("EM "));
+            else if (input.schoolType === "CIM") allDemands = allDemands.filter(d => d.schoolName.startsWith("CIM "));
+            else allDemands = allDemands.filter(d => !d.schoolName.startsWith("EM ") && !d.schoolName.startsWith("CIM "));
+          }
+
+          const total = allDemands.length;
+          const withAttendant = allDemands.filter(d => d.attendanceStatus === "with_attendant").length;
+          const withoutAttendant = allDemands.filter(d => d.attendanceStatus === "without_attendant").length;
+          const awaitingSubstitution = allDemands.filter(d => d.attendanceStatus === "awaiting_substitution").length;
+          const activeAttendants = allDemands.filter(d => d.hasAttendant && d.attendantStatus === "active").length;
+          const inactiveAttendants = allDemands.filter(d => d.hasAttendant && d.attendantStatus === "inactive").length;
+          const coverageRate = total > 0 ? Math.round((withAttendant / total) * 100) : 0;
+
+          // Contagem por deficiência
+          const disabilityCount: Record<string, number> = {};
+          allDemands.forEach(d => {
+            if (d.disabilities) {
+              try {
+                const list = JSON.parse(d.disabilities) as string[];
+                list.forEach(dis => { disabilityCount[dis] = (disabilityCount[dis] || 0) + 1; });
+              } catch {}
+            }
+          });
+
+          // Contagem por turno
+          const shiftCount: Record<string, number> = { full: 0, morning: 0, afternoon: 0, evening: 0 };
+          allDemands.forEach(d => { shiftCount[d.shift] = (shiftCount[d.shift] || 0) + 1; });
+
+          // Contagem por situação de atendimento
+          const statusCount: Record<string, number> = {};
+          allDemands.forEach(d => { statusCount[d.attendanceStatus] = (statusCount[d.attendanceStatus] || 0) + 1; });
+
+          // Top 10 EMs com maior demanda
+          const emDemands = allDemands.filter(d => d.schoolName.startsWith("EM "));
+          const emBySchool: Record<string, { name: string; withoutAttendant: number; open: number }> = {};
+          emDemands.forEach(d => {
+            if (!emBySchool[d.schoolName]) emBySchool[d.schoolName] = { name: d.schoolName, withoutAttendant: 0, open: 0 };
+            if (d.attendanceStatus === "without_attendant") emBySchool[d.schoolName].withoutAttendant++;
+            if (d.attendanceStatus !== "with_attendant") emBySchool[d.schoolName].open++;
+          });
+          const topEMs = Object.values(emBySchool)
+            .sort((a, b) => b.withoutAttendant - a.withoutAttendant || b.open - a.open)
+            .slice(0, 10)
+            .map(s => ({ ...s, deficit: s.withoutAttendant + s.open }));
+
+          // Top 10 CIMs com maior demanda
+          const cimDemands = allDemands.filter(d => d.schoolName.startsWith("CIM "));
+          const cimBySchool: Record<string, { name: string; withoutAttendant: number; open: number }> = {};
+          cimDemands.forEach(d => {
+            if (!cimBySchool[d.schoolName]) cimBySchool[d.schoolName] = { name: d.schoolName, withoutAttendant: 0, open: 0 };
+            if (d.attendanceStatus === "without_attendant") cimBySchool[d.schoolName].withoutAttendant++;
+            if (d.attendanceStatus !== "with_attendant") cimBySchool[d.schoolName].open++;
+          });
+          const topCIMs = Object.values(cimBySchool)
+            .sort((a, b) => b.withoutAttendant - a.withoutAttendant || b.open - a.open)
+            .slice(0, 10)
+            .map(s => ({ ...s, deficit: s.withoutAttendant + s.open }));
+
+          // Escolas com falta de atendente
+          const schoolsWithDeficit = new Set(allDemands.filter(d => d.attendanceStatus !== "with_attendant").map(d => d.schoolName)).size;
+
+          // Faixa etária
+          const ageCount: Record<string, number> = { "0-5": 0, "6-10": 0, "11-14": 0, "15-17": 0, "18+": 0 };
+          const now = new Date();
+          allDemands.forEach(d => {
+            if (d.dateOfBirth) {
+              const birth = new Date(d.dateOfBirth);
+              const age = now.getFullYear() - birth.getFullYear() - (now < new Date(now.getFullYear(), birth.getMonth(), birth.getDate()) ? 1 : 0);
+              if (age <= 5) ageCount["0-5"]++;
+              else if (age <= 10) ageCount["6-10"]++;
+              else if (age <= 14) ageCount["11-14"]++;
+              else if (age <= 17) ageCount["15-17"]++;
+              else ageCount["18+"]++;
+            }
+          });
+
+          // Motivo de inatividade (dos atendentes inativos)
+          const inactivityCount: Record<string, number> = {};
+          allDemands.filter(d => d.attendantStatus === "inactive").forEach(d => {
+            const reason = d.notes || "Não informado";
+            const shortReason = reason.length > 40 ? reason.slice(0, 40) + "..." : reason;
+            inactivityCount[shortReason] = (inactivityCount[shortReason] || 0) + 1;
+          });
+
+          return {
+            total,
+            withAttendant,
+            withoutAttendant,
+            awaitingSubstitution,
+            activeAttendants,
+            inactiveAttendants,
+            coverageRate,
+            schoolsWithDeficit,
+            disabilityCount,
+            shiftCount,
+            statusCount,
+            ageCount,
+            inactivityCount,
+            topEMs,
+            topCIMs,
+          };
+        } catch (error) {
+          console.error("[Demands] Error getting stats:", error);
+          return null;
+        }
       }),
   }),
 

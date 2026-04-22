@@ -33,6 +33,7 @@ import {
   School,
   BarChart3,
   Shield,
+  FileText,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -41,6 +42,8 @@ import { Button } from "./ui/button";
 
 const adminMenuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
+  { icon: FileText, label: "Cadastros", path: "/cadastros" },
+  { icon: BarChart3, label: "Dashboard Gerencial", path: "/dashboard-gerencial" },
   { icon: School, label: "Escolas", path: "/escolas" },
   { icon: GraduationCap, label: "Alunos", path: "/alunos" },
   { icon: UserCheck, label: "Mediadores", path: "/mediadores" },
@@ -52,6 +55,8 @@ const adminMenuItems = [
 
 const schoolMenuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
+  { icon: FileText, label: "Cadastros", path: "/cadastros" },
+  { icon: BarChart3, label: "Dashboard Gerencial", path: "/dashboard-gerencial" },
   { icon: GraduationCap, label: "Alunos", path: "/alunos" },
   { icon: UserCheck, label: "Mediadores", path: "/mediadores" },
   { icon: ClipboardList, label: "Atendimentos", path: "/atendimentos" },

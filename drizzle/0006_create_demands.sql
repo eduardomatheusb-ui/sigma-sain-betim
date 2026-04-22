@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS `demands` (
+  `id` int AUTO_INCREMENT PRIMARY KEY,
+  `email` varchar(320),
+  `schoolName` varchar(255) NOT NULL,
+  `studentName` varchar(255) NOT NULL,
+  `dateOfBirth` date,
+  `cpf` varchar(30),
+  `shift` enum('morning','afternoon','full','evening') NOT NULL,
+  `grade` varchar(50),
+  `disabilities` text,
+  `attendanceStatus` enum('with_attendant','without_attendant','awaiting_substitution','partially_attended') NOT NULL,
+  `attendantStatus` enum('active','inactive') NOT NULL,
+  `hasAttendant` boolean NOT NULL DEFAULT false,
+  `attendantName` varchar(255),
+  `isShared` boolean NOT NULL DEFAULT false,
+  `notes` text,
+  `schoolId` int,
+  `createdBy` int,
+  `updatedBy` int,
+  `createdAt` timestamp NOT NULL DEFAULT NOW(),
+  `updatedAt` timestamp NOT NULL DEFAULT NOW() ON UPDATE NOW()
+);

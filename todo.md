@@ -95,3 +95,12 @@
 - [x] Migrar 10 registros do sistema antigo para o banco do SIGMA (2 escolas, 10 alunos, 9 mediadores)
 - [x] Criar script de migração (scripts/migrate-from-netlify.mjs) para uso futuro
 - [x] Atualizar schema: enum 'evening' adicionado ao campo shift dos alunos
+
+## Módulo Mediadores — Fiel ao sistema Netlify
+
+- [x] Capturar formulário completo de cadastro (campos, deficiências, status) do sistema Netlify
+- [x] Capturar lista completa das 89 escolas reais do sistema Netlify
+- [x] Cadastrar todas as 89 escolas no banco do SIGMA
+- [x] Reescrever formulário de cadastro de demandas/alunos idêntico ao Netlify (página Cadastros.tsx)
+- [x] Reescrever dashboard gerencial idêntico ao Netlify (página DashboardGerencial.tsx)
+- [x] Garantir que o módulo de Mediadores está separado de Demandas Externas e outros módulos

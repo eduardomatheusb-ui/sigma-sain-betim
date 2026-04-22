@@ -157,3 +157,37 @@ export const externalDemands = mysqlTable("externalDemands", {
 
 export type ExternalDemand = typeof externalDemands.$inferSelect;
 export type InsertExternalDemand = typeof externalDemands.$inferInsert;
+
+/**
+ * Demands table - Quadro de Atendentes (registro fiel ao sistema Netlify)
+ * Armazena o registro completo: aluno + deficiências + situação + atendente
+ */
+export const demands = mysqlTable("demands", {
+  id: int("id").autoincrement().primaryKey(),
+  // Dados do aluno
+  email: varchar("email", { length: 320 }),
+  schoolName: varchar("schoolName", { length: 255 }).notNull(),
+  studentName: varchar("studentName", { length: 255 }).notNull(),
+  dateOfBirth: date("dateOfBirth"),
+  cpf: varchar("cpf", { length: 30 }),
+  shift: mysqlEnum("shift", ["morning", "afternoon", "full", "evening"]).notNull(),
+  grade: varchar("grade", { length: 50 }),
+  // Deficiências/Transtornos (JSON array)
+  disabilities: text("disabilities"),
+  // Situação
+  attendanceStatus: mysqlEnum("attendanceStatus", ["with_attendant", "without_attendant", "awaiting_substitution", "partially_attended"]).notNull(),
+  attendantStatus: mysqlEnum("attendantStatus", ["active", "inactive"]).notNull(),
+  hasAttendant: boolean("hasAttendant").default(false).notNull(),
+  attendantName: varchar("attendantName", { length: 255 }),
+  isShared: boolean("isShared").default(false).notNull(),
+  notes: text("notes"),
+  // Metadados
+  schoolId: int("schoolId"),
+  createdBy: int("createdBy"),
+  updatedBy: int("updatedBy"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Demand = typeof demands.$inferSelect;
+export type InsertDemand = typeof demands.$inferInsert;

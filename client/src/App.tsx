@@ -14,6 +14,8 @@ import Attendances from "./pages/Attendances";
 import ExternalDemands from "./pages/ExternalDemands";
 import Users from "./pages/Users";
 import Reports from "./pages/Reports";
+import Cadastros from "./pages/Cadastros";
+import DashboardGerencial from "./pages/DashboardGerencial";
 
 function Router() {
   return (
@@ -27,6 +29,8 @@ function Router() {
       <Route path="/demandas" component={ExternalDemands} />
       <Route path="/usuarios" component={Users} />
       <Route path="/relatorios" component={Reports} />
+      <Route path="/cadastros" component={Cadastros} />
+      <Route path="/dashboard-gerencial" component={DashboardGerencial} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
