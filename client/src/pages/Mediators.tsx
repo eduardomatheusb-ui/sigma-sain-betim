@@ -1,13 +1,14 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit2, Trash2, Eye } from "lucide-react";
+import { UserCheck, Plus, Search } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export default function Mediators() {
   const { user } = useAuth();
@@ -18,108 +19,76 @@ export default function Mediators() {
     cpf: "",
     professionalLicense: "",
     specialization: "",
-    maxAttendances: "",
+    maxAttendances: 20,
+  });
+
+  const { data: mediatorsData, isLoading, refetch } = trpc.mediators.listBySchool.useQuery();
+  const createMediator = trpc.mediators.create.useMutation({
+    onSuccess: () => {
+      toast.success("Mediador cadastrado com sucesso!");
+      setIsOpen(false);
+      setFormData({ name: "", cpf: "", professionalLicense: "", specialization: "", maxAttendances: 20 });
+      refetch();
+    },
+    onError: (err) => {
+      toast.error("Erro ao cadastrar mediador: " + err.message);
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implementar criação de mediador via tRPC
-    console.log("Criar mediador:", formData);
-    setIsOpen(false);
-    setFormData({
-      name: "",
-      cpf: "",
-      professionalLicense: "",
-      specialization: "",
-      maxAttendances: "",
-    });
+    if (!formData.name.trim()) { toast.error("Nome do mediador é obrigatório"); return; }
+    createMediator.mutate(formData);
   };
 
+  const filtered = (mediatorsData || []).filter(m =>
+    m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (m.specialization || "").toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
-    <div className="space-y-8">
-      {/* Header */}
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Gestão de Mediadores</h1>
-          <p className="text-muted-foreground mt-1">
-            Cadastro e acompanhamento de profissionais mediadores
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg"><UserCheck className="w-6 h-6 text-primary" /></div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Gestão de Mediadores</h1>
+            <p className="text-sm text-muted-foreground">Cadastro e gestão de profissionais mediadores</p>
+          </div>
         </div>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="w-4 h-4" />
-              Novo Mediador
-            </Button>
+            <Button className="bg-primary hover:bg-primary/90 text-white gap-2"><Plus className="w-4 h-4" />Novo Mediador</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-96 overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Cadastrar Novo Mediador</DialogTitle>
-              <DialogDescription>
-                Preencha os dados do mediador para cadastro no sistema.
-              </DialogDescription>
-            </DialogHeader>
+          <DialogContent className="max-w-lg">
+            <DialogHeader><DialogTitle>Cadastrar Novo Mediador</DialogTitle></DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
+                <div className="col-span-2 space-y-1">
                   <Label htmlFor="name">Nome Completo *</Label>
-                  <Input
-                    id="name"
-                    placeholder="Ex: Dr. João Silva"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
+                  <Input id="name" value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} placeholder="Nome do mediador" required />
                 </div>
-
-                <div>
+                <div className="space-y-1">
                   <Label htmlFor="cpf">CPF</Label>
-                  <Input
-                    id="cpf"
-                    placeholder="Ex: 123.456.789-00"
-                    value={formData.cpf}
-                    onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
-                  />
+                  <Input id="cpf" value={formData.cpf} onChange={e => setFormData(p => ({ ...p, cpf: e.target.value }))} placeholder="000.000.000-00" />
                 </div>
-
-                <div>
+                <div className="space-y-1">
                   <Label htmlFor="professionalLicense">Registro Profissional</Label>
-                  <Input
-                    id="professionalLicense"
-                    placeholder="Ex: CRP 04/12345"
-                    value={formData.professionalLicense}
-                    onChange={(e) => setFormData({ ...formData, professionalLicense: e.target.value })}
-                  />
+                  <Input id="professionalLicense" value={formData.professionalLicense} onChange={e => setFormData(p => ({ ...p, professionalLicense: e.target.value }))} placeholder="CRP, CREFITO..." />
                 </div>
-
-                <div>
+                <div className="space-y-1">
                   <Label htmlFor="specialization">Especialização</Label>
-                  <Input
-                    id="specialization"
-                    placeholder="Ex: Psicologia Educacional"
-                    value={formData.specialization}
-                    onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
-                  />
+                  <Input id="specialization" value={formData.specialization} onChange={e => setFormData(p => ({ ...p, specialization: e.target.value }))} placeholder="Ex: Psicologia, Fonoaudiologia" />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="maxAttendances">Máx. Atendimentos/Mês</Label>
+                  <Input id="maxAttendances" type="number" min={1} max={100} value={formData.maxAttendances} onChange={e => setFormData(p => ({ ...p, maxAttendances: parseInt(e.target.value) || 20 }))} />
                 </div>
               </div>
-
-              <div>
-                <Label htmlFor="maxAttendances">Carga Máxima de Atendimentos</Label>
-                <Input
-                  id="maxAttendances"
-                  type="number"
-                  placeholder="Ex: 20"
-                  value={formData.maxAttendances}
-                  onChange={(e) => setFormData({ ...formData, maxAttendances: e.target.value })}
-                />
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <Button type="submit" className="flex-1">
-                  Cadastrar Mediador
-                </Button>
-                <Button type="button" variant="outline" className="flex-1" onClick={() => setIsOpen(false)}>
-                  Cancelar
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Cancelar</Button>
+                <Button type="submit" disabled={createMediator.isPending} className="bg-primary text-white">
+                  {createMediator.isPending ? "Salvando..." : "Cadastrar Mediador"}
                 </Button>
               </div>
             </form>
@@ -127,117 +96,60 @@ export default function Mediators() {
         </Dialog>
       </div>
 
-      {/* Filtros */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <Input
-                placeholder="Buscar por nome ou especialização..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
+        <CardContent className="pt-4 pb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input className="pl-9" placeholder="Buscar por nome ou especialização..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
           </div>
         </CardContent>
       </Card>
 
-      {/* Tabela de Mediadores */}
       <Card>
-        <CardHeader>
-          <CardTitle>Mediadores Cadastrados</CardTitle>
-          <CardDescription>
-            Lista de profissionais mediadores do sistema
-          </CardDescription>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold flex items-center justify-between">
+            <span>Lista de Mediadores</span>
+            <Badge variant="secondary" className="font-normal">{filtered.length} {filtered.length === 1 ? "mediador" : "mediadores"}</Badge>
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Especialização</TableHead>
-                  <TableHead>Registro</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Carga</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow>
-                  <TableCell className="font-medium">Dra. Maria Silva</TableCell>
-                  <TableCell>Psicologia Educacional</TableCell>
-                  <TableCell>CRP 04/12345</TableCell>
-                  <TableCell>
-                    <Badge className="bg-green-100 text-green-800">Ativo</Badge>
-                  </TableCell>
-                  <TableCell>15/20</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex gap-2 justify-end">
-                      <Button size="sm" variant="ghost">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost">
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-
-                <TableRow>
-                  <TableCell className="font-medium">Prof. João Santos</TableCell>
-                  <TableCell>Educação Especial</TableCell>
-                  <TableCell>CREF 123456</TableCell>
-                  <TableCell>
-                    <Badge className="bg-green-100 text-green-800">Ativo</Badge>
-                  </TableCell>
-                  <TableCell>18/20</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex gap-2 justify-end">
-                      <Button size="sm" variant="ghost">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost">
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-
-                <TableRow>
-                  <TableCell className="font-medium">Dra. Ana Costa</TableCell>
-                  <TableCell>Fonoaudiologia</TableCell>
-                  <TableCell>CRFa 1234</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">Licença</Badge>
-                  </TableCell>
-                  <TableCell>0/20</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex gap-2 justify-end">
-                      <Button size="sm" variant="ghost">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost">
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12 text-muted-foreground">Carregando mediadores...</div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+              <UserCheck className="w-8 h-8 opacity-30" />
+              <p>{searchTerm ? "Nenhum mediador encontrado." : "Nenhum mediador cadastrado ainda."}</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/30">
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Nome</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Especialização</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Registro</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Máx. Atend.</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((mediator, idx) => (
+                    <tr key={mediator.id} className={`border-b last:border-0 hover:bg-muted/20 transition-colors ${idx % 2 === 0 ? "" : "bg-muted/10"}`}>
+                      <td className="px-4 py-3 font-medium">{mediator.name}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{mediator.specialization || "—"}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{mediator.professionalLicense || "—"}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{mediator.maxAttendances || 20}</td>
+                      <td className="px-4 py-3">
+                        <Badge className={mediator.status === "active" ? "bg-green-100 text-green-800 hover:bg-green-100" : "bg-gray-100 text-gray-600"}>
+                          {mediator.status === "active" ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

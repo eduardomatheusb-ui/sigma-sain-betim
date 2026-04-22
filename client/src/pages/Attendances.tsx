@@ -1,163 +1,121 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit2, Eye, MessageSquare } from "lucide-react";
+import { ClipboardList, Plus, Search } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export default function Attendances() {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({
-    studentId: "",
-    mediatorId: "",
+    studentId: 0,
+    mediatorId: 0,
     attendanceDate: "",
     startTime: "",
     endTime: "",
     description: "",
-    type: "individual",
+    type: "individual" as "individual" | "shared",
+  });
+
+  const { data: attendancesData, isLoading, refetch } = trpc.attendances.listBySchool.useQuery();
+  const { data: studentsData } = trpc.students.listBySchool.useQuery();
+  const { data: mediatorsData } = trpc.mediators.listBySchool.useQuery();
+
+  const createAttendance = trpc.attendances.create.useMutation({
+    onSuccess: () => {
+      toast.success("Atendimento registrado com sucesso!");
+      setIsOpen(false);
+      setFormData({ studentId: 0, mediatorId: 0, attendanceDate: "", startTime: "", endTime: "", description: "", type: "individual" });
+      refetch();
+    },
+    onError: (err) => { toast.error("Erro ao registrar atendimento: " + err.message); },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implementar criação de atendimento via tRPC
-    console.log("Criar atendimento:", formData);
-    setIsOpen(false);
-    setFormData({
-      studentId: "",
-      mediatorId: "",
-      attendanceDate: "",
-      startTime: "",
-      endTime: "",
-      description: "",
-      type: "individual",
-    });
+    if (!formData.studentId || !formData.mediatorId || !formData.attendanceDate) {
+      toast.error("Aluno, mediador e data são obrigatórios");
+      return;
+    }
+    createAttendance.mutate(formData);
+  };
+
+  const filtered = (attendancesData || []).filter(a =>
+    (a.description || "").toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const formatDate = (d: Date | string | null) => {
+    if (!d) return "—";
+    return new Date(d).toLocaleDateString("pt-BR");
   };
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Gestão de Atendimentos</h1>
-          <p className="text-muted-foreground mt-1">
-            Registro, acompanhamento e histórico de atendimentos
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg"><ClipboardList className="w-6 h-6 text-primary" /></div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Gestão de Atendimentos</h1>
+            <p className="text-sm text-muted-foreground">Registro e histórico de atendimentos</p>
+          </div>
         </div>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="w-4 h-4" />
-              Novo Atendimento
-            </Button>
+            <Button className="bg-primary hover:bg-primary/90 text-white gap-2"><Plus className="w-4 h-4" />Novo Atendimento</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-96 overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Registrar Novo Atendimento</DialogTitle>
-              <DialogDescription>
-                Preencha os dados do atendimento.
-              </DialogDescription>
-            </DialogHeader>
+          <DialogContent className="max-w-lg">
+            <DialogHeader><DialogTitle>Registrar Atendimento</DialogTitle></DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
+                <div className="col-span-2 space-y-1">
                   <Label htmlFor="studentId">Aluno *</Label>
-                  <select
-                    id="studentId"
-                    className="w-full px-3 py-2 border border-input rounded-md text-sm"
-                    value={formData.studentId}
-                    onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
-                    required
-                  >
-                    <option value="">Selecione um aluno</option>
-                    <option value="1">João Silva Santos</option>
-                    <option value="2">Ana Costa Oliveira</option>
+                  <select id="studentId" className="w-full px-3 py-2 border border-input rounded-md text-sm bg-background" value={formData.studentId} onChange={e => setFormData(p => ({ ...p, studentId: parseInt(e.target.value) }))}>
+                    <option value={0}>Selecione o aluno...</option>
+                    {(studentsData || []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
-
-                <div>
+                <div className="col-span-2 space-y-1">
                   <Label htmlFor="mediatorId">Mediador *</Label>
-                  <select
-                    id="mediatorId"
-                    className="w-full px-3 py-2 border border-input rounded-md text-sm"
-                    value={formData.mediatorId}
-                    onChange={(e) => setFormData({ ...formData, mediatorId: e.target.value })}
-                    required
-                  >
-                    <option value="">Selecione um mediador</option>
-                    <option value="1">Dra. Maria Silva</option>
-                    <option value="2">Prof. João Santos</option>
+                  <select id="mediatorId" className="w-full px-3 py-2 border border-input rounded-md text-sm bg-background" value={formData.mediatorId} onChange={e => setFormData(p => ({ ...p, mediatorId: parseInt(e.target.value) }))}>
+                    <option value={0}>Selecione o mediador...</option>
+                    {(mediatorsData || []).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                   </select>
                 </div>
-
-                <div>
-                  <Label htmlFor="attendanceDate">Data do Atendimento *</Label>
-                  <Input
-                    id="attendanceDate"
-                    type="date"
-                    value={formData.attendanceDate}
-                    onChange={(e) => setFormData({ ...formData, attendanceDate: e.target.value })}
-                    required
-                  />
+                <div className="space-y-1">
+                  <Label htmlFor="attendanceDate">Data *</Label>
+                  <Input id="attendanceDate" type="date" value={formData.attendanceDate} onChange={e => setFormData(p => ({ ...p, attendanceDate: e.target.value }))} required />
                 </div>
-
-                <div>
-                  <Label htmlFor="type">Tipo de Atendimento</Label>
-                  <select
-                    id="type"
-                    className="w-full px-3 py-2 border border-input rounded-md text-sm"
-                    value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  >
+                <div className="space-y-1">
+                  <Label htmlFor="type">Tipo</Label>
+                  <select id="type" className="w-full px-3 py-2 border border-input rounded-md text-sm bg-background" value={formData.type} onChange={e => setFormData(p => ({ ...p, type: e.target.value as "individual" | "shared" }))}>
                     <option value="individual">Individual</option>
                     <option value="shared">Compartilhado</option>
                   </select>
                 </div>
-
-                <div>
-                  <Label htmlFor="startTime">Hora de Início</Label>
-                  <Input
-                    id="startTime"
-                    type="time"
-                    value={formData.startTime}
-                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                  />
+                <div className="space-y-1">
+                  <Label htmlFor="startTime">Hora Início</Label>
+                  <Input id="startTime" type="time" value={formData.startTime} onChange={e => setFormData(p => ({ ...p, startTime: e.target.value }))} />
                 </div>
-
-                <div>
-                  <Label htmlFor="endTime">Hora de Término</Label>
-                  <Input
-                    id="endTime"
-                    type="time"
-                    value={formData.endTime}
-                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                  />
+                <div className="space-y-1">
+                  <Label htmlFor="endTime">Hora Fim</Label>
+                  <Input id="endTime" type="time" value={formData.endTime} onChange={e => setFormData(p => ({ ...p, endTime: e.target.value }))} />
+                </div>
+                <div className="col-span-2 space-y-1">
+                  <Label htmlFor="description">Observações</Label>
+                  <Input id="description" value={formData.description} onChange={e => setFormData(p => ({ ...p, description: e.target.value }))} placeholder="Observações sobre o atendimento..." />
                 </div>
               </div>
-
-              <div>
-                <Label htmlFor="description">Descrição do Atendimento</Label>
-                <textarea
-                  id="description"
-                  className="w-full px-3 py-2 border border-input rounded-md text-sm"
-                  placeholder="Descreva o atendimento realizado..."
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <Button type="submit" className="flex-1">
-                  Registrar Atendimento
-                </Button>
-                <Button type="button" variant="outline" className="flex-1" onClick={() => setIsOpen(false)}>
-                  Cancelar
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Cancelar</Button>
+                <Button type="submit" disabled={createAttendance.isPending} className="bg-primary text-white">
+                  {createAttendance.isPending ? "Salvando..." : "Registrar"}
                 </Button>
               </div>
             </form>
@@ -165,114 +123,62 @@ export default function Attendances() {
         </Dialog>
       </div>
 
-      {/* Filtros */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <Input
-                placeholder="Buscar por aluno ou mediador..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
+        <CardContent className="pt-4 pb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input className="pl-9" placeholder="Buscar atendimentos..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
           </div>
         </CardContent>
       </Card>
 
-      {/* Tabela de Atendimentos */}
       <Card>
-        <CardHeader>
-          <CardTitle>Atendimentos Registrados</CardTitle>
-          <CardDescription>
-            Histórico de atendimentos realizados
-          </CardDescription>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold flex items-center justify-between">
+            <span>Histórico de Atendimentos</span>
+            <Badge variant="secondary" className="font-normal">{filtered.length} registros</Badge>
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Aluno</TableHead>
-                  <TableHead>Mediador</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow>
-                  <TableCell className="font-medium">João Silva Santos</TableCell>
-                  <TableCell>Dra. Maria Silva</TableCell>
-                  <TableCell>22/04/2026</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">Individual</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className="bg-green-100 text-green-800">Concluído</Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex gap-2 justify-end">
-                      <Button size="sm" variant="ghost">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost">
-                        <MessageSquare className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-
-                <TableRow>
-                  <TableCell className="font-medium">Ana Costa Oliveira</TableCell>
-                  <TableCell>Prof. João Santos</TableCell>
-                  <TableCell>21/04/2026</TableCell>
-                  <TableCell>
-                    <Badge className="bg-blue-100 text-blue-800">Compartilhado</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className="bg-green-100 text-green-800">Concluído</Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex gap-2 justify-end">
-                      <Button size="sm" variant="ghost">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost">
-                        <MessageSquare className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-
-                <TableRow>
-                  <TableCell className="font-medium">João Silva Santos</TableCell>
-                  <TableCell>Dra. Maria Silva</TableCell>
-                  <TableCell>23/04/2026</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">Individual</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className="bg-yellow-100 text-yellow-800">Pendente</Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex gap-2 justify-end">
-                      <Button size="sm" variant="ghost">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost">
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12 text-muted-foreground">Carregando atendimentos...</div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+              <ClipboardList className="w-8 h-8 opacity-30" />
+              <p>{searchTerm ? "Nenhum atendimento encontrado." : "Nenhum atendimento registrado ainda."}</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/30">
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Data</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Aluno (ID)</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Mediador (ID)</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Tipo</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((att, idx) => (
+                    <tr key={att.id} className={`border-b last:border-0 hover:bg-muted/20 transition-colors ${idx % 2 === 0 ? "" : "bg-muted/10"}`}>
+                      <td className="px-4 py-3">{formatDate(att.attendanceDate)}</td>
+                      <td className="px-4 py-3 text-muted-foreground">Aluno #{att.studentId}</td>
+                      <td className="px-4 py-3 text-muted-foreground">Mediador #{att.mediatorId}</td>
+                      <td className="px-4 py-3">
+                        <Badge variant="outline">{att.type === "individual" ? "Individual" : "Compartilhado"}</Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge className={att.status === "completed" ? "bg-green-100 text-green-800 hover:bg-green-100" : att.status === "pending" ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100" : "bg-gray-100 text-gray-600"}>
+                          {att.status === "completed" ? "Concluído" : att.status === "pending" ? "Pendente" : att.status}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
