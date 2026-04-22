@@ -211,6 +211,29 @@ export default function Cadastros() {
     onError: (err) => toast.error(err.message),
   });
 
+  // Mutation de envio semanal
+  const weeklyMutation = trpc.schools.updateWeeklyStatus.useMutation({
+    onSuccess: () => {
+      toast.success("✅ Quadro semanal enviado com sucesso! A SAIN foi notificada.");
+      utils.schools.list.invalidate();
+    },
+    onError: (err) => toast.error("Erro ao enviar quadro: " + err.message),
+  });
+
+  const handleSubmitWeekly = () => {
+    // Encontrar a escola do usuário atual
+    const userSchool = schools.find((s) => s.id === user?.schoolId);
+    if (!userSchool) {
+      toast.error("Você não está vinculado a uma escola. Contate o administrador.");
+      return;
+    }
+    weeklyMutation.mutate({
+      id: userSchool.id,
+      weeklyStatus: "updated",
+      responsible: user?.name || undefined,
+    });
+  };
+
   // Escolas filtradas para autocomplete
   const filteredSchools = useMemo(() => {
     if (!schoolSearch) return schools;
@@ -391,8 +414,47 @@ export default function Cadastros() {
   const isAdmin = user?.role === "admin";
   const isPending = createMutation.isPending || updateMutation.isPending;
 
+  // Escola do usuário atual (para envio semanal)
+  const userSchool = schools.find((s) => s.id === user?.schoolId);
+
   return (
     <div className="space-y-6">
+      {/* Banner de Envio Semanal - apenas para usuários de escola */}
+      {!isAdmin && userSchool && (
+        <Card className={`border-2 ${
+          userSchool.weeklyStatus === "updated"
+            ? "border-green-300 bg-green-50"
+            : "border-amber-300 bg-amber-50"
+        }`}>
+          <CardContent className="py-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <p className="font-semibold text-sm">
+                  {userSchool.weeklyStatus === "updated"
+                    ? "✅ Quadro semanal enviado"
+                    : "⚠️ Quadro semanal pendente"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {userSchool.weeklyStatus === "updated" && userSchool.lastWeeklyUpdate
+                    ? `Último envio: ${new Date(userSchool.lastWeeklyUpdate).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}`
+                    : "Atualize e envie o quadro de atendentes desta semana para a SAIN"}
+                </p>
+              </div>
+              <Button
+                onClick={handleSubmitWeekly}
+                disabled={weeklyMutation.isPending}
+                className={userSchool.weeklyStatus === "updated"
+                  ? "bg-green-600 hover:bg-green-700 text-white"
+                  : "bg-amber-500 hover:bg-amber-600 text-white"}
+                size="sm"
+              >
+                {weeklyMutation.isPending ? "Enviando..." : userSchool.weeklyStatus === "updated" ? "Reenviar quadro" : "Enviar quadro semanal"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Formulário de Novo Registro */}
       <Card>
         <CardHeader>

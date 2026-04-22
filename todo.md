@@ -113,4 +113,4 @@
 - [x] Cadastro unificado: ao buscar o segundo aluno, verificar se já existe no sistema (evitar duplicata)
 - [x] Adicionar exportação CSV na página de Cadastros (filtrado por escola/turno/situação)
 - [x] Implementar filtros explícitos por escola, turno e situação na tabela de Cadastros com botão "Limpar filtros"
-- [ ] Fluxo de atualização semanal: botão "Enviar quadro semanal" na página Cadastros
+- [x] Fluxo de atualização semanal: botão "Enviar quadro semanal" na página Cadastros com banner de status (pendente/enviado)
