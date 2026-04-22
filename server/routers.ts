@@ -83,6 +83,80 @@ export const appRouter = router({
     list: protectedProcedure.query(async () => {
       return await getSchools();
     }),
+
+    // Painel de escolas com mediadores agrupados (visão da Secretaria)
+    panel: protectedProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      try {
+        const schoolList = await db.select().from(schools);
+        const mediatorList = await db
+          .select({
+            id: mediators.id,
+            name: mediators.name,
+            registration: mediators.registration,
+            status: mediators.status,
+            changeType: mediators.changeType,
+            linkedStudents: mediators.linkedStudents,
+            note: mediators.note,
+            responsible: mediators.responsible,
+            schoolId: mediators.schoolId,
+            updatedAt: mediators.updatedAt,
+          })
+          .from(mediators);
+
+        return schoolList.map(school => ({
+          ...school,
+          attendants: mediatorList.filter(m => m.schoolId === school.id),
+        }));
+      } catch (error) {
+        console.error("[Schools] Error fetching panel:", error);
+        return [];
+      }
+    }),
+
+    // Alertas da semana gerados automaticamente
+    alerts: protectedProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      try {
+        const schoolList = await db.select().from(schools);
+        const mediatorList = await db.select().from(mediators);
+
+        const alerts: string[] = [];
+
+        const pendingSchools = schoolList.filter(s => s.weeklyStatus === "pending" || !s.weeklyStatus);
+        if (pendingSchools.length > 0) {
+          alerts.push(`${pendingSchools.length} escola${pendingSchools.length > 1 ? "s" : ""} ainda não enviaram a atualização semanal`);
+        }
+
+        const newDemands = mediatorList.filter(m => m.changeType === "Nova demanda");
+        if (newDemands.length > 0) {
+          alerts.push(`${newDemands.length} unidade${newDemands.length > 1 ? "s" : ""} informaram nova demanda de atendente`);
+        }
+
+        const onLeave = mediatorList.filter(m => m.status === "on_leave");
+        if (onLeave.length > 0) {
+          alerts.push(`${onLeave.length} atendente${onLeave.length > 1 ? "s estão" : " está"} em licença médica com necessidade de substituição`);
+        }
+
+        const linkChange = mediatorList.filter(m => m.changeType === "Alteração de vínculo com aluno");
+        if (linkChange.length > 0) {
+          alerts.push(`${linkChange.length} escola${linkChange.length > 1 ? "s" : ""} registraram alteração de vínculo nesta semana`);
+        }
+
+        const vacancies = mediatorList.filter(m => m.status === "vacancy");
+        if (vacancies.length > 0) {
+          alerts.push(`${vacancies.length} vaga${vacancies.length > 1 ? "s em aberto" : " em aberto"} aguardando preenchimento`);
+        }
+
+        return alerts;
+      } catch (error) {
+        console.error("[Schools] Error fetching alerts:", error);
+        return [];
+      }
+    }),
+
     create: protectedProcedure
       .input(z.object({
         name: z.string().min(1),
@@ -90,6 +164,7 @@ export const appRouter = router({
         address: z.string().optional(),
         phone: z.string().optional(),
         principal: z.string().optional(),
+        responsible: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
@@ -101,12 +176,30 @@ export const appRouter = router({
             address: input.address,
             phone: input.phone,
             principal: input.principal,
+            responsible: input.responsible,
           });
           return { success: true };
         } catch (error: any) {
           if (error?.code === "ER_DUP_ENTRY") throw new TRPCError({ code: "CONFLICT", message: "Código de escola já cadastrado" });
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao criar escola" });
         }
+      }),
+
+    updateWeeklyStatus: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        weeklyStatus: z.enum(["updated", "pending", "with_vacancy", "with_leave"]),
+        responsible: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        await db.update(schools).set({
+          weeklyStatus: input.weeklyStatus,
+          responsible: input.responsible,
+          lastWeeklyUpdate: new Date(),
+        }).where(eq(schools.id, input.id));
+        return { success: true };
       }),
   }),
 

@@ -32,6 +32,9 @@ export const schools = mysqlTable("schools", {
   address: text("address"),
   phone: varchar("phone", { length: 20 }),
   principal: varchar("principal", { length: 255 }),
+  responsible: varchar("responsible", { length: 255 }),
+  weeklyStatus: mysqlEnum("weeklyStatus", ["updated", "pending", "with_vacancy", "with_leave"]).default("pending"),
+  lastWeeklyUpdate: timestamp("lastWeeklyUpdate"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
