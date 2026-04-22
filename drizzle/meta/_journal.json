@@ -15,6 +15,13 @@
       "when": 1776822746851,
       "tag": "0001_watery_living_tribunal",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1776829771988,
+      "tag": "0002_wet_rocket_racer",
+      "breakpoints": true
     }
   ]
 }

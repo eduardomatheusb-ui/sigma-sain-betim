@@ -62,16 +62,22 @@ export type Student = typeof students.$inferSelect;
 export type InsertStudent = typeof students.$inferInsert;
 
 /**
- * Mediators table - Profissionais que realizam atendimentos
+ * Mediators table - Profissionais que realizam atendimentos (Quadro de Atendentes)
+ * Status expandido para refletir o MVP: active, inactive, on_leave, dismissed, substituted, vacancy
  */
 export const mediators = mysqlTable("mediators", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   cpf: varchar("cpf", { length: 20 }),
+  registration: varchar("registration", { length: 100 }),
   professionalLicense: varchar("professionalLicense", { length: 100 }),
   specialization: varchar("specialization", { length: 255 }),
   schoolId: int("schoolId").notNull(),
-  status: mysqlEnum("status", ["active", "inactive", "on_leave"]).default("active").notNull(),
+  responsible: varchar("responsible", { length: 255 }),
+  status: mysqlEnum("status", ["active", "inactive", "on_leave", "dismissed", "substituted", "vacancy", "temp_leave"]).default("active").notNull(),
+  changeType: varchar("changeType", { length: 100 }).default("Sem alteração"),
+  linkedStudents: text("linkedStudents"),
+  note: text("note"),
   maxAttendances: int("maxAttendances").default(0),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

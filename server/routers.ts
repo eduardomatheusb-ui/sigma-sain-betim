@@ -6,66 +6,72 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { getSchools, getStudentsBySchool, getMediatorsBySchool, getAttendancesBySchool, getExternalDemandsBySchool } from "./db";
 import { getDb } from "./db";
-import { students, mediators, attendances, externalDemands } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { students, mediators, attendances, externalDemands, schools } from "../drizzle/schema";
+import { eq, and } from "drizzle-orm";
+
+// Status e tipos de alteração do Quadro de Atendentes (MVP integrado)
+const MEDIATOR_STATUS = ["active", "inactive", "on_leave", "dismissed", "substituted", "vacancy", "temp_leave"] as const;
+const CHANGE_TYPES = [
+  "Sem alteração",
+  "Novo atendente",
+  "Desligamento",
+  "Licença médica",
+  "Afastamento temporário",
+  "Retorno ao trabalho",
+  "Troca de escola",
+  "Substituição",
+  "Nova demanda",
+  "Encerramento de demanda",
+  "Alteração de vínculo com aluno",
+  "Vaga em aberto",
+] as const;
 
 export const appRouter = router({
   system: systemRouter,
-  
+
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return {
-        success: true,
-      } as const;
+      return { success: true } as const;
     }),
   }),
 
   /**
-   * Dashboard - Indicadores gerenciais
+   * Dashboard - Indicadores gerenciais com métricas expandidas
    */
   dashboard: router({
     stats: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
-      
-      if (!db) {
-        return {
-          totalStudents: 0,
-          activeMediators: 0,
-          pendingAttendances: 0,
-          externalDemands: 0,
-        };
-      }
+      if (!db) return { totalStudents: 0, activeMediators: 0, pendingAttendances: 0, externalDemands: 0, onLeave: 0, vacancies: 0, totalSchools: 0 };
 
       try {
-        // Contar alunos
-        const studentCount = await db.select().from(students);
-        
-        // Contar mediadores
-        const mediatorCount = await db.select().from(mediators);
-        
-        // Contar atendimentos pendentes
-        const pendingCount = await db.select().from(attendances).where(eq(attendances.status, "pending"));
-        
-        // Contar demandas externas
-        const demandCount = await db.select().from(externalDemands);
+        const [studentList, mediatorList, pendingList, demandList, schoolList] = await Promise.all([
+          db.select().from(students),
+          db.select().from(mediators),
+          db.select().from(attendances).where(eq(attendances.status, "pending")),
+          db.select().from(externalDemands).where(eq(externalDemands.status, "pending")),
+          db.select().from(schools),
+        ]);
+
+        const activeMediators = mediatorList.filter(m => m.status === "active").length;
+        const onLeave = mediatorList.filter(m => m.status === "on_leave" || m.status === "temp_leave").length;
+        const vacancies = mediatorList.filter(m => m.status === "vacancy").length;
 
         return {
-          totalStudents: studentCount.length,
-          activeMediators: mediatorCount.length,
-          pendingAttendances: pendingCount.length,
-          externalDemands: demandCount.length,
+          totalStudents: studentList.length,
+          activeMediators,
+          pendingAttendances: pendingList.length,
+          externalDemands: demandList.length,
+          onLeave,
+          vacancies,
+          totalSchools: schoolList.length,
+          totalMediators: mediatorList.length,
         };
       } catch (error) {
         console.error("[Dashboard] Error fetching stats:", error);
-        return {
-          totalStudents: 0,
-          activeMediators: 0,
-          pendingAttendances: 0,
-          externalDemands: 0,
-        };
+        return { totalStudents: 0, activeMediators: 0, pendingAttendances: 0, externalDemands: 0, onLeave: 0, vacancies: 0, totalSchools: 0, totalMediators: 0 };
       }
     }),
   }),
@@ -77,6 +83,31 @@ export const appRouter = router({
     list: protectedProcedure.query(async () => {
       return await getSchools();
     }),
+    create: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        code: z.string().min(1),
+        address: z.string().optional(),
+        phone: z.string().optional(),
+        principal: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        try {
+          await db.insert(schools).values({
+            name: input.name,
+            code: input.code,
+            address: input.address,
+            phone: input.phone,
+            principal: input.principal,
+          });
+          return { success: true };
+        } catch (error: any) {
+          if (error?.code === "ER_DUP_ENTRY") throw new TRPCError({ code: "CONFLICT", message: "Código de escola já cadastrado" });
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao criar escola" });
+        }
+      }),
   }),
 
   /**
@@ -104,9 +135,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
-
         const schoolId = ctx.user.schoolId || 1;
-        
         try {
           await db.insert(students).values({
             name: input.name,
@@ -119,7 +148,6 @@ export const appRouter = router({
             schoolId,
             status: "active",
           });
-
           return { success: true };
         } catch (error) {
           console.error("[Students] Error creating student:", error);
@@ -129,46 +157,179 @@ export const appRouter = router({
   }),
 
   /**
-   * Mediators - Gestão de mediadores
+   * Mediators - Quadro de Atendentes (integrado com MVP)
+   * Inclui: create, update, delete, listWithSchool
    */
   mediators: router({
-    listBySchool: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user.role === "admin") {
-        return await getDb().then(db => db ? db.select().from(mediators) : []);
+    // Lista todos os mediadores com nome da escola (visão consolidada do MVP)
+    listAll: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      try {
+        const rows = await db
+          .select({
+            id: mediators.id,
+            name: mediators.name,
+            registration: mediators.registration,
+            cpf: mediators.cpf,
+            professionalLicense: mediators.professionalLicense,
+            specialization: mediators.specialization,
+            status: mediators.status,
+            changeType: mediators.changeType,
+            linkedStudents: mediators.linkedStudents,
+            note: mediators.note,
+            responsible: mediators.responsible,
+            maxAttendances: mediators.maxAttendances,
+            schoolId: mediators.schoolId,
+            updatedAt: mediators.updatedAt,
+            schoolName: schools.name,
+          })
+          .from(mediators)
+          .leftJoin(schools, eq(mediators.schoolId, schools.id));
+        return rows;
+      } catch (error) {
+        console.error("[Mediators] Error listing all:", error);
+        return [];
       }
-      if (!ctx.user.schoolId) return [];
-      return await getMediatorsBySchool(ctx.user.schoolId);
+    }),
+
+    listBySchool: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      try {
+        if (ctx.user.role === "admin") {
+          const rows = await db
+            .select({
+              id: mediators.id,
+              name: mediators.name,
+              registration: mediators.registration,
+              cpf: mediators.cpf,
+              professionalLicense: mediators.professionalLicense,
+              specialization: mediators.specialization,
+              status: mediators.status,
+              changeType: mediators.changeType,
+              linkedStudents: mediators.linkedStudents,
+              note: mediators.note,
+              responsible: mediators.responsible,
+              maxAttendances: mediators.maxAttendances,
+              schoolId: mediators.schoolId,
+              updatedAt: mediators.updatedAt,
+              schoolName: schools.name,
+            })
+            .from(mediators)
+            .leftJoin(schools, eq(mediators.schoolId, schools.id));
+          return rows;
+        }
+        if (!ctx.user.schoolId) return [];
+        const rows = await db
+          .select({
+            id: mediators.id,
+            name: mediators.name,
+            registration: mediators.registration,
+            cpf: mediators.cpf,
+            professionalLicense: mediators.professionalLicense,
+            specialization: mediators.specialization,
+            status: mediators.status,
+            changeType: mediators.changeType,
+            linkedStudents: mediators.linkedStudents,
+            note: mediators.note,
+            responsible: mediators.responsible,
+            maxAttendances: mediators.maxAttendances,
+            schoolId: mediators.schoolId,
+            updatedAt: mediators.updatedAt,
+            schoolName: schools.name,
+          })
+          .from(mediators)
+          .leftJoin(schools, eq(mediators.schoolId, schools.id))
+          .where(eq(mediators.schoolId, ctx.user.schoolId));
+        return rows;
+      } catch (error) {
+        console.error("[Mediators] Error listing by school:", error);
+        return [];
+      }
     }),
 
     create: protectedProcedure
       .input(z.object({
         name: z.string().min(1),
         cpf: z.string().optional(),
+        registration: z.string().optional(),
         professionalLicense: z.string().optional(),
         specialization: z.string().optional(),
+        responsible: z.string().optional(),
+        status: z.enum(MEDIATOR_STATUS).optional(),
+        changeType: z.string().optional(),
+        linkedStudents: z.string().optional(),
+        note: z.string().optional(),
         maxAttendances: z.number().optional(),
+        schoolId: z.number().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
-
-        const schoolId = ctx.user.schoolId || 1;
-
+        const schoolId = input.schoolId || ctx.user.schoolId || 1;
         try {
           await db.insert(mediators).values({
             name: input.name,
             cpf: input.cpf,
+            registration: input.registration,
             professionalLicense: input.professionalLicense,
             specialization: input.specialization,
+            responsible: input.responsible,
+            status: input.status || "active",
+            changeType: input.changeType || "Sem alteração",
+            linkedStudents: input.linkedStudents,
+            note: input.note,
             maxAttendances: input.maxAttendances || 20,
             schoolId,
-            status: "active",
           });
-
           return { success: true };
         } catch (error) {
           console.error("[Mediators] Error creating mediator:", error);
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create mediator" });
+        }
+      }),
+
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().min(1).optional(),
+        cpf: z.string().optional(),
+        registration: z.string().optional(),
+        professionalLicense: z.string().optional(),
+        specialization: z.string().optional(),
+        responsible: z.string().optional(),
+        status: z.enum(MEDIATOR_STATUS).optional(),
+        changeType: z.string().optional(),
+        linkedStudents: z.string().optional(),
+        note: z.string().optional(),
+        maxAttendances: z.number().optional(),
+        schoolId: z.number().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        const { id, ...data } = input;
+        try {
+          await db.update(mediators).set(data).where(eq(mediators.id, id));
+          return { success: true };
+        } catch (error) {
+          console.error("[Mediators] Error updating mediator:", error);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to update mediator" });
+        }
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        try {
+          await db.delete(mediators).where(eq(mediators.id, input.id));
+          return { success: true };
+        } catch (error) {
+          console.error("[Mediators] Error deleting mediator:", error);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to delete mediator" });
         }
       }),
   }),
@@ -198,9 +359,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
-
         const schoolId = ctx.user.schoolId || 1;
-
         try {
           await db.insert(attendances).values({
             studentId: input.studentId,
@@ -213,7 +372,6 @@ export const appRouter = router({
             schoolId,
             status: "completed",
           });
-
           return { success: true };
         } catch (error) {
           console.error("[Attendances] Error creating attendance:", error);
@@ -245,9 +403,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
-
         const schoolId = ctx.user.schoolId || 1;
-
         try {
           await db.insert(externalDemands).values({
             demandType: input.demandType,
@@ -258,7 +414,6 @@ export const appRouter = router({
             schoolId,
             status: "pending",
           });
-
           return { success: true };
         } catch (error) {
           console.error("[ExternalDemands] Error creating demand:", error);

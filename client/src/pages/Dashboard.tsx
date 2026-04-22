@@ -118,6 +118,46 @@ export default function Dashboard() {
         </Card>
       </div>
 
+      {/* KPIs adicionais do Quadro de Atendentes */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Briefcase className="w-4 h-4" />
+              Total de Atendentes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{(stats as any)?.totalMediators || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">Cadastrados na rede</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-yellow-600" />
+              Afastamentos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-yellow-600">{(stats as any)?.onLeave || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">Licenças e afastamentos</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-blue-600" />
+              Vagas em Aberto
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-blue-600">{(stats as any)?.vacancies || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">Postos sem atendente</p>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Atendimentos por Escola */}
