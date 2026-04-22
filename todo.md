@@ -114,3 +114,9 @@
 - [x] Adicionar exportação CSV na página de Cadastros (filtrado por escola/turno/situação)
 - [x] Implementar filtros explícitos por escola, turno e situação na tabela de Cadastros com botão "Limpar filtros"
 - [x] Fluxo de atualização semanal: botão "Enviar quadro semanal" na página Cadastros com banner de status (pendente/enviado)
+
+## Gestão de Usuários — Correções
+
+- [x] Adicionar botão e formulário de criação de novo usuário na página Usuários
+- [x] Formulário deve ter: nome, e-mail, perfil (admin/escola), escola vinculada (se perfil escola)
+- [x] Implementar procedure users.create no backend

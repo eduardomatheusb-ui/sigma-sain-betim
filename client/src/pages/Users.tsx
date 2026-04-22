@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Shield, Search, Pencil, ToggleLeft, ToggleRight, Users as UsersIcon } from "lucide-react";
+import { Shield, Search, Pencil, ToggleLeft, ToggleRight, Users as UsersIcon, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -48,6 +48,30 @@ export default function Users() {
   const [search, setSearch] = useState("");
   const [editUser, setEditUser] = useState<any | null>(null);
   const [editForm, setEditForm] = useState({ role: "school_user", schoolId: "" });
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState({ name: "", email: "", role: "school_user", schoolId: "" });
+
+  const createMutation = trpc.users.create.useMutation({
+    onSuccess: () => {
+      utils.users.list.invalidate();
+      toast.success("Usuário criado com sucesso! Ele poderá fazer login com este e-mail.");
+      setShowCreate(false);
+      setCreateForm({ name: "", email: "", role: "school_user", schoolId: "" });
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  function handleCreate() {
+    if (!createForm.name.trim()) { toast.error("Informe o nome do usuário"); return; }
+    if (!createForm.email.trim()) { toast.error("Informe o e-mail do usuário"); return; }
+    if (createForm.role === "school_user" && !createForm.schoolId) { toast.error("Selecione a escola vinculada para usuários de escola"); return; }
+    createMutation.mutate({
+      name: createForm.name.trim(),
+      email: createForm.email.trim(),
+      role: createForm.role as "admin" | "school_user",
+      schoolId: createForm.schoolId ? Number(createForm.schoolId) : null,
+    });
+  }
 
   const filtered = useMemo(() => {
     return usersData.filter((u: any) => {
@@ -90,14 +114,20 @@ export default function Users() {
   return (
     <div className="space-y-6">
       {/* Cabeçalho */}
-      <div className="flex items-center gap-3">
-        <div className="p-2 bg-primary/10 rounded-lg">
-          <UsersIcon className="w-6 h-6 text-primary" />
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <UsersIcon className="w-6 h-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Gestão de Usuários</h1>
+            <p className="text-sm text-muted-foreground">Administração de acessos e vínculos com escolas</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold">Gestão de Usuários</h1>
-          <p className="text-sm text-muted-foreground">Administração de acessos e vínculos com escolas</p>
-        </div>
+        <Button onClick={() => setShowCreate(true)} className="gap-2">
+          <UserPlus className="w-4 h-4" />
+          Novo usuário
+        </Button>
       </div>
 
       {/* Métricas rápidas */}
@@ -206,6 +236,67 @@ export default function Users() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal de criação de usuário */}
+      <Dialog open={showCreate} onOpenChange={v => { if (!v) setShowCreate(false); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Criar novo usuário</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label>Nome completo *</Label>
+              <Input
+                className="mt-1"
+                placeholder="Nome do responsável"
+                value={createForm.name}
+                onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label>E-mail *</Label>
+              <Input
+                className="mt-1"
+                type="email"
+                placeholder="email@escola.betim.mg.gov.br"
+                value={createForm.email}
+                onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))}
+              />
+              <p className="text-xs text-muted-foreground mt-1">O usuário fará login com este e-mail via Manus.</p>
+            </div>
+            <div>
+              <Label>Perfil de acesso *</Label>
+              <Select value={createForm.role} onValueChange={v => setCreateForm(f => ({ ...f, role: v }))}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="school_user">Usuário Escola</SelectItem>
+                  <SelectItem value="admin">Administrador SAIN</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {createForm.role === "school_user" && (
+              <div>
+                <Label>Escola vinculada *</Label>
+                <Select value={createForm.schoolId || ""} onValueChange={v => setCreateForm(f => ({ ...f, schoolId: v }))}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione a escola" /></SelectTrigger>
+                  <SelectContent>
+                    {schoolsData.map((s: any) => (
+                      <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">O usuário só verá os dados da escola vinculada.</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2 pt-2">
+            <Button variant="outline" onClick={() => setShowCreate(false)}>Cancelar</Button>
+            <Button onClick={handleCreate} disabled={createMutation.isPending}>
+              {createMutation.isPending ? "Criando..." : "Criar usuário"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de edição */}
       <Dialog open={editUser !== null} onOpenChange={v => { if (!v) setEditUser(null); }}>

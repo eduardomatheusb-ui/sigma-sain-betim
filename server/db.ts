@@ -30,6 +30,26 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   }
 
   try {
+    // Verificar se existe usuário pré-cadastrado com o mesmo e-mail (reconciliação no primeiro login)
+    if (user.email) {
+      const existing = await db.select({ id: users.id, openId: users.openId })
+        .from(users)
+        .where(eq(users.email, user.email))
+        .limit(1);
+      if (existing.length > 0 && existing[0].openId !== user.openId && existing[0].openId.startsWith('pre_')) {
+        // Atualizar o registro pré-cadastrado com o openId real do Manus
+        await db.update(users)
+          .set({
+            openId: user.openId,
+            name: user.name ?? undefined,
+            loginMethod: user.loginMethod ?? undefined,
+            lastSignedIn: new Date(),
+          })
+          .where(eq(users.id, existing[0].id));
+        return;
+      }
+    }
+
     const values: InsertUser = {
       openId: user.openId,
     };

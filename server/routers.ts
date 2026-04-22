@@ -621,6 +621,33 @@ export const appRouter = router({
         await db.update(users).set({ isActive: input.isActive }).where(eq(users.id, input.userId));
         return { success: true };
       }),
+
+    create: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1, "Nome obrigatório"),
+        email: z.string().email("E-mail inválido"),
+        role: z.enum(["admin", "school_user"]),
+        schoolId: z.number().nullable().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem criar usuários" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        // Verificar se e-mail já existe
+        const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, input.email));
+        if (existing.length > 0) throw new TRPCError({ code: "CONFLICT", message: "Já existe um usuário com este e-mail" });
+        // Criar usuário pré-cadastrado (sem openId — será preenchido no primeiro login)
+        await db.insert(users).values({
+          openId: `pre_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+          name: input.name,
+          email: input.email,
+          role: input.role,
+          schoolId: input.schoolId ?? null,
+          isActive: true,
+          loginMethod: "pre_registered",
+        });
+        return { success: true };
+      }),
   }),
 
   /**
