@@ -1,0 +1,72 @@
+# SIGMA - TODO List
+
+## Arquitetura e Dados
+- [x] Definir schema de banco de dados (tabelas: users, schools, students, mediators, attendances, external_demands)
+- [x] Criar migrations SQL para inicializar banco
+- [x] Implementar tipos TypeScript para todas as entidades
+
+## Identidade Visual e Componentes
+- [x] Configurar cores institucionais no Tailwind (azul #004B99, verde #9AC331)
+- [x] Criar DashboardLayout com sidebar institucional
+- [x] Implementar componentes base (Button, Card, Table, Form, Modal)
+- [x] Adicionar tipografia e espaçamento consistentes
+
+## Autenticação e Controle de Acesso
+- [x] Estender schema de users com campos de perfil (role: admin | school_user)
+- [x] Implementar middleware de autenticação e autorização
+- [x] Criar páginas de login e logout
+- [x] Implementar proteção de rotas por perfil
+
+## Dashboard Gerencial (SAIN)
+- [ ] Criar página de dashboard com indicadores principais
+- [ ] Implementar gráficos: total de alunos, mediadores ativos, atendimentos, demandas pendentes
+- [ ] Adicionar distribuição por escola
+- [ ] Criar cards de resumo e status
+
+## Gestão de Alunos
+- [x] Criar formulário de cadastro de alunos
+- [x] Implementar listagem com filtros e busca
+- [ ] Criar página de detalhes do aluno com histórico
+- [x] Adicionar campos: dados pessoais, necessidades, escola, status
+
+## Gestão de Mediadores
+- [x] Criar formulário de cadastro de mediadores
+- [x] Implementar listagem com filtros
+- [ ] Criar página de detalhes do mediador
+- [x] Adicionar vinculação com alunos e escolas
+- [ ] Implementar carga de atendimentos
+
+## Controle por Escola
+- [ ] Criar visão consolidada por escola
+- [ ] Implementar filtros e busca
+- [ ] Exibir alunos, mediadores e atendimentos por unidade
+
+## Gestão de Atendimentos
+- [x] Criar formulário de registro de atendimento
+- [x] Implementar listagem com histórico
+- [x] Adicionar suporte a atendimentos compartilhados
+- [ ] Criar página de detalhes com acompanhamento
+
+## Demandas Externas
+- [x] Criar formulário de registro de demanda
+- [x] Implementar listagem com filtros
+- [ ] Adicionar acompanhamento institucional
+- [ ] Criar página de detalhes
+
+## Gestão de Usuários (Admin)
+- [x] Criar página de gerenciamento de usuários
+- [x] Implementar criação, edição, ativação/desativação
+- [x] Adicionar definição de perfil de acesso
+- [x] Implementar listagem com filtros
+
+## Relatórios e Exportação
+- [ ] Implementar filtros por escola, período e status
+- [ ] Criar exportação em formato de tabela
+- [ ] Adicionar funcionalidade de download
+
+## Testes e Validação
+- [x] Testar fluxos de autenticação
+- [x] Validar controle de acesso por perfil
+- [ ] Testar responsividade e acessibilidade
+- [ ] Validar navegação e usabilidade
+- [x] Implementar testes unitários com Vitest

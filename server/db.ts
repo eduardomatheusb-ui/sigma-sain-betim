@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, schools, students, mediators, attendances, externalDemands } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,36 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+/**
+ * Query helpers para o SIGMA
+ */
+
+export async function getSchools() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(schools);
+}
+
+export async function getStudentsBySchool(schoolId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(students).where(eq(students.schoolId, schoolId));
+}
+
+export async function getMediatorsBySchool(schoolId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(mediators).where(eq(mediators.schoolId, schoolId));
+}
+
+export async function getAttendancesBySchool(schoolId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(attendances).where(eq(attendances.schoolId, schoolId));
+}
+
+export async function getExternalDemandsBySchool(schoolId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(externalDemands).where(eq(externalDemands.schoolId, schoolId));
+}
