@@ -87,4 +87,4 @@
 - [x] Liberar cadastro de alunos para admin sem vínculo de escola
 - [x] Aplicar logo da Prefeitura de Betim no cabeçalho
 - [x] Atualizar cabeçalho com identidade visual SIGMA institucional
-- [ ] Adicionar rodapé institucional (pendente)
+- [x] Adicionar rodapé institucional

@@ -281,6 +281,11 @@ function DashboardLayoutContent({
           </div>
         )}
         <main className="flex-1 p-4 md:p-6">{children}</main>
+        {/* Rodapé institucional */}
+        <footer className="border-t border-border/50 px-4 md:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-1 text-xs text-muted-foreground bg-muted/20">
+          <span>SIGMA — Sistema Integrado de Gestão de Mediadores e Atendimentos</span>
+          <span>SAIN — Secretaria Adjunta de Inclusão · Prefeitura Municipal de Betim</span>
+        </footer>
       </SidebarInset>
     </>
   );
