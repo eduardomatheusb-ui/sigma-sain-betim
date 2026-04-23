@@ -211,3 +211,9 @@
 - [x] UI no Dashboard: botão "Enviar lembrete para escolas pendentes" (admin)
 - [x] UI no Dashboard: indicador de quantas escolas já enviaram vs. pendentes na semana
 - [x] Agendamento automático: lembrete toda sexta-feira para escolas sem envio (server/scheduler.ts, inicia junto com o servidor)
+
+## Correções do Quadro de Mediadores (Fase 8)
+
+- [x] Corrigir texto desconfigurado no Quadro de Mediadores (escapamentos \u00b0 etc. → UTF-8 correto)
+- [x] Substituir formulário inline de alunos por botão "Cadastrar Aluno" que abre dialog completo
+- [x] Pré-preencher escola no dialog de cadastro com a escola selecionada no quadro
