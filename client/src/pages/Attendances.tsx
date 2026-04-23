@@ -43,7 +43,7 @@ export default function Attendances() {
   // listBySchool already returns all for admin, filtered for school
   const { data: attendancesData, isLoading: loading } = trpc.attendances.listBySchool.useQuery();
   const { data: schoolsList } = trpc.schools.list.useQuery(undefined, { enabled: isAdmin });
-  const { data: studentsData } = trpc.students.listBySchool.useQuery();
+  const { data: studentsData } = trpc.demands.list.useQuery();
   const { data: mediatorsData } = trpc.mediators.listBySchool.useQuery();
 
   const allAttendances = attendancesData || [];
@@ -51,7 +51,7 @@ export default function Attendances() {
   // Build name maps from students and mediators
   const studentMap = useMemo(() => {
     const map = new Map<number, string>();
-    (studentsData || []).forEach((s: any) => map.set(s.id, s.name));
+    (studentsData || []).forEach((s: any) => map.set(s.id, s.studentName || s.name || ""));
     return map;
   }, [studentsData]);
 
