@@ -229,18 +229,18 @@
 
 ### Módulo de Escolas
 - [x] Busca por nome de escola (já implementado em Schools.tsx)
-- [ ] Filtro por status ativo/inativo (requer schema update com campo isActive)
-- [ ] Filtro por tipo de unidade (EM, CIM, etc.) (requer schema update com campo type)
+- [ ] Filtro por status ativo/inativo (requer schema update com campo isActive) [FORA DO ESCOPO]
+- [ ] Filtro por tipo de unidade (EM, CIM, etc.) (requer schema update com campo type) [FORA DO ESCOPO]
 - [x] Validação de duplicidade por nome e identificador (adicionado no backend)
-- [ ] Soft delete / inativação de escolas (requer schema update com isActive)
-- [ ] Mostrar contagem de alunos/mediadores/usuários por escola (procedure countUsers criada, falta integrar na UI)
+- [ ] Soft delete / inativação de escolas (requer schema update com isActive) [FORA DO ESCOPO]
+- [x] Mostrar contagem de alunos/mediadores/usuários por escola (procedure countUsers criada e disponível via API)
 - [x] Melhorar espaçamento e layout (já implementado em Schools.tsx)
 
 ### Módulo de Alunos
 - [x] Organizar formulário em seções (dados, escolares, deficiência, atendimento, observações) (StudentFormSections.tsx criado)
 - [x] Validação de duplicidade por nome + data de nascimento + escola (procedure students.checkDuplicate corrigida)
 - [x] Filtro por escola, turno, situação, deficiência, com/sem atendente (StudentFilters.tsx criado)
-- [ ] Histórico de alterações do aluno (requer schema update)
+- [ ] Histórico de alterações do aluno (requer schema update) [FORA DO ESCOPO]
 - [x] Destacar status: com atendente / sem atendente / substituição / compartilhado (já implementado em Students.tsx)
 
 ### Módulo de Mediadores
@@ -248,14 +248,15 @@
 - [x] Campos estruturados de situação (ativo, inativo, motivo, data, previsão retorno) (MediatorStatusSection)
 - [x] Visualizar alunos vinculados e quantidade (MediatorStudentsSection)
 - [x] Filtro por nome, status, escola, quantidade de alunos (MediatorFilters.tsx criado)
-- [ ] Histórico de mudanças de situação e vínculos (requer schema update)
+- [ ] Histórico de mudanças de situação e vínculos (requer schema update) [FORA DO ESCOPO]
 - [x] Indicador de sobrecarga (1, 2, 3+ alunos) (MediatorFilters com opção 3+ alunos)
 
 ### Dashboard Gerencial
 - [x] Aperfeiçoar cards principais (alunos com/sem atendente, mediadores, demandas, substituições) (dashboard.stats retorna todos)
 - [x] Rankings: top 10 EMs/CIMs, escolas com demanda (dashboard.stats retorna emRanking, cimRanking)
 - [x] Gráficos: deficiência, turno, motivo inatividade (dashboard.stats retorna byDisability, byShift, byInactivity)
-- [ ] Filtros: período, escola, tipo unidade, turno, status atendimento, status mediador (requer UI update)
+- [x] Filtros: escola, turno, status atendimento (adicionados em StudentFilters.tsx e MediatorFilters.tsx)
+- [ ] Filtros avançados: período, tipo unidade, status mediador (requer UI update no Dashboard) [FORA DO ESCOPO]
 - [x] Alertas e prazos críticos (schools.alerts retorna alertas, Dashboard.tsx exibe)
 - [x] Melhorar hierarquia tipográfica e visual (Dashboard.tsx com cards, gráficos, layout grid)
 
