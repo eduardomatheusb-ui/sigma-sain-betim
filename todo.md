@@ -228,13 +228,13 @@
 ## Fase 10 — Aprimoramentos Gerais (Escolas, Alunos, Mediadores, Dashboard)
 
 ### Módulo de Escolas
-- [ ] Busca por nome de escola
-- [ ] Filtro por status (ativa/inativa)
-- [ ] Filtro por tipo de unidade (EM, CIM, etc.)
-- [ ] Validação de duplicidade por nome e identificador
-- [ ] Soft delete / inativação de escolas
-- [ ] Mostrar contagem de alunos/mediadores/usuários por escola
-- [ ] Melhorar espaçamento e layout
+- [x] Busca por nome de escola (já implementado em Schools.tsx)
+- [ ] Filtro por status ativo/inativo (requer schema update com campo isActive)
+- [ ] Filtro por tipo de unidade (EM, CIM, etc.) (requer schema update com campo type)
+- [x] Validação de duplicidade por nome e identificador (adicionado no backend)
+- [ ] Soft delete / inativação de escolas (requer schema update com isActive)
+- [ ] Mostrar contagem de alunos/mediadores/usuários por escola (procedure countUsers criada, falta integrar na UI)
+- [x] Melhorar espaçamento e layout (já implementado em Schools.tsx)
 
 ### Módulo de Alunos
 - [ ] Organizar formulário em seções (dados, escolares, deficiência, atendimento, observações)

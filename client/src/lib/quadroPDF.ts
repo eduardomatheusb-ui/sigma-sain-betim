@@ -8,7 +8,7 @@ export function generateQuadroPDF(quadro: any, schoolName: string) {
 
   // Logo/Cabeçalho institucional
   doc.setFontSize(14);
-  doc.setFont(undefined, 'bold');
+  doc.setFont('Helvetica', 'bold');
   doc.text('SECRETARIA ADJUNTA DE INCLUSÃO', pageWidth / 2, yPosition, { align: 'center' });
   yPosition += 6;
   
@@ -23,13 +23,13 @@ export function generateQuadroPDF(quadro: any, schoolName: string) {
 
   // Título
   doc.setFontSize(16);
-  doc.setFont(undefined, 'bold');
+  doc.setFont('Helvetica', 'bold');
   doc.text('QUADRO DE MEDIADORES', pageWidth / 2, yPosition, { align: 'center' });
   yPosition += 10;
 
   // Informações da escola
   doc.setFontSize(11);
-  doc.setFont(undefined, 'normal');
+  doc.setFont('Helvetica', 'normal');
   doc.text(`Escola: ${schoolName}`, 10, yPosition);
   yPosition += 5;
   
@@ -59,11 +59,11 @@ export function generateQuadroPDF(quadro: any, schoolName: string) {
   // Rodapé com resumo
   yPosition = (doc as any).lastAutoTable.finalY + 10;
   doc.setFontSize(10);
-  doc.setFont(undefined, 'bold');
+  doc.setFont('Helvetica', 'bold');
   doc.text('RESUMO:', 10, yPosition);
   yPosition += 5;
   
-  doc.setFont(undefined, 'normal');
+  doc.setFont('Helvetica', 'normal');
   doc.text(`Total de mediadores: ${quadro.totalMediadores}`, 10, yPosition);
   yPosition += 4;
   doc.text(`Total de alunos: ${quadro.totalAlunos}`, 10, yPosition);
@@ -73,7 +73,7 @@ export function generateQuadroPDF(quadro: any, schoolName: string) {
   // Rodapé da página
   const pageCount = (doc as any).internal.pages.length - 1;
   doc.setFontSize(8);
-  doc.setFont(undefined, 'italic');
+  doc.setFont('Helvetica', 'italic');
   doc.text(`Página 1 de ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
 
   return doc;

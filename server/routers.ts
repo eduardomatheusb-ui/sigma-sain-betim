@@ -355,6 +355,11 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         try {
+          // Validar duplicidade por nome
+          const existingByName = await db.select().from(schools).where(eq(schools.name, input.name));
+          if (existingByName.length > 0) {
+            throw new TRPCError({ code: "CONFLICT", message: "Escola com este nome já existe" });
+          }
           await db.insert(schools).values({
             name: input.name,
             code: input.code,
@@ -366,7 +371,23 @@ export const appRouter = router({
           return { success: true };
         } catch (error: any) {
           if (error?.code === "ER_DUP_ENTRY") throw new TRPCError({ code: "CONFLICT", message: "Código de escola já cadastrado" });
+          if (error.code === "CONFLICT") throw error;
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao criar escola" });
+        }
+      }),
+
+    // Contar usuários vinculados a uma escola
+    countUsers: protectedProcedure
+      .input(z.object({ schoolId: z.number() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return 0;
+        try {
+          const userList = await db.select().from(users).where(eq(users.schoolId, input.schoolId));
+          return userList.length;
+        } catch (err) {
+          console.error("Erro ao contar usuários:", err);
+          return 0;
         }
       }),
 

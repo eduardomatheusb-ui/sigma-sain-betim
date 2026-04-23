@@ -43,6 +43,13 @@
       "when": 1776910949122,
       "tag": "0005_peaceful_mentor",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1776911295998,
+      "tag": "0006_freezing_lady_bullseye",
+      "breakpoints": true
     }
   ]
 }
