@@ -50,6 +50,20 @@
       "when": 1776911295998,
       "tag": "0006_freezing_lady_bullseye",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1776912285520,
+      "tag": "0007_ambitious_doorman",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1776912311858,
+      "tag": "0008_pink_maria_hill",
+      "breakpoints": true
     }
   ]
 }

@@ -35,6 +35,8 @@ export const schools = mysqlTable("schools", {
   responsible: varchar("responsible", { length: 255 }),
   weeklyStatus: mysqlEnum("weeklyStatus", ["updated", "pending", "with_vacancy", "with_leave"]).default("pending"),
   lastWeeklyUpdate: timestamp("lastWeeklyUpdate"),
+  isActive: boolean("isActive").default(true).notNull(),
+  type: varchar("type", { length: 50 }).default("EM"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -259,3 +261,44 @@ export const demands = mysqlTable("demands", {
 
 export type Demand = typeof demands.$inferSelect;
 export type InsertDemand = typeof demands.$inferInsert;
+/**
+ * StudentEditHistory - Log de alterações de alunos (para auditoria)
+ */
+export const studentEditHistory = mysqlTable("student_edit_history", {
+  id: int("id").autoincrement().primaryKey(),
+  studentId: int("studentId").notNull(),
+  editedBy: int("editedBy").notNull(),
+  editedByName: varchar("editedByName", { length: 255 }),
+  fieldChanged: varchar("fieldChanged", { length: 100 }).notNull(),
+  oldValue: text("oldValue"),
+  newValue: text("newValue"),
+  reason: text("reason"),
+  editedAt: timestamp("editedAt").defaultNow().notNull(),
+});
+
+export type StudentEditHistory = typeof studentEditHistory.$inferSelect;
+export type InsertStudentEditHistory = typeof studentEditHistory.$inferInsert;
+
+/**
+ * MediatorStatusChangeHistory - Log detalhado de mudanças de situação de mediadores
+ */
+export const mediatorStatusChangeHistory = mysqlTable("mediator_status_change_history", {
+  id: int("id").autoincrement().primaryKey(),
+  mediatorId: int("mediatorId").notNull(),
+  previousStatus: varchar("previousStatus", { length: 50 }).notNull(),
+  newStatus: varchar("newStatus", { length: 50 }).notNull(),
+  reason: text("reason"),
+  inactivityReason: varchar("inactivityReason", { length: 255 }),
+  returnDate: date("returnDate"),
+  changedBy: int("changedBy").notNull(),
+  changedByName: varchar("changedByName", { length: 255 }),
+  changedAt: timestamp("changedAt").defaultNow().notNull(),
+});
+
+export type MediatorStatusChangeHistory = typeof mediatorStatusChangeHistory.$inferSelect;
+export type InsertMediatorStatusChangeHistory = typeof mediatorStatusChangeHistory.$inferInsert;
+
+/**
+ * Schools - Adicionar campos isActive e type (para filtros avançados)
+ * Nota: Estes campos serão adicionados via migration
+ */
