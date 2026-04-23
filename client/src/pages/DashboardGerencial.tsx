@@ -331,7 +331,7 @@ export default function DashboardGerencial() {
               <InfoTooltip text={TOOLTIPS.topEMs} position="top" />
             </div>
             <p className="text-xs text-muted-foreground">
-              Prioridade: 1) alunos sem atendente, 2) demandas em aberto, 3) deficit de cobertura.
+              Ordenado por: 1) alunos sem atendente, 2) demandas em aberto.
             </p>
           </CardHeader>
           <CardContent>
@@ -354,12 +354,6 @@ export default function DashboardGerencial() {
                         <InfoTooltip text={TOOLTIPS.colAbertas} position="top" size={12} />
                       </span>
                     </TableHead>
-                    <TableHead className="text-center">
-                      <span className="inline-flex items-center gap-1">
-                        DEFICIT
-                        <InfoTooltip text={TOOLTIPS.colDeficit} position="top" size={12} />
-                      </span>
-                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -371,9 +365,6 @@ export default function DashboardGerencial() {
                       </TableCell>
                       <TableCell className="text-center">
                         <span className="text-yellow-600 font-semibold">{em.open}</span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className="text-purple-600 font-semibold">{em.deficit}</span>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -391,7 +382,7 @@ export default function DashboardGerencial() {
               <InfoTooltip text={TOOLTIPS.topCIMs} position="top" />
             </div>
             <p className="text-xs text-muted-foreground">
-              Prioridade: 1) alunos sem atendente, 2) demandas em aberto, 3) deficit de cobertura.
+              Ordenado por: 1) alunos sem atendente, 2) demandas em aberto.
             </p>
           </CardHeader>
           <CardContent>
@@ -414,12 +405,6 @@ export default function DashboardGerencial() {
                         <InfoTooltip text={TOOLTIPS.colAbertas} position="top" size={12} />
                       </span>
                     </TableHead>
-                    <TableHead className="text-center">
-                      <span className="inline-flex items-center gap-1">
-                        DEFICIT
-                        <InfoTooltip text={TOOLTIPS.colDeficit} position="top" size={12} />
-                      </span>
-                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -431,9 +416,6 @@ export default function DashboardGerencial() {
                       </TableCell>
                       <TableCell className="text-center">
                         <span className="text-yellow-600 font-semibold">{cim.open}</span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className="text-purple-600 font-semibold">{cim.deficit}</span>
                       </TableCell>
                     </TableRow>
                   ))}

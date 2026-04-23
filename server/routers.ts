@@ -1683,8 +1683,10 @@ export const appRouter = router({
           const withAttendant = allDemands.filter(d => d.attendanceStatus === "with_attendant").length;
           const withoutAttendant = allDemands.filter(d => d.attendanceStatus === "without_attendant").length;
           const awaitingSubstitution = allDemands.filter(d => d.attendanceStatus === "awaiting_substitution").length;
-          const activeAttendants = allDemands.filter(d => d.hasAttendant && d.attendantStatus === "active").length;
-          const inactiveAttendants = allDemands.filter(d => d.hasAttendant && d.attendantStatus === "inactive").length;
+          // Mediadores únicos: busca direto da tabela mediators (mesma fonte que dashboard.stats)
+          const allMediators = await db.select({ id: mediators.id, status: mediators.status }).from(mediators);
+          const activeAttendants = allMediators.filter(m => m.status === "active").length;
+          const inactiveAttendants = allMediators.filter(m => m.status === "inactive").length;
           const coverageRate = total > 0 ? Math.round((withAttendant / total) * 100) : 0;
 
           const disabilityCount: Record<string, number> = {};
@@ -1712,8 +1714,7 @@ export const appRouter = router({
           });
           const topEMs = Object.values(emBySchool)
             .sort((a, b) => b.withoutAttendant - a.withoutAttendant || b.open - a.open)
-            .slice(0, 10)
-            .map(s => ({ ...s, deficit: s.withoutAttendant + s.open }));
+            .slice(0, 10);
 
           const cimDemands = allDemands.filter(d => d.schoolName.startsWith("CIM "));
           const cimBySchool: Record<string, { name: string; withoutAttendant: number; open: number }> = {};
@@ -1724,8 +1725,7 @@ export const appRouter = router({
           });
           const topCIMs = Object.values(cimBySchool)
             .sort((a, b) => b.withoutAttendant - a.withoutAttendant || b.open - a.open)
-            .slice(0, 10)
-            .map(s => ({ ...s, deficit: s.withoutAttendant + s.open }));
+            .slice(0, 10);
 
           const schoolsWithDeficit = new Set(allDemands.filter(d => d.attendanceStatus !== "with_attendant").map(d => d.schoolName)).size;
 

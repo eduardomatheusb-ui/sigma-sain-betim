@@ -337,3 +337,13 @@
 - [x] Aplicar InfoTooltip no Resumo Geral (6 linhas com tooltip inline)
 - [x] Confirmar que nenhuma fórmula, permissão ou funcionalidade foi alterada
 - [x] Rodar testes e salvar checkpoint (40/40 passando, 0 erros TypeScript)
+
+## Fase 18 — Correção dos Cálculos do Dashboard Gerencial
+
+- [x] Corrigir activeAttendants na procedure demands.stats: agora usa db.select().from(mediators) — mesma fonte que dashboard.stats (280 ativos)
+- [x] Corrigir inactiveAttendants: mesma lógica, mediadores únicos da tabela mediators
+- [x] Remover coluna Déficit das tabelas Top 10 EMs e Top 10 CIMs — mantidas apenas Sem Atendente e Abertas
+- [x] Atualizar subtexto dos rankings para 'Ordenado por: 1) alunos sem atendente, 2) demandas em aberto'
+- [x] Alinhar métricas: ambos os dashboards agora usam a tabela mediators como fonte para atendentes ativos/inativos
+- [x] coverageRate: mesma fórmula nos dois dashboards (withAttendant / total * 100)
+- [x] Rodar testes e salvar checkpoint (40/40 passando, 0 erros TypeScript)
