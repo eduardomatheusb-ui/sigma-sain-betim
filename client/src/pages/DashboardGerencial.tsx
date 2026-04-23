@@ -40,6 +40,7 @@ import {
   Clock,
   RefreshCw,
 } from "lucide-react";
+import { InfoTooltip } from "@/components/InfoTooltip";
 
 const COLORS = [
   "#3b82f6", "#ef4444", "#22c55e", "#f59e0b", "#8b5cf6",
@@ -59,6 +60,46 @@ const STATUS_LABELS: Record<string, string> = {
   without_attendant: "Sem atendente",
   awaiting_substitution: "Aguardando substituição",
   partially_attended: "Parcialmente atendido",
+};
+
+// Textos dos tooltips de ajuda contextual
+const TOOLTIPS = {
+  withAttendant:
+    "Quantidade de alunos que atualmente possuem mediador ou atendente vinculado no sistema.",
+  withoutAttendant:
+    "Quantidade de alunos cadastrados que ainda não possuem mediador ou atendente vinculado.",
+  activeAttendants:
+    "Total de mediadores ativos no sistema. Esta contagem considera profissionais únicos, sem repetir o mesmo mediador em mais de um aluno.",
+  inactiveAttendants:
+    "Total de mediadores cadastrados que estão inativos no momento.",
+  afastados:
+    "Total de mediadores temporariamente afastados, em licença ou situação semelhante.",
+  vagas:
+    "Total de registros de vaga em aberto para mediação, quando esse status estiver sendo utilizado.",
+  openDemands:
+    "Quantidade de demandas que ainda não tiveram atendimento vinculado ou solução concluída.",
+  schoolsWithDeficit:
+    "Total de escolas que possuem pelo menos um aluno sem atendimento no momento.",
+  coverageRate:
+    "Percentual de alunos com atendimento em relação ao total de alunos cadastrados no sistema.",
+  pendingSubstitutions:
+    "Quantidade de casos em que há necessidade de substituição de mediador ainda não concluída.",
+  topEMs:
+    "Lista das 10 escolas municipais com maior demanda por atendimento, considerando principalmente alunos sem atendimento, demandas em aberto e déficit de cobertura.",
+  topCIMs:
+    "Lista dos 10 CIMs com maior demanda por atendimento, considerando principalmente alunos sem atendimento, demandas em aberto e déficit de cobertura.",
+  colSemAtendimento:
+    "Quantidade de alunos da unidade que ainda não possuem atendimento.",
+  colAbertas:
+    "Quantidade de demandas ainda em aberto na unidade.",
+  colDeficit:
+    "Indicador sintético da necessidade de atendimento da unidade, calculado a partir da demanda não coberta.",
+  disabilityChart:
+    "Mostra a distribuição dos alunos por deficiência, transtorno ou condição informada no cadastro.",
+  ageChart:
+    "Mostra a distribuição dos alunos por faixa etária.",
+  shiftChart:
+    "Mostra a distribuição dos alunos por turno de atendimento ou escolarização.",
 };
 
 type StatsInput = {
@@ -117,6 +158,7 @@ export default function DashboardGerencial() {
       icon: UserCheck,
       color: "text-green-600",
       bg: "bg-green-50",
+      tooltip: TOOLTIPS.withAttendant,
     },
     {
       title: "ALUNOS SEM ATENDENTE",
@@ -124,6 +166,7 @@ export default function DashboardGerencial() {
       icon: UserX,
       color: "text-red-600",
       bg: "bg-red-50",
+      tooltip: TOOLTIPS.withoutAttendant,
     },
     {
       title: "ATENDENTES ATIVOS",
@@ -131,6 +174,7 @@ export default function DashboardGerencial() {
       icon: Users,
       color: "text-blue-600",
       bg: "bg-blue-50",
+      tooltip: TOOLTIPS.activeAttendants,
     },
     {
       title: "ATENDENTES INATIVOS",
@@ -138,6 +182,7 @@ export default function DashboardGerencial() {
       icon: UserMinus,
       color: "text-orange-600",
       bg: "bg-orange-50",
+      tooltip: TOOLTIPS.inactiveAttendants,
     },
     {
       title: "DEMANDAS EM ABERTO",
@@ -145,6 +190,7 @@ export default function DashboardGerencial() {
       icon: AlertTriangle,
       color: "text-yellow-600",
       bg: "bg-yellow-50",
+      tooltip: TOOLTIPS.openDemands,
     },
     {
       title: "ESCOLAS COM FALTA DE ATENDENTE",
@@ -152,6 +198,7 @@ export default function DashboardGerencial() {
       icon: School,
       color: "text-purple-600",
       bg: "bg-purple-50",
+      tooltip: TOOLTIPS.schoolsWithDeficit,
     },
     {
       title: "TAXA DE COBERTURA",
@@ -159,6 +206,7 @@ export default function DashboardGerencial() {
       icon: TrendingUp,
       color: "text-teal-600",
       bg: "bg-teal-50",
+      tooltip: TOOLTIPS.coverageRate,
     },
     {
       title: "SUBSTITUIÇÕES PENDENTES",
@@ -166,6 +214,7 @@ export default function DashboardGerencial() {
       icon: Clock,
       color: "text-pink-600",
       bg: "bg-pink-50",
+      tooltip: TOOLTIPS.pendingSubstitutions,
     },
   ];
 
@@ -254,15 +303,18 @@ export default function DashboardGerencial() {
           <Card key={card.title} className={`${card.bg} border-0`}>
             <CardContent className="p-4">
               <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide leading-tight">
-                    {card.title}
-                  </p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide leading-tight">
+                      {card.title}
+                    </p>
+                    <InfoTooltip text={card.tooltip} position="top" />
+                  </div>
                   <p className={`text-3xl font-bold mt-1 ${card.color}`}>
                     {isLoading ? "..." : card.value}
                   </p>
                 </div>
-                <card.icon className={`h-8 w-8 ${card.color} opacity-70`} />
+                <card.icon className={`h-8 w-8 ${card.color} opacity-70 shrink-0 ml-2`} />
               </div>
             </CardContent>
           </Card>
@@ -274,7 +326,10 @@ export default function DashboardGerencial() {
         {/* Top 10 EMs */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base font-semibold">Top 10 EMs com maior demanda</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base font-semibold">Top 10 EMs com maior demanda</CardTitle>
+              <InfoTooltip text={TOOLTIPS.topEMs} position="top" />
+            </div>
             <p className="text-xs text-muted-foreground">
               Prioridade: 1) alunos sem atendente, 2) demandas em aberto, 3) deficit de cobertura.
             </p>
@@ -287,9 +342,24 @@ export default function DashboardGerencial() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>ESCOLA</TableHead>
-                    <TableHead className="text-center">SEM ATENDENTE</TableHead>
-                    <TableHead className="text-center">ABERTAS</TableHead>
-                    <TableHead className="text-center">DEFICIT</TableHead>
+                    <TableHead className="text-center">
+                      <span className="inline-flex items-center gap-1">
+                        SEM ATENDENTE
+                        <InfoTooltip text={TOOLTIPS.colSemAtendimento} position="top" size={12} />
+                      </span>
+                    </TableHead>
+                    <TableHead className="text-center">
+                      <span className="inline-flex items-center gap-1">
+                        ABERTAS
+                        <InfoTooltip text={TOOLTIPS.colAbertas} position="top" size={12} />
+                      </span>
+                    </TableHead>
+                    <TableHead className="text-center">
+                      <span className="inline-flex items-center gap-1">
+                        DEFICIT
+                        <InfoTooltip text={TOOLTIPS.colDeficit} position="top" size={12} />
+                      </span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -316,7 +386,10 @@ export default function DashboardGerencial() {
         {/* Top 10 CIMs */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base font-semibold">Top 10 CIMs com maior demanda</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base font-semibold">Top 10 CIMs com maior demanda</CardTitle>
+              <InfoTooltip text={TOOLTIPS.topCIMs} position="top" />
+            </div>
             <p className="text-xs text-muted-foreground">
               Prioridade: 1) alunos sem atendente, 2) demandas em aberto, 3) deficit de cobertura.
             </p>
@@ -329,9 +402,24 @@ export default function DashboardGerencial() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>ESCOLA</TableHead>
-                    <TableHead className="text-center">SEM ATENDENTE</TableHead>
-                    <TableHead className="text-center">ABERTAS</TableHead>
-                    <TableHead className="text-center">DEFICIT</TableHead>
+                    <TableHead className="text-center">
+                      <span className="inline-flex items-center gap-1">
+                        SEM ATENDENTE
+                        <InfoTooltip text={TOOLTIPS.colSemAtendimento} position="top" size={12} />
+                      </span>
+                    </TableHead>
+                    <TableHead className="text-center">
+                      <span className="inline-flex items-center gap-1">
+                        ABERTAS
+                        <InfoTooltip text={TOOLTIPS.colAbertas} position="top" size={12} />
+                      </span>
+                    </TableHead>
+                    <TableHead className="text-center">
+                      <span className="inline-flex items-center gap-1">
+                        DEFICIT
+                        <InfoTooltip text={TOOLTIPS.colDeficit} position="top" size={12} />
+                      </span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -361,7 +449,10 @@ export default function DashboardGerencial() {
         {/* Gráfico de Deficiências */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base font-semibold">Deficiência / Transtorno</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base font-semibold">Deficiência / Transtorno</CardTitle>
+              <InfoTooltip text={TOOLTIPS.disabilityChart} position="top" />
+            </div>
           </CardHeader>
           <CardContent>
             {disabilityData.length === 0 ? (
@@ -435,7 +526,10 @@ export default function DashboardGerencial() {
         {/* Gráfico de Turno */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base font-semibold">Distribuição por Turno</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base font-semibold">Distribuição por Turno</CardTitle>
+              <InfoTooltip text={TOOLTIPS.shiftChart} position="top" />
+            </div>
           </CardHeader>
           <CardContent>
             {shiftData.length === 0 ? (
@@ -460,7 +554,10 @@ export default function DashboardGerencial() {
         {/* Gráfico de Faixa Etária */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base font-semibold">Faixa Etária</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base font-semibold">Faixa Etária</CardTitle>
+              <InfoTooltip text={TOOLTIPS.ageChart} position="top" />
+            </div>
           </CardHeader>
           <CardContent>
             {!stats ? (
@@ -527,27 +624,45 @@ export default function DashboardGerencial() {
                   <span className="font-semibold">{stats.total}</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b">
-                  <span className="text-sm text-muted-foreground">Com atendente</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm text-muted-foreground">Com atendente</span>
+                    <InfoTooltip text={TOOLTIPS.withAttendant} position="right" size={12} />
+                  </div>
                   <span className="font-semibold text-green-600">{stats.withAttendant}</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b">
-                  <span className="text-sm text-muted-foreground">Sem atendente</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm text-muted-foreground">Sem atendente</span>
+                    <InfoTooltip text={TOOLTIPS.withoutAttendant} position="right" size={12} />
+                  </div>
                   <span className="font-semibold text-red-600">{stats.withoutAttendant}</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b">
-                  <span className="text-sm text-muted-foreground">Aguardando substituição</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm text-muted-foreground">Aguardando substituição</span>
+                    <InfoTooltip text={TOOLTIPS.pendingSubstitutions} position="right" size={12} />
+                  </div>
                   <span className="font-semibold text-yellow-600">{stats.awaitingSubstitution}</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b">
-                  <span className="text-sm text-muted-foreground">Atendentes ativos</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm text-muted-foreground">Atendentes ativos</span>
+                    <InfoTooltip text={TOOLTIPS.activeAttendants} position="right" size={12} />
+                  </div>
                   <span className="font-semibold text-blue-600">{stats.activeAttendants}</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b">
-                  <span className="text-sm text-muted-foreground">Atendentes inativos</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm text-muted-foreground">Atendentes inativos</span>
+                    <InfoTooltip text={TOOLTIPS.inactiveAttendants} position="right" size={12} />
+                  </div>
                   <span className="font-semibold text-orange-600">{stats.inactiveAttendants}</span>
                 </div>
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-sm font-semibold">Taxa de cobertura</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-semibold">Taxa de cobertura</span>
+                    <InfoTooltip text={TOOLTIPS.coverageRate} position="right" size={12} />
+                  </div>
                   <span className={`font-bold text-lg ${stats.coverageRate >= 80 ? "text-green-600" : stats.coverageRate >= 50 ? "text-yellow-600" : "text-red-600"}`}>
                     {stats.coverageRate}%
                   </span>

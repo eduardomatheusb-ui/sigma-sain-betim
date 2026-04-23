@@ -317,3 +317,23 @@
 - [x] Validar ranking diretamente no banco: top 10 EMs com alunos sem atendente (ex: E M Osório Aleixo da Silva: 23)
 - [x] Confirmar 40/40 testes passando após correção
 - [x] TypeScript: 0 erros após correção
+
+## Fase 16 — Auditoria e Correção dos Cards Principais do Dashboard
+
+- [x] Auditar fórmulas do backend (dashboard.stats): identificar cada campo retornado e sua fórmula exata
+- [x] Confirmar valores brutos do banco: mediadores únicos ativos, alunos com atendente, distribuição de carga
+- [x] Auditar ligação UI → backend: quais campos cada card do topo exibe
+- [x] Corrigir "Atendentes Ativos": já usa mediatorList.filter(active).length — correto (280 únicos)
+- [x] Corrigir "Alunos com Atendente": já usa filteredStudents.filter(hasAttendant=true).length — correto (527 alunos)
+- [x] Verificar e corrigir todos os outros cards: todos corretos conforme auditoria
+- [x] Rodar testes e salvar checkpoint após auditoria (40/40 passando)
+
+## Fase 17 — Tooltips de Ajuda Contextual no Dashboard Gerencial
+
+- [x] Criar componente reutilizável InfoTooltip com ícone (i), hover/focus desktop, tap mobile, aria-label, contraste adequado
+- [x] Aplicar InfoTooltip nos 8 cards principais (alunos com/sem atendente, atendentes ativos/inativos, demandas, escolas com falta, taxa de cobertura, substituições)
+- [x] Aplicar InfoTooltip nos 2 rankings (Top 10 EMs, Top 10 CIMs) e 3 colunas das tabelas (Sem atendimento, Abertas, Déficit)
+- [x] Aplicar InfoTooltip nos 3 gráficos (deficiência, faixa etária, turno)
+- [x] Aplicar InfoTooltip no Resumo Geral (6 linhas com tooltip inline)
+- [x] Confirmar que nenhuma fórmula, permissão ou funcionalidade foi alterada
+- [x] Rodar testes e salvar checkpoint (40/40 passando, 0 erros TypeScript)
