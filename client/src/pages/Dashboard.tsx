@@ -10,6 +10,106 @@ import { toast } from "sonner";
 import { Users, Briefcase, ClipboardList, AlertCircle, TrendingUp, School, Download, CheckCircle2, Clock, UserCheck, UserX, GraduationCap, Calendar, Bell } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { Link } from "wouter";
+import { InfoTooltip } from "@/components/InfoTooltip";
+
+// Textos dos tooltips de ajuda contextual do Dashboard comum
+const TOOLTIPS = {
+  // Cards principais — reaproveitados do Dashboard Gerencial
+  totalSchools:
+    "Total de escolas cadastradas no sistema, incluindo EMs, CIMs e outras unidades.",
+  updatedSchools:
+    "Quantidade de escolas que já enviaram o quadro de atendimento desta semana.",
+  pendingSchools:
+    "Quantidade de escolas que ainda não enviaram o quadro de atendimento desta semana.",
+  activeAttendants:
+    "Total de mediadores ativos no sistema. Esta contagem considera profissionais únicos, sem repetir o mesmo mediador em mais de um aluno.",
+  onLeave:
+    "Total de mediadores temporariamente afastados, em licença ou situação semelhante.",
+  vacancies:
+    "Total de registros de vaga em aberto para mediação, quando esse status estiver sendo utilizado.",
+  // Cards de alunos — reaproveitados do Dashboard Gerencial
+  withAttendant:
+    "Quantidade de alunos que atualmente possuem mediador ou atendente vinculado no sistema.",
+  withoutAttendant:
+    "Quantidade de alunos cadastrados que ainda não possuem mediador ou atendente vinculado.",
+  coverageRate:
+    "Percentual de alunos com atendimento em relação ao total de alunos cadastrados no sistema.",
+  // Atendimento Compartilhado — exclusivos do Dashboard comum
+  sharedCareTitle:
+    "Indicações sobre mediadores que atendem mais de um aluno ao mesmo tempo. Esse tipo de atendimento requer monitoramento especial.",
+  sharedMediators:
+    "Quantidade de mediadores que atendem dois ou mais alunos simultaneamente.",
+  studentsInSharedCare:
+    "Quantidade de alunos cujo mediador também atende outro(s) aluno(s) ao mesmo tempo.",
+  avgStudentsPerMediator:
+    "Média de alunos por mediador ativo com vínculo. Valores acima de 1 indicam atendimento compartilhado.",
+  loadDistribution:
+    "Mostra quantos mediadores atendem 1, 2 ou 3 ou mais alunos ao mesmo tempo. Ajuda a identificar sobrecarga.",
+  coverageInShared:
+    "Percentual de alunos com atendimento, calculado sobre o total de alunos cadastrados.",
+  // Lembrete semanal — exclusivo do Dashboard comum
+  weeklyReminder:
+    "Painel de controle do envio semanal das escolas. Mostra quantas já enviaram e quantas ainda estão pendentes nesta semana.",
+  // Gráficos — reaproveitados do Dashboard Gerencial
+  disabilityChart:
+    "Mostra a distribuição dos alunos por deficiência, transtorno ou condição informada no cadastro.",
+  shiftChart:
+    "Mostra a distribuição dos alunos por turno de atendimento ou escolarização.",
+  inactivityChart:
+    "Mostra os principais motivos de afastamento registrados para os mediadores. Ajuda a identificar padrões de ausência.",
+  // Rankings — reaproveitados do Dashboard Gerencial
+  topEMs:
+    "Lista das 10 escolas municipais com maior demanda por atendimento, considerando principalmente alunos sem atendimento.",
+  topCIMs:
+    "Lista dos 10 CIMs com maior demanda por atendimento, considerando principalmente alunos sem atendimento.",
+  // Painel de escolas — exclusivos do Dashboard comum
+  schoolPanel:
+    "Painel consolidado com o status semanal de cada escola. Permite visualizar quem enviou, quem está pendente e quais têm situações que precisam de atenção.",
+  colAtendente:
+    "Nome do mediador vinculado à escola nesta semana.",
+  colAlunos:
+    "Alunos vinculados ao mediador nesta escola.",
+  colSituacao:
+    "Situação atual do mediador: ativo, afastado, substituição, vaga, etc.",
+  colRegistro:
+    "Tipo de alteração registrada pela escola nesta semana, como afastamento, substituição ou nova vaga.",
+  // Alertas e sidebar — exclusivos do Dashboard comum
+  weeklyAlerts:
+    "Alertas gerados automaticamente com base nas atualizações da semana, como escolas pendentes, vagas em aberto ou afastamentos recentes.",
+  workflowTitle:
+    "Resumo do fluxo de uso do sistema: como as escolas enviam os dados e como a Secretaria acompanha.",
+  reportsTitle:
+    "Lista dos relatórios disponíveis para exportação e acompanhamento institucional.",
+  summaryTitle:
+    "Resumo dos principais números do sistema, incluindo total de alunos, atendimentos pendentes, demandas externas e total de mediadores.",
+  totalStudents:
+    "Total de alunos cadastrados no sistema, independente do status de atendimento.",
+  pendingAttendances:
+    "Quantidade de atendimentos registrados que ainda aguardam confirmação ou conclusão.",
+  externalDemands:
+    "Quantidade de demandas originadas fora do fluxo normal de cadastro, como solicitações externas ou encaminhamentos.",
+  totalMediators:
+    "Total de mediadores cadastrados no sistema, incluindo ativos, afastados e com outros status.",
+  // SchoolDashboard — exclusivos da visão da escola
+  schoolStudents:
+    "Total de alunos cadastrados nesta escola no sistema SIGMA.",
+  schoolActiveMediators:
+    "Quantidade de mediadores desta escola com status ativo no momento.",
+  schoolInactiveMediators:
+    "Quantidade de mediadores desta escola que estão inativos ou em outra situação diferente de ativo.",
+  schoolPendingAttendances:
+    "Quantidade de atendimentos desta escola que ainda aguardam confirmação ou conclusão.",
+  schoolMediatorStatus:
+    "Distribuição dos mediadores desta escola por status: ativo, afastado, vaga, etc.",
+  schoolMediatorTable:
+    "Lista dos mediadores desta escola com nome, status atual e quantidade de alunos vinculados.",
+  colMediatorAlunos:
+    "Quantidade de alunos vinculados a este mediador nesta escola.",
+  colMediatorStatus:
+    "Situação atual do mediador: ativo, afastado, vaga em aberto, etc.",
+  weeklyStatus:
+    "Indica se o quadro semanal desta escola já foi enviado para a Secretaria nesta semana.",
+};
 
 function formatDateTime(value: string | Date | null | undefined) {
   if (!value) return "-";
@@ -177,16 +277,20 @@ function AdminDashboard() {
       {/* Metricas */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         {[
-          { label: "Escolas", value: totalSchools, icon: <School className="w-5 h-5 text-primary" /> },
-          { label: "Atualizadas", value: updatedSchools, icon: <CheckCircle2 className="w-5 h-5 text-green-600" /> },
-          { label: "Pendentes", value: pendingSchools, icon: <Clock className="w-5 h-5 text-amber-600" /> },
-          { label: "Atendentes ativos", value: (stats as any)?.activeMediators ?? 0, icon: <Users className="w-5 h-5 text-blue-600" /> },
-          { label: "Afastados", value: (stats as any)?.onLeave ?? 0, icon: <TrendingUp className="w-5 h-5 text-orange-600" /> },
-          { label: "Vagas", value: (stats as any)?.vacancies ?? 0, icon: <AlertCircle className="w-5 h-5 text-red-500" /> },
+          { label: "Escolas", value: totalSchools, icon: <School className="w-5 h-5 text-primary" />, tooltip: TOOLTIPS.totalSchools },
+          { label: "Atualizadas", value: updatedSchools, icon: <CheckCircle2 className="w-5 h-5 text-green-600" />, tooltip: TOOLTIPS.updatedSchools },
+          { label: "Pendentes", value: pendingSchools, icon: <Clock className="w-5 h-5 text-amber-600" />, tooltip: TOOLTIPS.pendingSchools },
+          { label: "Atendentes ativos", value: (stats as any)?.activeMediators ?? 0, icon: <Users className="w-5 h-5 text-blue-600" />, tooltip: TOOLTIPS.activeAttendants },
+          { label: "Afastados", value: (stats as any)?.onLeave ?? 0, icon: <TrendingUp className="w-5 h-5 text-orange-600" />, tooltip: TOOLTIPS.onLeave },
+          { label: "Vagas", value: (stats as any)?.vacancies ?? 0, icon: <AlertCircle className="w-5 h-5 text-red-500" />, tooltip: TOOLTIPS.vacancies },
         ].map(m => (
           <Card key={m.label}>
             <CardContent className="pt-4 pb-4">
-              <div className="flex items-center gap-2 mb-1">{m.icon}<p className="text-xs text-muted-foreground">{m.label}</p></div>
+              <div className="flex items-center gap-2 mb-1">
+                {m.icon}
+                <p className="text-xs text-muted-foreground">{m.label}</p>
+                <InfoTooltip text={m.tooltip} size={12} />
+              </div>
               <p className="text-2xl font-bold">{m.value}</p>
             </CardContent>
           </Card>
@@ -200,7 +304,10 @@ function AdminDashboard() {
             <div className="flex items-center gap-3">
               <UserCheck className="w-8 h-8 text-green-600 opacity-80" />
               <div>
-                <p className="text-xs text-muted-foreground">Alunos com atendente</p>
+                <div className="flex items-center gap-1">
+                  <p className="text-xs text-muted-foreground">Alunos com atendente</p>
+                  <InfoTooltip text={TOOLTIPS.withAttendant} size={12} />
+                </div>
                 <p className="text-2xl font-bold">{studentsWithMediator}</p>
               </div>
             </div>
@@ -211,7 +318,10 @@ function AdminDashboard() {
             <div className="flex items-center gap-3">
               <UserX className="w-8 h-8 text-red-500 opacity-80" />
               <div>
-                <p className="text-xs text-muted-foreground">Alunos sem atendente</p>
+                <div className="flex items-center gap-1">
+                  <p className="text-xs text-muted-foreground">Alunos sem atendente</p>
+                  <InfoTooltip text={TOOLTIPS.withoutAttendant} size={12} />
+                </div>
                 <p className="text-2xl font-bold">{studentsWithoutMediator}</p>
               </div>
             </div>
@@ -222,7 +332,10 @@ function AdminDashboard() {
             <div className="flex items-center gap-3">
               <TrendingUp className="w-8 h-8 text-blue-600 opacity-80" />
               <div>
-                <p className="text-xs text-muted-foreground">Taxa de cobertura</p>
+                <div className="flex items-center gap-1">
+                  <p className="text-xs text-muted-foreground">Taxa de cobertura</p>
+                  <InfoTooltip text={TOOLTIPS.coverageRate} size={12} />
+                </div>
                 <p className="text-2xl font-bold">{coverageRate}%</p>
                 <p className="text-xs text-muted-foreground">alunos com atendente</p>
               </div>
@@ -237,6 +350,7 @@ function AdminDashboard() {
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Users className="w-5 h-5 text-amber-600" />
             Atendimento Compartilhado
+            <InfoTooltip text={TOOLTIPS.sharedCareTitle} />
           </CardTitle>
           <p className="text-xs text-muted-foreground">Atendentes que atendem mais de um aluno simultaneamente</p>
         </CardHeader>
@@ -244,18 +358,30 @@ function AdminDashboard() {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
             <div className="text-center p-3 rounded-lg bg-muted">
               <p className="text-2xl font-bold text-amber-700">{sharedMediators}</p>
-              <p className="text-xs text-muted-foreground mt-1">Atendentes compartilhados</p>
+              <div className="flex items-center justify-center gap-1 mt-1">
+                <p className="text-xs text-muted-foreground">Atendentes compartilhados</p>
+                <InfoTooltip text={TOOLTIPS.sharedMediators} size={11} />
+              </div>
             </div>
             <div className="text-center p-3 rounded-lg bg-muted">
               <p className="text-2xl font-bold text-amber-700">{studentsInSharedCare}</p>
-              <p className="text-xs text-muted-foreground mt-1">Alunos em atend. compartilhado</p>
+              <div className="flex items-center justify-center gap-1 mt-1">
+                <p className="text-xs text-muted-foreground">Alunos em atend. compartilhado</p>
+                <InfoTooltip text={TOOLTIPS.studentsInSharedCare} size={11} />
+              </div>
             </div>
             <div className="text-center p-3 rounded-lg bg-muted">
               <p className="text-2xl font-bold">{avgStudentsPerMediator}</p>
-              <p className="text-xs text-muted-foreground mt-1">Média alunos/atendente</p>
+              <div className="flex items-center justify-center gap-1 mt-1">
+                <p className="text-xs text-muted-foreground">Média alunos/atendente</p>
+                <InfoTooltip text={TOOLTIPS.avgStudentsPerMediator} size={11} />
+              </div>
             </div>
             <div className="text-center p-3 rounded-lg bg-muted">
-              <p className="text-xs text-muted-foreground mb-2">Distribuição de carga</p>
+              <div className="flex items-center justify-center gap-1 mb-2">
+                <p className="text-xs text-muted-foreground">Distribuição de carga</p>
+                <InfoTooltip text={TOOLTIPS.loadDistribution} size={11} />
+              </div>
               <div className="space-y-1 text-left">
                 <div className="flex justify-between text-xs">
                   <span>1 aluno</span>
@@ -273,7 +399,10 @@ function AdminDashboard() {
             </div>
             <div className="text-center p-3 rounded-lg bg-blue-50 border border-blue-200">
               <p className="text-2xl font-bold text-blue-700">{coverageRate}%</p>
-              <p className="text-xs text-muted-foreground mt-1">Cobertura de alunos</p>
+              <div className="flex items-center justify-center gap-1 mt-1">
+                <p className="text-xs text-muted-foreground">Cobertura de alunos</p>
+                <InfoTooltip text={TOOLTIPS.coverageInShared} size={11} />
+              </div>
               <p className="text-xs text-blue-600 mt-1">{studentsWithMediator} de {studentsWithMediator + studentsWithoutMediator}</p>
             </div>
           </div>
@@ -287,9 +416,12 @@ function AdminDashboard() {
             <div className="flex items-center gap-3">
               <Bell className={"w-6 h-6 flex-shrink-0 " + (weeklyStatusData && weeklyStatusData.pending > 0 ? "text-amber-600" : "text-green-600")} />
               <div>
-                <p className={"font-semibold " + (weeklyStatusData && weeklyStatusData.pending > 0 ? "text-amber-800" : "text-green-800")}>
-                  Quadros semanais — semana {weeklyStatusData?.weekReference || "atual"}
-                </p>
+                <div className="flex items-center gap-1">
+                  <p className={"font-semibold " + (weeklyStatusData && weeklyStatusData.pending > 0 ? "text-amber-800" : "text-green-800")}>
+                    Quadros semanais — semana {weeklyStatusData?.weekReference || "atual"}
+                  </p>
+                  <InfoTooltip text={TOOLTIPS.weeklyReminder} size={13} />
+                </div>
                 <p className={"text-sm " + (weeklyStatusData && weeklyStatusData.pending > 0 ? "text-amber-700" : "text-green-700")}>
                   {weeklyStatusData
                     ? `${weeklyStatusData.sent} de ${weeklyStatusData.total} escolas enviaram o quadro esta semana. ${weeklyStatusData.pending > 0 ? `${weeklyStatusData.pending} pendente(s).` : "Todas atualizadas!"}`
@@ -314,7 +446,12 @@ function AdminDashboard() {
       {/* Graficos */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Alunos por tipo de deficiencia</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base">Alunos por tipo de deficiencia</CardTitle>
+              <InfoTooltip text={TOOLTIPS.disabilityChart} />
+            </div>
+          </CardHeader>
           <CardContent>
             {byDisability.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">Sem dados cadastrados ainda.</p>
@@ -330,7 +467,12 @@ function AdminDashboard() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Alunos por turno</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base">Alunos por turno</CardTitle>
+              <InfoTooltip text={TOOLTIPS.shiftChart} />
+            </div>
+          </CardHeader>
           <CardContent>
             {byShift.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">Sem dados cadastrados ainda.</p>
@@ -347,7 +489,12 @@ function AdminDashboard() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Motivos de afastamento</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base">Motivos de afastamento</CardTitle>
+              <InfoTooltip text={TOOLTIPS.inactivityChart} />
+            </div>
+          </CardHeader>
           <CardContent>
             {byInactivity.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">Sem afastamentos registrados.</p>
@@ -370,7 +517,10 @@ function AdminDashboard() {
           {emRanking.length > 0 && (
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Top 10 EMs com mais demanda</CardTitle>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-base">Top 10 EMs com mais demanda</CardTitle>
+                  <InfoTooltip text={TOOLTIPS.topEMs} />
+                </div>
                 <CardDescription>Vagas em aberto + afastamentos</CardDescription>
               </CardHeader>
               <CardContent>
@@ -387,7 +537,10 @@ function AdminDashboard() {
           {cimRanking.length > 0 && (
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Top 10 CIMs com mais demanda</CardTitle>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-base">Top 10 CIMs com mais demanda</CardTitle>
+                  <InfoTooltip text={TOOLTIPS.topCIMs} />
+                </div>
                 <CardDescription>Vagas em aberto + afastamentos</CardDescription>
               </CardHeader>
               <CardContent>
@@ -405,7 +558,12 @@ function AdminDashboard() {
       )}
 
       {/* Painel de escolas */}
-      <div className="border-t pt-4"><h2 className="text-lg font-semibold mb-4">Painel de Escolas</h2></div>
+      <div className="border-t pt-4">
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="text-lg font-semibold">Painel de Escolas</h2>
+          <InfoTooltip text={TOOLTIPS.schoolPanel} />
+        </div>
+      </div>
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="xl:col-span-2 space-y-4">
           <Card>
@@ -449,9 +607,16 @@ function AdminDashboard() {
                         <table className="min-w-full text-xs">
                           <thead className="bg-muted/40">
                             <tr>
-                              {["Atendente", "Aluno(s)", "Situacao", "Registro da semana"].map(h => (
-                                <th key={h} className="px-3 py-2 text-left font-medium">{h}</th>
-                              ))}
+                              {[
+                            { label: "Atendente", tip: TOOLTIPS.colAtendente },
+                            { label: "Aluno(s)", tip: TOOLTIPS.colAlunos },
+                            { label: "Situacao", tip: TOOLTIPS.colSituacao },
+                            { label: "Registro da semana", tip: TOOLTIPS.colRegistro },
+                          ].map(h => (
+                            <th key={h.label} className="px-3 py-2 text-left font-medium">
+                              <div className="flex items-center gap-1">{h.label}<InfoTooltip text={h.tip} size={11} /></div>
+                            </th>
+                          ))}
                             </tr>
                           </thead>
                           <tbody>
@@ -486,6 +651,7 @@ function AdminDashboard() {
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-amber-500" /> Alertas da semana
+                <InfoTooltip text={TOOLTIPS.weeklyAlerts} />
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -499,7 +665,12 @@ function AdminDashboard() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-base">Fluxo de uso</CardTitle></CardHeader>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base">Fluxo de uso</CardTitle>
+                <InfoTooltip text={TOOLTIPS.workflowTitle} />
+              </div>
+            </CardHeader>
             <CardContent className="space-y-3">
               {FLOW_STEPS.map((step, i) => (
                 <div key={i} className="flex items-start gap-3 text-sm">
@@ -510,7 +681,12 @@ function AdminDashboard() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-base">Relatorios disponiveis</CardTitle></CardHeader>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base">Relatorios disponiveis</CardTitle>
+                <InfoTooltip text={TOOLTIPS.reportsTitle} />
+              </div>
+            </CardHeader>
             <CardContent>
               <ul className="space-y-2">
                 {REPORTS.map(r => (
@@ -522,16 +698,24 @@ function AdminDashboard() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-base">Resumo geral</CardTitle></CardHeader>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base">Resumo geral</CardTitle>
+                <InfoTooltip text={TOOLTIPS.summaryTitle} />
+              </div>
+            </CardHeader>
             <CardContent className="space-y-3">
               {[
-                { label: "Total de alunos", value: stats?.totalStudents ?? 0, color: "" },
-                { label: "Atendimentos pendentes", value: stats?.pendingAttendances ?? 0, color: "text-amber-600" },
-                { label: "Demandas externas", value: stats?.externalDemands ?? 0, color: "text-red-500" },
-                { label: "Total de atendentes", value: (stats as any)?.totalMediators ?? 0, color: "" },
+                { label: "Total de alunos", value: stats?.totalStudents ?? 0, color: "", tip: TOOLTIPS.totalStudents },
+                { label: "Atendimentos pendentes", value: stats?.pendingAttendances ?? 0, color: "text-amber-600", tip: TOOLTIPS.pendingAttendances },
+                { label: "Demandas externas", value: stats?.externalDemands ?? 0, color: "text-red-500", tip: TOOLTIPS.externalDemands },
+                { label: "Total de atendentes", value: (stats as any)?.totalMediators ?? 0, color: "", tip: TOOLTIPS.totalMediators },
               ].map(item => (
                 <div key={item.label} className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">{item.label}</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm text-muted-foreground">{item.label}</span>
+                    <InfoTooltip text={item.tip} size={11} />
+                  </div>
                   <span className={"text-lg font-bold " + item.color}>{item.value}</span>
                 </div>
               ))}
@@ -595,9 +779,12 @@ function SchoolDashboard() {
                 <Clock className="h-6 w-6 text-yellow-600 flex-shrink-0" />
               )}
               <div>
-                <p className={"font-semibold " + (weeklyStatus === "updated" ? "text-green-800" : "text-yellow-800")}>
-                  {weeklyStatus === "updated" ? "Quadro semanal enviado" : "Quadro semanal pendente"}
-                </p>
+                <div className="flex items-center gap-1">
+                  <p className={"font-semibold " + (weeklyStatus === "updated" ? "text-green-800" : "text-yellow-800")}>
+                    {weeklyStatus === "updated" ? "Quadro semanal enviado" : "Quadro semanal pendente"}
+                  </p>
+                  <InfoTooltip text={TOOLTIPS.weeklyStatus} size={13} />
+                </div>
                 <p className={"text-sm " + (weeklyStatus === "updated" ? "text-green-700" : "text-yellow-700")}>
                   {weeklyStatus === "updated"
                     ? "Ultimo envio: " + ((userSchool as any)?.lastWeeklyUpdate ? formatDateTime((userSchool as any).lastWeeklyUpdate) : "-")
@@ -618,14 +805,18 @@ function SchoolDashboard() {
       {/* Metricas */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
-          { label: "Alunos cadastrados", value: studentsData.length, icon: <GraduationCap className="w-5 h-5 text-primary" /> },
-          { label: "Mediadores ativos", value: activeMediators, icon: <Users className="w-5 h-5 text-green-600" /> },
-          { label: "Mediadores inativos", value: inactiveMediators, icon: <Users className="w-5 h-5 text-red-500" /> },
-          { label: "Atend. pendentes", value: pendingAttendances, icon: <ClipboardList className="w-5 h-5 text-amber-600" /> },
+          { label: "Alunos cadastrados", value: studentsData.length, icon: <GraduationCap className="w-5 h-5 text-primary" />, tooltip: TOOLTIPS.schoolStudents },
+          { label: "Mediadores ativos", value: activeMediators, icon: <Users className="w-5 h-5 text-green-600" />, tooltip: TOOLTIPS.schoolActiveMediators },
+          { label: "Mediadores inativos", value: inactiveMediators, icon: <Users className="w-5 h-5 text-red-500" />, tooltip: TOOLTIPS.schoolInactiveMediators },
+          { label: "Atend. pendentes", value: pendingAttendances, icon: <ClipboardList className="w-5 h-5 text-amber-600" />, tooltip: TOOLTIPS.schoolPendingAttendances },
         ].map(m => (
           <Card key={m.label}>
             <CardContent className="pt-4 pb-4">
-              <div className="flex items-center gap-2 mb-1">{m.icon}<p className="text-xs text-muted-foreground">{m.label}</p></div>
+              <div className="flex items-center gap-2 mb-1">
+                {m.icon}
+                <p className="text-xs text-muted-foreground">{m.label}</p>
+                <InfoTooltip text={m.tooltip} size={12} />
+              </div>
               <p className="text-2xl font-bold">{m.value}</p>
             </CardContent>
           </Card>
@@ -636,7 +827,12 @@ function SchoolDashboard() {
         {/* Distribuicao de status dos mediadores */}
         {statusCounts.length > 0 && (
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-base">Status dos mediadores</CardTitle></CardHeader>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base">Status dos mediadores</CardTitle>
+                <InfoTooltip text={TOOLTIPS.schoolMediatorStatus} />
+              </div>
+            </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
@@ -653,7 +849,10 @@ function SchoolDashboard() {
         {/* Lista de mediadores */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Mediadores da escola ({mediatorsData.length})</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base">Mediadores da escola ({mediatorsData.length})</CardTitle>
+              <InfoTooltip text={TOOLTIPS.schoolMediatorTable} />
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             {mediatorsData.length === 0 ? (
@@ -666,8 +865,12 @@ function SchoolDashboard() {
                   <thead>
                     <tr className="border-b bg-muted/30">
                       <th className="text-left px-4 py-2 font-medium text-muted-foreground">Nome</th>
-                      <th className="text-left px-4 py-2 font-medium text-muted-foreground">Status</th>
-                      <th className="text-left px-4 py-2 font-medium text-muted-foreground">Alunos</th>
+                      <th className="text-left px-4 py-2 font-medium text-muted-foreground">
+                        <div className="flex items-center gap-1">Status<InfoTooltip text={TOOLTIPS.colMediatorStatus} size={11} /></div>
+                      </th>
+                      <th className="text-left px-4 py-2 font-medium text-muted-foreground">
+                        <div className="flex items-center gap-1">Alunos<InfoTooltip text={TOOLTIPS.colMediatorAlunos} size={11} /></div>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>

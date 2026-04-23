@@ -347,3 +347,24 @@
 - [x] Alinhar métricas: ambos os dashboards agora usam a tabela mediators como fonte para atendentes ativos/inativos
 - [x] coverageRate: mesma fórmula nos dois dashboards (withAttendant / total * 100)
 - [x] Rodar testes e salvar checkpoint (40/40 passando, 0 erros TypeScript)
+
+## Fase 19 — Tooltips de Ajuda Contextual no Dashboard Comum
+
+- [x] Mapear todos os indicadores, cards, gráficos e seções do Dashboard comum (AdminDashboard + SchoolHome)
+- [x] Reaproveitar textos do DashboardGerencial onde os indicadores forem equivalentes (11 textos reaproveitados)
+- [x] Criar textos novos para indicadores exclusivos do Dashboard comum (22 textos novos)
+- [x] Aplicar InfoTooltip nos 6 cards principais do AdminDashboard (Escolas, Atualizadas, Pendentes, Atendentes, Afastados, Vagas)
+- [x] Aplicar InfoTooltip nos cards de Alunos com/sem atendente e Taxa de Cobertura
+- [x] Aplicar InfoTooltip no bloco de Atendimento Compartilhado (título + 5 sub-indicadores)
+- [x] Aplicar InfoTooltip no lembrete semanal
+- [x] Aplicar InfoTooltip nos 3 gráficos (deficiência, turno, motivos de afastamento)
+- [x] Aplicar InfoTooltip nos rankings Top 10 EMs e CIMs
+- [x] Aplicar InfoTooltip no Painel de Escolas (título + 4 colunas da tabela)
+- [x] Aplicar InfoTooltip nos 3 cards da sidebar (alertas, fluxo, relatórios)
+- [x] Aplicar InfoTooltip no Resumo Geral (título + 4 linhas)
+- [x] Aplicar InfoTooltip nos 4 cards do SchoolDashboard
+- [x] Aplicar InfoTooltip no status do quadro semanal (escola)
+- [x] Aplicar InfoTooltip no gráfico de status dos mediadores (escola)
+- [x] Aplicar InfoTooltip na tabela de mediadores da escola (título + colunas Status e Alunos)
+- [x] Confirmar que nenhuma fórmula foi alterada (TypeScript: 0 erros, Testes: 40/40)
+- [x] Rodar testes e salvar checkpoint
