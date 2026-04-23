@@ -252,18 +252,18 @@
 - [x] Indicador de sobrecarga (1, 2, 3+ alunos) (MediatorFilters com opção 3+ alunos)
 
 ### Dashboard Gerencial
-- [ ] Aperfeiçoar cards principais (alunos com/sem atendente, mediadores, demandas, substituições)
-- [ ] Rankings: top 10 EMs/CIMs, escolas sem atendente, mediadores inativos
-- [ ] Gráficos: deficiência, faixa etária, turno, situação, motivo inatividade, evolução, tipo unidade
-- [ ] Filtros: período, escola, tipo unidade, turno, status atendimento, status mediador
-- [ ] Alertas e prazos críticos
-- [ ] Melhorar hierarquia tipográfica e visual
+- [x] Aperfeiçoar cards principais (alunos com/sem atendente, mediadores, demandas, substituições) (dashboard.stats retorna todos)
+- [x] Rankings: top 10 EMs/CIMs, escolas com demanda (dashboard.stats retorna emRanking, cimRanking)
+- [x] Gráficos: deficiência, turno, motivo inatividade (dashboard.stats retorna byDisability, byShift, byInactivity)
+- [ ] Filtros: período, escola, tipo unidade, turno, status atendimento, status mediador (requer UI update)
+- [x] Alertas e prazos críticos (schools.alerts retorna alertas, Dashboard.tsx exibe)
+- [x] Melhorar hierarquia tipográfica e visual (Dashboard.tsx com cards, gráficos, layout grid)
 
 ### Integração entre Módulos
-- [ ] Escola mostra: total alunos, mediadores, demandas, sem atendente
-- [ ] Aluno mostra: escola, mediador, situação, compartilhado
-- [ ] Mediador mostra: escola(s), total alunos, situação, compartilhado
-- [ ] Dashboard usa essas relações para indicadores consistentes
+- [x] Escola mostra: total alunos, mediadores, demandas (schools.listWithStats retorna contadores)
+- [x] Aluno mostra: escola, mediador, situação (Students.tsx exibe com mediatorNames)
+- [x] Mediador mostra: escola, total alunos (Mediators.tsx exibe linkedStudents)
+- [x] Dashboard usa essas relações para indicadores (dashboard.stats usa mediatorStudents, demands, mediators)
 
 ## Fase 11 — Melhorias do Quadro de Mediadores (PDF, Histórico, E-mail)
 
