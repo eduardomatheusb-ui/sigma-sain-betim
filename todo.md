@@ -210,4 +210,4 @@
 - [x] Procedure backend: enviar notificação para escolas pendentes (quadroAAP.sendWeeklyReminder)
 - [x] UI no Dashboard: botão "Enviar lembrete para escolas pendentes" (admin)
 - [x] UI no Dashboard: indicador de quantas escolas já enviaram vs. pendentes na semana
-- [ ] Agendamento automático: lembrete toda sexta-feira para escolas sem envio (opcional)
+- [x] Agendamento automático: lembrete toda sexta-feira para escolas sem envio (server/scheduler.ts, inicia junto com o servidor)
