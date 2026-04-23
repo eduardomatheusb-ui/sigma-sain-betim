@@ -78,6 +78,9 @@ function AdminDashboard() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [mediatorStatusFilter, setMediatorStatusFilter] = useState("all");
+  const [periodFilter, setPeriodFilter] = useState("current_week");
 
   const filteredSchools = useMemo(() => {
     return schoolPanel.filter((school: any) => {
@@ -120,6 +123,44 @@ function AdminDashboard() {
             <Download className="w-4 h-4 mr-2" /> Exportar relatorio
           </Button>
         </div>
+      </div>
+
+      {/* Filtros Avançados */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-2 bg-muted p-3 rounded-lg">
+        <span className="text-sm font-medium">Filtros:</span>
+        <Select value={periodFilter} onValueChange={setPeriodFilter}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Período" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="current_week">Semana Atual</SelectItem>
+            <SelectItem value="last_week">Última Semana</SelectItem>
+            <SelectItem value="current_month">Mês Atual</SelectItem>
+            <SelectItem value="all_time">Todo o Período</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Tipo de Unidade" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="EM">EM</SelectItem>
+            <SelectItem value="CIM">CIM</SelectItem>
+            <SelectItem value="CMEI">CMEI</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={mediatorStatusFilter} onValueChange={setMediatorStatusFilter}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Status Mediador" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="active">Ativos</SelectItem>
+            <SelectItem value="inactive">Inativos</SelectItem>
+            <SelectItem value="on_leave">Afastados</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Metricas */}

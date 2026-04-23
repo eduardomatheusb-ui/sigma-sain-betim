@@ -711,6 +711,17 @@ export const appRouter = router({
         };
         Object.keys(data).forEach(k => data[k] === undefined && delete data[k]);
         try {
+          // Registrar alterações para auditoria
+          const oldStudent = await db.select().from(students).where(eq(students.id, id));
+          if (oldStudent.length > 0) {
+            const old = oldStudent[0];
+            Object.entries(data).forEach(([key, newVal]) => {
+              const oldVal = (old as any)[key];
+              if (oldVal !== newVal) {
+                console.log(`[StudentEditHistory] Field: ${key}, Old: ${oldVal}, New: ${newVal}, User: ${ctx.user.id}`);
+              }
+            });
+          }
           await db.update(students).set(data as any).where(eq(students.id, id));
           return { success: true };
         } catch (error) {

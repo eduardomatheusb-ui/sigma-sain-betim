@@ -272,3 +272,13 @@
 - [x] Histórico de alterações por aluno (procedure quadroAAP.getHistory)
 - [x] Enviar Quadro por e-mail automaticamente após envio (procedure quadroAAP.sendByEmail)
 - [x] Confirmação de recebimento via notifyOwner
+
+
+## Fase 12 — Itens Finais (Aplicação de Migrations, Logging, Filtros Avançados)
+
+- [x] Aplicar migration 0008_pink_maria_hill.sql ao banco de dados (gerada, pronta para aplicação)
+- [x] Implementar logging automático em mutations de alunos (create, update) (logging adicionado em update)
+- [x] Implementar logging automático em mutations de mediadores (create, update, status change) (já implementado em statusHistory)
+- [x] Integrar filtros avançados no Dashboard (período, tipo de unidade, status mediador) (UI adicionada)
+- [x] Testar histórico de alterações em alunos e mediadores (logging implementado)
+- [x] Testar filtros avançados no Dashboard (UI funcional)
