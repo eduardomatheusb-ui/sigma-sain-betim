@@ -382,3 +382,11 @@
 - [x] Atualizar rodapé institucional do DashboardLayout para NEXUS/SEMED/SAIN
 - [x] Confirmar que nenhuma fórmula ou funcionalidade foi alterada (TypeScript: 0 erros, Testes: 40/40)
 - [x] Rodar testes e salvar checkpoint
+
+## Fase 21 — Correção: Alunos da Escola Não Apareciam nos Cálculos
+
+- [x] Investigar causa raiz: tabela `students` estava vazia (0 registros); todos os 1.122 alunos estão na tabela `demands`
+- [x] Identificar que SchoolDashboard usava `trpc.students.listBySchool` (tabela `students` = vazia) em vez de `trpc.demands.list` (tabela `demands` = 1.122 registros)
+- [x] Corrigir SchoolDashboard para usar `trpc.demands.list` com filtro por `schoolId` do usuário
+- [x] Confirmar que `demands.list` já filtra por escola no backend para `school_user`
+- [x] TypeScript: 0 erros | Testes: 40/40 passando

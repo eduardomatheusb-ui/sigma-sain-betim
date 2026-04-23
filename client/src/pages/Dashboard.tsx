@@ -92,7 +92,7 @@ const TOOLTIPS = {
     "Total de mediadores cadastrados no sistema, incluindo ativos, afastados e com outros status.",
   // SchoolDashboard — exclusivos da visão da escola
   schoolStudents:
-    "Total de alunos cadastrados nesta escola no sistema SIGMA.",
+    "Total de alunos cadastrados nesta escola no sistema NEXUS.",
   schoolActiveMediators:
     "Quantidade de mediadores desta escola com status ativo no momento.",
   schoolInactiveMediators:
@@ -734,7 +734,12 @@ function AdminDashboard() {
 function SchoolDashboard() {
   const { user } = useAuth();
   const { data: mediatorsData = [] } = trpc.mediators.listBySchool.useQuery();
-  const { data: studentsData = [] } = trpc.students.listBySchool.useQuery();
+  const { data: demandsData = [] } = trpc.demands.list.useQuery();
+  // Filtrar apenas alunos desta escola (demands.list retorna todos para admin, filtrado por escola para school_user)
+  const studentsData = useMemo(() => {
+    if (!user?.schoolId) return demandsData;
+    return demandsData.filter((d: any) => d.schoolId === user.schoolId);
+  }, [demandsData, user?.schoolId]);
   const { data: attendancesData = [] } = trpc.attendances.listBySchool.useQuery();
   const { data: schools = [] } = trpc.schools.list.useQuery();
 
