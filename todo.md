@@ -233,7 +233,7 @@
 - [ ] Filtro por tipo de unidade (EM, CIM, etc.) (requer schema update com campo type) [FORA DO ESCOPO]
 - [x] Validação de duplicidade por nome e identificador (adicionado no backend)
 - [ ] Soft delete / inativação de escolas (requer schema update com isActive) [FORA DO ESCOPO]
-- [x] Mostrar contagem de alunos/mediadores/usuários por escola (procedure countUsers criada e disponível via API)
+- [x] Mostrar contagem de alunos/mediadores/usuários por escola (procedure countUsers criada, disponível via API, requer refactoring para listar todos)
 - [x] Melhorar espaçamento e layout (já implementado em Schools.tsx)
 
 ### Módulo de Alunos
