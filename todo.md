@@ -310,3 +310,10 @@
 - [x] Revisar rankings por escola: deduplicado com Set<number> por mediator.id
 - [x] Atualizar UI do Dashboard: card de compartilhamento com 5 indicadores
 - [x] Documentar diff das fórmulas (comentários ANTES/AGORA no código)
+
+## Fase 15 — Correção do Ranking de Escolas (CONCLUÍDA)
+
+- [x] Corrigir ranking de escolas no dashboard.stats: usar alunos SEM atendente por escola em vez de mediadores com vacancy/on_leave (que estava vazio pois todos os 280 mediadores têm status 'active')
+- [x] Validar ranking diretamente no banco: top 10 EMs com alunos sem atendente (ex: E M Osório Aleixo da Silva: 23)
+- [x] Confirmar 40/40 testes passando após correção
+- [x] TypeScript: 0 erros após correção

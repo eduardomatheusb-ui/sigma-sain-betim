@@ -192,18 +192,17 @@ export const appRouter = router({
             : 0;
 
           // ─── RANKING DE ESCOLAS ───────────────────────────────────────────
-          // ANTES: contava mediadores com vacancy/on_leave por escola → podia contar o mesmo mediador
-          //        múltiplas vezes se ele tivesse múltiplos registros (não era o caso, mas era frágil)
-          // AGORA: conta mediadores únicos por escola com status de demanda
-          const schoolDemandMap = new Map<number, Set<number>>();
-          mediatorList
-            .filter(m => m.status === "vacancy" || m.status === "on_leave" || m.status === "temp_leave")
-            .forEach(m => {
-              if (!schoolDemandMap.has(m.schoolId)) schoolDemandMap.set(m.schoolId, new Set());
-              schoolDemandMap.get(m.schoolId)!.add(m.id); // deduplicado por mediator.id
+          // ANTES: contava mediadores com vacancy/on_leave por escola → ranking vazio quando todos são 'active'
+          // AGORA: conta alunos SEM atendente por escola (métrica operacional real de demanda)
+          const schoolWithoutMap = new Map<number, number>();
+          filteredStudents
+            .filter((s: any) => !s.hasAttendant && (!s.attendantName || s.attendantName === ""))
+            .forEach((s: any) => {
+              const sid = (s as any).schoolId;
+              if (sid) schoolWithoutMap.set(sid, (schoolWithoutMap.get(sid) || 0) + 1);
             });
           const schoolRanking = schoolList
-            .map(s => ({ id: s.id, name: s.name, demand: schoolDemandMap.get(s.id)?.size || 0 }))
+            .map(s => ({ id: s.id, name: s.name, demand: schoolWithoutMap.get(s.id) || 0 }))
             .filter(s => s.demand > 0)
             .sort((a, b) => b.demand - a.demand);
           const emRanking = schoolRanking.filter(s => s.name.startsWith("E M") || s.name.startsWith("EM ")).slice(0, 10);
