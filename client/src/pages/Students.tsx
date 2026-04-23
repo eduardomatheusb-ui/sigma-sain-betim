@@ -18,7 +18,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { GraduationCap, Pencil, Trash2, Download, Search, UserPlus, X } from "lucide-react";
+import { GraduationCap, Pencil, Trash2, Download, Search, UserPlus, X, History } from "lucide-react";
+import { HistoryModal } from "@/components/HistoryModal";
 
 // Lista completa de deficiências/transtornos (idêntica ao Netlify)
 const DISABILITY_OPTIONS = [
@@ -161,6 +162,14 @@ export default function Students() {
   const [filterSchool, setFilterSchool] = useState("all");
   const [filterShift, setFilterShift] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+
+  // Histórico de alterações
+  const [historyDemandId, setHistoryDemandId] = useState<number | null>(null);
+  const [historyStudentName, setHistoryStudentName] = useState("");
+  const { data: studentHistory = [], isLoading: historyLoading } = trpc.students.getHistory.useQuery(
+    { studentId: historyDemandId! },
+    { enabled: !!historyDemandId }
+  );
 
   // Busca de alunos existentes para atendimento compartilhado
   const { data: existingStudents = [] } = trpc.demands.searchStudents.useQuery(
@@ -1039,6 +1048,15 @@ export default function Students() {
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => { setHistoryDemandId(demand.id); setHistoryStudentName(demand.studentName); }}
+                              title="Histórico de alterações"
+                              className="text-blue-500 hover:text-blue-700"
+                            >
+                              <History className="h-4 w-4" />
+                            </Button>
                             {isAdmin && (
                               <Button
                                 variant="ghost"
@@ -1061,6 +1079,16 @@ export default function Students() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de histórico de alterações do aluno */}
+      <HistoryModal
+        open={!!historyDemandId}
+        onClose={() => { setHistoryDemandId(null); setHistoryStudentName(""); }}
+        title="Histórico de Alterações"
+        subtitle={historyStudentName ? `Aluno: ${historyStudentName}` : undefined}
+        entries={studentHistory as any[]}
+        isLoading={historyLoading}
+      />
 
       {/* Dialog de confirmação de exclusão */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

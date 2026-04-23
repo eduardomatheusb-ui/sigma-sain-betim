@@ -282,3 +282,17 @@
 - [x] Integrar filtros avançados no Dashboard (período, tipo de unidade, status mediador) (UI adicionada)
 - [x] Testar histórico de alterações em alunos e mediadores (logging implementado)
 - [x] Testar filtros avançados no Dashboard (UI funcional)
+
+
+## Fase 13 — Filtros Avançados, Soft Delete, Histórico (CONCLUÍDA)
+
+- [x] Refatorar dashboard.stats para aceitar filtros de período, tipo de unidade e status de mediador (scripts/patch_dashboard_stats.py)
+- [x] Conectar Selects de filtro do Dashboard às queries do backend (estados period/unitType/mediatorStatus em Dashboard.tsx)
+- [x] Adicionar procedure schools.deactivate (soft delete com isActive=false)
+- [x] Adicionar procedure schools.reactivate (isActive=true)
+- [x] Adicionar filtro por status (ativo/inativo) na listagem de escolas (Schools.tsx)
+- [x] Adicionar botão "Inativar" e "Reativar" na UI de Escolas (Schools.tsx)
+- [x] Criar modal de histórico de aluno (HistoryModal.tsx + students.getHistory procedure)
+- [x] Criar modal de histórico de mediador (HistoryModal.tsx + mediators.getHistory procedure)
+- [x] Registrar alterações em student_edit_history ao salvar edição de aluno (Students.tsx update mutation)
+- [x] Registrar alterações em mediator_status_change_history ao salvar edição de mediador (statusHistory já implementado)

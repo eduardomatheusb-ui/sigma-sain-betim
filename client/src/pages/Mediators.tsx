@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Download, Users, Briefcase, AlertCircle, Clock, UserPlus, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, Users, Briefcase, AlertCircle, Clock, UserPlus, X, History } from "lucide-react";
+import { HistoryModal } from "@/components/HistoryModal";
 import { BETIM_SCHOOLS, INACTIVITY_REASONS } from "@/lib/schools";
 
 const STATUS_OPTIONS = [
@@ -117,6 +118,14 @@ export default function Mediators() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [schoolFilter, setSchoolFilter] = useState("all");
+
+  // Histórico de mudanças de situação
+  const [historyMediatorId, setHistoryMediatorId] = useState<number | null>(null);
+  const [historyMediatorName, setHistoryMediatorName] = useState("");
+  const { data: mediatorHistory = [], isLoading: historyLoading } = trpc.mediators.getHistory.useQuery(
+    { mediatorId: historyMediatorId! },
+    { enabled: !!historyMediatorId }
+  );
 
   function resetForm() { setForm(defaultForm); setEditingId(null); }
 
@@ -303,6 +312,15 @@ export default function Mediators() {
                           <Button size="sm" variant="outline" onClick={() => handleEdit(row)}>
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-blue-600 hover:text-blue-800"
+                            onClick={() => { setHistoryMediatorId(row.id); setHistoryMediatorName(row.name); }}
+                            title="Histórico de situação"
+                          >
+                            <History className="w-3.5 h-3.5" />
+                          </Button>
                           <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => setDeleteTarget(row.id)}>
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
@@ -456,6 +474,16 @@ export default function Mediators() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de histórico de mudanças de situação */}
+      <HistoryModal
+        open={!!historyMediatorId}
+        onClose={() => { setHistoryMediatorId(null); setHistoryMediatorName(""); }}
+        title="Histórico de Situação"
+        subtitle={historyMediatorName ? `Atendente: ${historyMediatorName}` : undefined}
+        entries={mediatorHistory as any[]}
+        isLoading={historyLoading}
+      />
 
       {/* Confirmação de exclusão */}
       <Dialog open={deleteTarget !== null} onOpenChange={v => { if (!v) setDeleteTarget(null); }}>

@@ -18,7 +18,7 @@ import {
 import { toast } from "sonner";
 import {
   School, Search, Plus, AlertTriangle, Download,
-  ChevronDown, ChevronUp, Eye,
+  ChevronDown, ChevronUp, Eye, PowerOff, Power,
 } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -59,6 +59,23 @@ export default function Schools() {
   const [form, setForm] = useState({
     name: "", code: "", address: "", phone: "", principal: "", responsible: "",
   });
+  const [activeFilter, setActiveFilter] = useState<"all" | "active" | "inactive">("active");
+
+  const deactivateSchool = trpc.schools.deactivate.useMutation({
+    onSuccess: () => {
+      toast.success("Escola inativada com sucesso!");
+      utils.schools.listWithStats.invalidate();
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const reactivateSchool = trpc.schools.reactivate.useMutation({
+    onSuccess: () => {
+      toast.success("Escola reativada com sucesso!");
+      utils.schools.listWithStats.invalidate();
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
 
   const filtered = useMemo(() => {
     if (!schoolsData) return [];
@@ -69,6 +86,11 @@ export default function Schools() {
     }
     if (statusFilter !== "all") {
       list = list.filter((s: any) => s.weeklyStatus === statusFilter || (!s.weeklyStatus && statusFilter === "pending"));
+    }
+    if (activeFilter === "active") {
+      list = list.filter((s: any) => s.isActive !== false);
+    } else if (activeFilter === "inactive") {
+      list = list.filter((s: any) => s.isActive === false);
     }
     list.sort((a: any, b: any) => {
       let cmp = 0;
@@ -194,6 +216,14 @@ export default function Schools() {
             <SelectItem value="with_leave">Com licenca</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={activeFilter} onValueChange={(v) => setActiveFilter(v as "all" | "active" | "inactive")}>
+          <SelectTrigger className="w-40"><SelectValue placeholder="Situacao" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas</SelectItem>
+            <SelectItem value="active">Ativas</SelectItem>
+            <SelectItem value="inactive">Inativas</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <Card>
@@ -241,9 +271,38 @@ export default function Schools() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Button variant="ghost" size="sm" onClick={() => setExpandedSchool(expandedSchool === school.id ? null : school.id)}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center justify-center gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => setExpandedSchool(expandedSchool === school.id ? null : school.id)} title="Ver detalhes">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        {user?.role === "admin" && (
+                          school.isActive !== false ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-500 hover:text-red-700"
+                              title="Inativar escola"
+                              onClick={() => {
+                                if (confirm(`Inativar a escola "${school.name}"? Ela nao sera excluida, apenas marcada como inativa.`)) {
+                                  deactivateSchool.mutate({ id: school.id });
+                                }
+                              }}
+                            >
+                              <PowerOff className="h-4 w-4" />
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-emerald-600 hover:text-emerald-800"
+                              title="Reativar escola"
+                              onClick={() => reactivateSchool.mutate({ id: school.id })}
+                            >
+                              <Power className="h-4 w-4" />
+                            </Button>
+                          )
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

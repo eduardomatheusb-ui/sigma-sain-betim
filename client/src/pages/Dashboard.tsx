@@ -62,7 +62,16 @@ export default function Dashboard() {
 // ADMIN DASHBOARD
 // ═══════════════════════════════════════════════════════════════════════════════
 function AdminDashboard() {
-  const { data: stats } = trpc.dashboard.stats.useQuery();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [mediatorStatusFilter, setMediatorStatusFilter] = useState("all");
+  const [periodFilter, setPeriodFilter] = useState("all_time");
+  const { data: stats } = trpc.dashboard.stats.useQuery({
+    period: periodFilter as "current_week" | "last_week" | "current_month" | "all_time",
+    unitType: typeFilter,
+    mediatorStatus: mediatorStatusFilter,
+  });
   const { data: schoolPanel = [] } = trpc.schools.panel.useQuery();
   const { data: alerts = [] } = trpc.schools.alerts.useQuery();
   const { data: weeklyStatusData, refetch: refetchWeeklyStatus } = trpc.quadroAAP.weeklyStatus.useQuery();
@@ -74,13 +83,7 @@ function AdminDashboard() {
     onError: (err) => {
       toast.error("Erro ao enviar lembrete: " + err.message);
     },
-  });
-
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [mediatorStatusFilter, setMediatorStatusFilter] = useState("all");
-  const [periodFilter, setPeriodFilter] = useState("current_week");
+  });;
 
   const filteredSchools = useMemo(() => {
     return schoolPanel.filter((school: any) => {
