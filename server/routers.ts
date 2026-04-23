@@ -58,7 +58,7 @@ export const appRouter = router({
 
       try {
         const [studentList, mediatorList, pendingList, demandList, schoolList, links] = await Promise.all([
-          db.select().from(students),
+          db.select().from(demands),
           db.select().from(mediators),
           db.select().from(attendances).where(eq(attendances.status, "pending")),
           db.select().from(externalDemands).where(eq(externalDemands.status, "pending")),
@@ -83,10 +83,9 @@ export const appRouter = router({
             m.linkedStudents.split(",").map(s => s.trim()).filter(Boolean).forEach(s => linkedStudentNames.add(s.toLowerCase()));
           }
         });
-        const studentsWithMediator = studentList.filter(s =>
-          linkedStudentIds.has(s.id) || linkedStudentNames.has(s.name.toLowerCase())
-        ).length;
-        const studentsWithoutMediator = studentList.length - studentsWithMediator;
+        // Para demands: contar por hasAttendant
+        const studentsWithMediator = studentList.filter((s: any) => s.hasAttendant === true).length;
+        const studentsWithoutMediator = studentList.filter((s: any) => s.hasAttendant === false).length;
 
         // Ranking de escolas por demanda
         const schoolDemandMap = new Map<number, number>();
@@ -100,17 +99,21 @@ export const appRouter = router({
         const emRanking = schoolRanking.filter(s => s.name.startsWith("E M") || s.name.startsWith("EM ")).slice(0, 10);
         const cimRanking = schoolRanking.filter(s => s.name.startsWith("CIM")).slice(0, 10);
 
-        // Gráfico por deficiência
+        // Gráfico por deficiência (demands usa campo 'disabilities' como JSON array)
         const disabilityMap = new Map<string, number>();
-        studentList.forEach(s => {
-          const key = s.disability || "Não informado";
-          disabilityMap.set(key, (disabilityMap.get(key) || 0) + 1);
+        studentList.forEach((s: any) => {
+          let keys: string[] = [];
+          if (s.disabilities) {
+            try { keys = JSON.parse(s.disabilities); } catch { keys = [s.disabilities]; }
+          }
+          if (keys.length === 0) keys = ["Não informado"];
+          keys.forEach(k => disabilityMap.set(k, (disabilityMap.get(k) || 0) + 1));
         });
         const byDisability = Array.from(disabilityMap.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
 
         // Gráfico por turno
         const shiftMap = new Map<string, number>();
-        studentList.forEach(s => {
+        studentList.forEach((s: any) => {
           const key = s.shift === "morning" ? "Manhã" : s.shift === "afternoon" ? "Tarde" : s.shift === "full" ? "Integral" : s.shift === "evening" ? "Noturno" : "Não informado";
           shiftMap.set(key, (shiftMap.get(key) || 0) + 1);
         });
@@ -125,7 +128,7 @@ export const appRouter = router({
         const byInactivity = Array.from(inactivityMap.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
 
         return {
-          totalStudents: studentList.length,
+          totalStudents: studentList.length, // demands count
           activeMediators,
           pendingAttendances: pendingList.length,
           externalDemands: demandList.length,
@@ -155,7 +158,7 @@ export const appRouter = router({
       if (!schoolId) return null;
       try {
         const [school] = await db.select().from(schools).where(eq(schools.id, schoolId));
-        const studentList = await db.select().from(students).where(eq(students.schoolId, schoolId));
+        const studentList = await db.select().from(demands).where(eq(demands.schoolId, schoolId));
         const mediatorList = await db.select().from(mediators).where(eq(mediators.schoolId, schoolId));
         const attendanceList = await db.select().from(attendances).where(eq(attendances.schoolId, schoolId));
         const links = await db.select().from(mediatorStudents);
@@ -175,15 +178,13 @@ export const appRouter = router({
             m.linkedStudents.split(",").map(s => s.trim()).filter(Boolean).forEach(s => linkedStudentNames.add(s.toLowerCase()));
           }
         });
-        const studentsWithMediator = studentList.filter(s =>
-          linkedStudentIds.has(s.id) || linkedStudentNames.has(s.name.toLowerCase())
-        ).length;
+        const studentsWithMediator = studentList.filter((s: any) => s.hasAttendant === true).length;
 
         return {
           school,
           totalStudents: studentList.length,
           studentsWithMediator,
-          studentsWithoutMediator: studentList.length - studentsWithMediator,
+          studentsWithoutMediator: studentList.filter((s: any) => s.hasAttendant === false).length,
           totalMediators: mediatorList.length,
           activeMediators,
           onLeave,
@@ -215,7 +216,7 @@ export const appRouter = router({
         try {
           const [school] = await db.select().from(schools).where(eq(schools.id, input.id));
           if (!school) return null;
-          const studentList = await db.select().from(students).where(eq(students.schoolId, input.id));
+          const studentList = await db.select({ id: demands.id, schoolId: demands.schoolId }).from(demands).where(eq(demands.schoolId, input.id));
           const mediatorList = await db.select().from(mediators).where(eq(mediators.schoolId, input.id));
           const attendanceList = await db.select().from(attendances).where(eq(attendances.schoolId, input.id));
           return {
@@ -270,7 +271,7 @@ export const appRouter = router({
       if (!db) return [];
       try {
         const schoolList = await db.select().from(schools);
-        const studentList = await db.select({ id: students.id, schoolId: students.schoolId }).from(students);
+        const studentList = await db.select({ id: demands.id, schoolId: demands.schoolId }).from(demands);
         const mediatorList = await db.select({ id: mediators.id, schoolId: mediators.schoolId, status: mediators.status }).from(mediators);
         const attendanceList = await db.select({ id: attendances.id, schoolId: attendances.schoolId }).from(attendances);
         const demandList = await db.select({ id: externalDemands.id, schoolId: externalDemands.schoolId, status: externalDemands.status }).from(externalDemands);
@@ -285,7 +286,7 @@ export const appRouter = router({
           responsible: school.responsible,
           weeklyStatus: school.weeklyStatus,
           lastWeeklyUpdate: school.lastWeeklyUpdate,
-          students: studentList.filter(s => s.schoolId === school.id).length,
+          students: studentList.filter((s: any) => s.schoolId === school.id).length,
           mediators: mediatorList.filter(m => m.schoolId === school.id).length,
           activeMediators: mediatorList.filter(m => m.schoolId === school.id && m.status === "active").length,
           onLeave: mediatorList.filter(m => m.schoolId === school.id && (m.status === "on_leave" || m.status === "temp_leave")).length,
@@ -1065,18 +1066,19 @@ export const appRouter = router({
         try {
           if (input.type === "students") {
             let rows = await db.select({
-              id: students.id,
-              name: students.name,
-              cpf: students.cpf,
-              disability: students.disability,
-              shift: students.shift,
-              grade: students.grade,
-              status: students.status,
-              schoolId: students.schoolId,
-              schoolName: schools.name,
-              enrollmentNumber: students.enrollmentNumber,
-              guardianName: students.guardianName,
-            }).from(students).leftJoin(schools, eq(students.schoolId, schools.id));
+              id: demands.id,
+              name: demands.studentName,
+              cpf: demands.cpf,
+              disability: demands.disabilities,
+              shift: demands.shift,
+              grade: demands.grade,
+              status: demands.attendantStatus,
+              schoolId: demands.schoolId,
+              schoolName: demands.schoolName,
+              attendanceStatus: demands.attendanceStatus,
+              attendantName: demands.attendantName,
+              hasAttendant: demands.hasAttendant,
+            }).from(demands).leftJoin(schools, eq(demands.schoolId, schools.id));
             if (input.schoolId) rows = rows.filter((r: any) => r.schoolId === input.schoolId);
             if (input.status && input.status !== "all") rows = rows.filter((r: any) => r.status === input.status);
             return { rows, total: rows.length };
@@ -1119,7 +1121,7 @@ export const appRouter = router({
           }
           if (input.type === "schools") {
             const schoolList = await db.select().from(schools);
-            const studentList = await db.select({ schoolId: students.schoolId }).from(students);
+            const studentList = await db.select({ schoolId: demands.schoolId }).from(demands);
             const mediatorList = await db.select({ schoolId: mediators.schoolId, status: mediators.status }).from(mediators);
             const rows = schoolList.map(s => ({
               id: s.id,
@@ -1559,8 +1561,8 @@ export const appRouter = router({
           const [school] = await db.select().from(schools).where(eq(schools.id, input.schoolId));
           if (!school) return { school: null, rows: [], responsible: "", date: "" };
 
-          // Buscar todos os alunos da escola
-          const studentList = await db.select().from(students).where(eq(students.schoolId, input.schoolId));
+          // Buscar todos os alunos da escola (via demands)
+          const studentList = await db.select().from(demands).where(eq(demands.schoolId, input.schoolId));
 
           // Buscar mediadores da escola
           const mediatorList = await db.select().from(mediators).where(eq(mediators.schoolId, input.schoolId));
@@ -1572,8 +1574,8 @@ export const appRouter = router({
           const schoolList = await db.select({ id: schools.id, name: schools.name }).from(schools);
           const schoolMap = Object.fromEntries(schoolList.map(s => [s.id, s.name]));
 
-          // Montar mapa de alunos
-          const studentMap = Object.fromEntries(studentList.map(s => [s.id, s]));
+          // Montar mapa de alunos (demands: usar studentName como name)
+          const studentMap = Object.fromEntries(studentList.map((s: any) => [s.id, { ...s, name: s.studentName, disability: s.disabilities, status: s.attendantStatus }]));
 
           // Montar mapa de mediador -> alunos vinculados
           const mediatorToStudents: Record<number, number[]> = {};
@@ -1612,16 +1614,20 @@ export const appRouter = router({
             if (linkedStudentsList.length === 0 && med.linkedStudents) {
               const names = med.linkedStudents.split(",").map(n => n.trim()).filter(Boolean);
               for (const name of names) {
-                const found = studentList.find(s => s.name.toLowerCase().trim() === name.toLowerCase().trim());
+                const found = (studentList as any[]).find(s => (s.studentName || s.name || "").toLowerCase().trim() === name.toLowerCase().trim());
                 if (found) linkedStudentsList.push(found);
               }
             }
 
-            const alunos = linkedStudentsList.map(s => ({
-              nome: s.name,
-              anoTurma: s.grade || "",
-              deficiencia: s.disability || "",
-            }));
+            const alunos = linkedStudentsList.map((s: any) => {
+              let disab = s.disabilities || s.disability || "";
+              try { const arr = JSON.parse(disab); disab = Array.isArray(arr) ? arr.join(", ") : disab; } catch {}
+              return {
+                nome: s.studentName || s.name || "",
+                anoTurma: s.grade || "",
+                deficiencia: disab,
+              };
+            });
 
             if (alunos.length === 0) {
               alunos.push({ nome: "(sem aluno vinculado)", anoTurma: "", deficiencia: "" });
@@ -1650,20 +1656,22 @@ export const appRouter = router({
             if (med.linkedStudents) {
               const names = med.linkedStudents.split(",").map(n => n.trim()).filter(Boolean);
               for (const name of names) {
-                const found = studentList.find(s => s.name.toLowerCase().trim() === name.toLowerCase().trim());
+                const found = (studentList as any[]).find(s => (s.studentName || s.name || "").toLowerCase().trim() === name.toLowerCase().trim());
                 if (found) studentsWithMediator.add(found.id);
               }
             }
           }
 
-          const studentsWithout = studentList.filter(s => !studentsWithMediator.has(s.id) && s.status === "active");
+                const studentsWithout = studentList.filter((s: any) => !studentsWithMediator.has(s.id) && s.hasAttendant === false);
           // Verificar se o aluno deveria ter atendimento compartilhado
-          const sharedMediatorIds = new Set(mediatorList.filter(m => m.isShared).map(m => m.id));
-          for (const s of studentsWithout) {
+          for (const s of studentsWithout as any[]) {
             const needsLabel = s.needsAttendant === "no" ? "NÃO NECESSITA" :
               s.needsAttendant === "nam" ? "Sem atendente – NAM" :
-              s.specialNeeds?.includes("compartilhado") ? "Sem atendente (compartilhado)" :
+              s.isShared ? "Sem atendente (compartilhado)" :
               "Sem atendente (individual)";
+
+            let disab = s.disabilities || "";
+            try { const arr = JSON.parse(disab); disab = Array.isArray(arr) ? arr.join(", ") : disab; } catch {}
 
             rows.push({
               numero,
@@ -1671,9 +1679,9 @@ export const appRouter = router({
               turno1: s.shift === "morning" || s.shift === "full" || !s.shift,
               turno2: s.shift === "afternoon" || s.shift === "full",
               alunos: [{
-                nome: s.name,
+                nome: s.studentName,
                 anoTurma: s.grade || "",
-                deficiencia: s.disability || "",
+                deficiencia: disab,
               }],
               mediatorId: null,
               status: "sem_atendente",
@@ -1690,7 +1698,7 @@ export const appRouter = router({
             rows,
             responsible,
             date: new Date().toLocaleDateString("pt-BR"),
-            totalAlunos: studentList.filter(s => s.status === "active").length,
+            totalAlunos: studentList.length,
             totalMediadores: mediatorList.filter(m => m.status === "active").length,
             totalSemAtendente: studentsWithout.length,
           };
@@ -1711,7 +1719,7 @@ export const appRouter = router({
         try {
           // Gerar o quadro para snapshot
           const mediatorList = await db.select().from(mediators).where(eq(mediators.schoolId, input.schoolId));
-          const studentList = await db.select().from(students).where(eq(students.schoolId, input.schoolId));
+          const studentList = await db.select().from(demands).where(eq(demands.schoolId, input.schoolId));
           const allLinks = await db.select().from(mediatorStudents);
 
           const snapshotData = JSON.stringify({
@@ -1719,13 +1727,10 @@ export const appRouter = router({
               id: m.id, name: m.name, status: m.status, changeType: m.changeType,
               linkedStudents: m.linkedStudents, isShared: m.isShared,
               inactivityReason: m.inactivityReason, note: m.note,
-              otherSchoolId: m.otherSchoolId,
             })),
-            students: studentList.map(s => ({
-              id: s.id, name: s.name, disability: s.disability, shift: s.shift,
-              grade: s.grade, status: s.status, needsAttendant: s.needsAttendant,
-              usesWheelchair: s.usesWheelchair, usesWalker: s.usesWalker,
-              usesProsthesis: s.usesProsthesis, homeCare: s.homeCare,
+            students: studentList.map((s: any) => ({
+              id: s.id, name: s.studentName, disability: s.disabilities, shift: s.shift,
+              grade: s.grade, hasAttendant: s.hasAttendant, attendantName: s.attendantName,
             })),
             links: allLinks.filter(l => mediatorList.some(m => m.id === l.mediatorId)),
           });
@@ -1754,8 +1759,8 @@ export const appRouter = router({
           // Notificar a SAIN (owner)
           try {
             await notifyOwner({
-              title: `Quadro AAP Enviado - ${schoolName}`,
-              content: `A escola ${schoolName} enviou o Quadro de Atendentes (AAP) da semana ${weekRef}.\nMediadores ativos: ${mediatorList.filter(m => m.status === "active").length}\nAlunos: ${studentList.filter(s => s.status === "active").length}\nEnviado por: ${ctx.user.name || "Usu\u00e1rio"}` + (input.notes ? `\nObs: ${input.notes}` : ""),
+              title: `Quadro de Mediadores Enviado - ${schoolName}`,
+              content: `A escola ${schoolName} enviou o Quadro de Mediadores da semana ${weekRef}.\nMediadores ativos: ${mediatorList.filter(m => m.status === "active").length}\nAlunos: ${studentList.length} (${(studentList as any[]).filter(s => s.hasAttendant).length} com mediador)\nEnviado por: ${ctx.user.name || "Usu\u00e1rio"}` + (input.notes ? `\nObs: ${input.notes}` : ""),
             });
           } catch (notifErr) {
             console.warn("[QuadroAAP] Notification failed:", notifErr);

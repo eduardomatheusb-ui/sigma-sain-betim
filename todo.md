@@ -188,3 +188,16 @@
 - [x] No cadastro de alunos: puxar automaticamente mediadores disponíveis da escola do aluno
 - [x] Corrigir textos desconfigurados no quadro
 - [x] Simplificar exportação Excel (sem cabeçalho institucional excessivo)
+
+## Correções de Integridade (Auditoria Completa — Fase 6)
+
+- [ ] Dashboard: totalStudents usa tabela `students` (11 registros) — corrigir para usar `demands` (1122 alunos reais)
+- [ ] Dashboard: studentsWithMediator/WithoutMediator usa `students` — corrigir para usar `demands`
+- [ ] Schools.tsx (listWithStats): contador de alunos usa `students` — corrigir para usar `demands`
+- [ ] Schools.tsx (detail): contador de alunos usa `students` — corrigir para usar `demands`
+- [ ] Reports.tsx tipo "students": usa tabela `students` — corrigir para usar `demands`
+- [ ] Reports.tsx tipo "schools": contador de alunos usa `students` — corrigir para usar `demands`
+- [ ] Quadro de Mediadores (quadroAAP.generate): usa `students` para montar linhas — corrigir para usar `demands`
+- [ ] Attendances.tsx: dropdown de alunos usa `students.listBySchool` — corrigir para usar `demands.list`
+- [ ] Corrigir 5 demands com hasAttendant=true mas attendantName nulo
+- [ ] Limpar 11 registros de teste na tabela `students` (nomes fictícios)
