@@ -34,6 +34,7 @@ import {
   BarChart3,
   Shield,
   FileText,
+  Home,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -41,9 +42,10 @@ import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
 const adminMenuItems = [
+  { icon: Home, label: "Página Inicial", path: "/" },
   { icon: LayoutDashboard, label: "Dashboard Estratégico", path: "/dashboard" },
-  { icon: FileText, label: "Quadro de Mediadores", path: "/cadastros" },
   { icon: BarChart3, label: "Dashboard Gerencial", path: "/dashboard-gerencial" },
+  { icon: FileText, label: "Quadro de Mediadores", path: "/cadastros" },
   { icon: School, label: "Escolas", path: "/escolas" },
   { icon: GraduationCap, label: "Alunos", path: "/alunos" },
   { icon: UserCheck, label: "Mediadores", path: "/mediadores" },
@@ -54,10 +56,11 @@ const adminMenuItems = [
 ];
 
 const schoolMenuItems = [
+  { icon: Home, label: "Página Inicial", path: "/" },
   { icon: LayoutDashboard, label: "Dashboard Estratégico", path: "/dashboard" },
+  { icon: FileText, label: "Quadro de Mediadores", path: "/cadastros" },
   { icon: GraduationCap, label: "Alunos", path: "/alunos" },
   { icon: UserCheck, label: "Mediadores", path: "/mediadores" },
-  { icon: FileText, label: "Quadro de Mediadores", path: "/cadastros" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
