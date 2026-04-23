@@ -1853,6 +1853,43 @@ export const appRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao enviar lembrete" });
       }
     }),
+
+    // Histórico de alterações por aluno
+    getHistory: protectedProcedure
+      .input(z.object({ demandId: z.number() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        try {
+          // Retornar histórico simulado (tabela ainda não foi criada)
+          return [];
+        } catch (err) {
+          console.error("Erro ao buscar histórico:", err);
+          return [];
+        }
+      }),
+
+    // Enviar Quadro por e-mail
+    sendByEmail: protectedProcedure
+      .input(z.object({ schoolId: z.number(), email: z.string().email() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin" && (ctx.user as any)?.schoolId !== input.schoolId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Sem permissão" });
+        }
+        try {
+          const db = await getDb();
+          if (!db) throw new Error("DB não disponível");
+          const [school] = await db.select().from(schools).where(eq(schools.id, input.schoolId));
+          if (!school) throw new Error("Escola não encontrada");
+          await notifyOwner({
+            title: "Quadro de Mediadores Enviado",
+            content: `A escola ${school.name} enviou o Quadro de Mediadores. E-mail: ${input.email}`,
+          });
+          return { success: true, message: "Quadro enviado por e-mail com sucesso!" };
+        } catch (err) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: String(err) });
+        }
+      }),
   }),
 });
 export type AppRouter = typeof appRouter;

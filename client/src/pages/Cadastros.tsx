@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Send, FileSpreadsheet, Printer, Clock, CheckCircle2, AlertCircle, Building2, Users, GraduationCap, AlertTriangle, UserPlus, Search, X, Plus } from "lucide-react";
+import { generateQuadroPDF } from "@/lib/quadroPDF";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
@@ -378,6 +379,13 @@ export default function Cadastros() {
     toast.success("Excel exportado com sucesso!");
   };
 
+  const handleExportPDF = () => {
+    if (!quadro || !quadro.school) return;
+    const doc = generateQuadroPDF(quadro, quadro.school.name);
+    doc.save(`Quadro_Mediadores_${quadro.school.name.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.pdf`);
+    toast.success("PDF exportado com sucesso!");
+  };
+
   const getStatusLabel = (status: string) => {
     const map: Record<string, string> = {
       active: "Ativo",
@@ -515,6 +523,10 @@ export default function Cadastros() {
             <Button variant="outline" onClick={handleExportExcel}>
               <FileSpreadsheet className="h-4 w-4 mr-2" />
               Exportar Excel
+            </Button>
+            <Button variant="outline" onClick={handleExportPDF}>
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Exportar PDF
             </Button>
             <Button variant="outline" onClick={() => window.print()}>
               <Printer className="h-4 w-4 mr-2" />

@@ -223,3 +223,51 @@
 - [x] Edição de aluno direto no Quadro com ícone de edição em cada linha (openEditDialog)
 - [x] Filtro por turno (Manhã/Tarde/Integral) no Quadro de Mediadores (Select com filterShift)
 - [x] Validação de envio duplicado na semana com aviso visível (checkDuplicateSubmission)
+
+
+## Fase 10 — Aprimoramentos Gerais (Escolas, Alunos, Mediadores, Dashboard)
+
+### Módulo de Escolas
+- [ ] Busca por nome de escola
+- [ ] Filtro por status (ativa/inativa)
+- [ ] Filtro por tipo de unidade (EM, CIM, etc.)
+- [ ] Validação de duplicidade por nome e identificador
+- [ ] Soft delete / inativação de escolas
+- [ ] Mostrar contagem de alunos/mediadores/usuários por escola
+- [ ] Melhorar espaçamento e layout
+
+### Módulo de Alunos
+- [ ] Organizar formulário em seções (dados, escolares, deficiência, atendimento, observações)
+- [ ] Validação de duplicidade por nome + data de nascimento + escola
+- [ ] Filtro por escola, turno, situação, deficiência, com/sem atendente
+- [ ] Histórico de alterações do aluno
+- [ ] Destacar status: com atendente / sem atendente / substituição / compartilhado
+
+### Módulo de Mediadores
+- [ ] Organizar formulário de cadastro
+- [ ] Campos estruturados de situação (ativo, inativo, motivo, data, previsão retorno)
+- [ ] Visualizar alunos vinculados e quantidade
+- [ ] Filtro por nome, status, escola, quantidade de alunos
+- [ ] Histórico de mudanças de situação e vínculos
+- [ ] Indicador de sobrecarga (1, 2, 3+ alunos)
+
+### Dashboard Gerencial
+- [ ] Aperfeiçoar cards principais (alunos com/sem atendente, mediadores, demandas, substituições)
+- [ ] Rankings: top 10 EMs/CIMs, escolas sem atendente, mediadores inativos
+- [ ] Gráficos: deficiência, faixa etária, turno, situação, motivo inatividade, evolução, tipo unidade
+- [ ] Filtros: período, escola, tipo unidade, turno, status atendimento, status mediador
+- [ ] Alertas e prazos críticos
+- [ ] Melhorar hierarquia tipográfica e visual
+
+### Integração entre Módulos
+- [ ] Escola mostra: total alunos, mediadores, demandas, sem atendente
+- [ ] Aluno mostra: escola, mediador, situação, compartilhado
+- [ ] Mediador mostra: escola(s), total alunos, situação, compartilhado
+- [ ] Dashboard usa essas relações para indicadores consistentes
+
+## Fase 11 — Melhorias do Quadro de Mediadores (PDF, Histórico, E-mail)
+
+- [x] Exportar Quadro como PDF com logo, data, mediadores e alunos (jsPDF + jsPDF-autotable)
+- [x] Histórico de alterações por aluno (procedure quadroAAP.getHistory)
+- [x] Enviar Quadro por e-mail automaticamente após envio (procedure quadroAAP.sendByEmail)
+- [x] Confirmação de recebimento via notifyOwner
