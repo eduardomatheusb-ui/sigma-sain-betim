@@ -113,8 +113,9 @@ export default function Cadastros() {
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [submitNotes, setSubmitNotes] = useState("");
 
-  // Dialog de cadastro de aluno
+  // Dialog de cadastro/edição de aluno
   const [showStudentDialog, setShowStudentDialog] = useState(false);
+  const [editingDemandId, setEditingDemandId] = useState<number | null>(null);
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [sharedStudent, setSharedStudent] = useState<SharedStudentData>(EMPTY_SHARED);
   const [sharedStudentSearch, setSharedStudentSearch] = useState("");
@@ -124,6 +125,9 @@ export default function Cadastros() {
   const [showSchoolDropdown, setShowSchoolDropdown] = useState(false);
   const [attendantSearch, setAttendantSearch] = useState("");
   const [showAttendantDropdown, setShowAttendantDropdown] = useState(false);
+  
+  // Filtro por turno
+  const [filterShift, setFilterShift] = useState<"all" | "morning" | "afternoon" | "full" | "evening">("all");
 
   // Dados
   const { data: schoolList } = trpc.schools.list.useQuery(undefined, { enabled: isAdmin });
@@ -176,6 +180,19 @@ export default function Cadastros() {
       toast.success("Aluno cadastrado com sucesso!");
       resetStudentForm();
       setShowStudentDialog(false);
+      setEditingDemandId(null);
+      utils.demands.list.invalidate();
+      refetch();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const updateMutation = trpc.demands.update.useMutation({
+    onSuccess: () => {
+      toast.success("Aluno atualizado com sucesso!");
+      resetStudentForm();
+      setShowStudentDialog(false);
+      setEditingDemandId(null);
       utils.demands.list.invalidate();
       refetch();
     },
@@ -201,7 +218,7 @@ export default function Cadastros() {
   };
 
   const openStudentDialog = () => {
-    // Pré-preencher escola com a escola selecionada no quadro
+    setEditingDemandId(null);
     const schoolName = quadro?.school?.name || "";
     setForm({ ...EMPTY_FORM, schoolName });
     setSchoolSearch(schoolName);
@@ -209,6 +226,44 @@ export default function Cadastros() {
     setSharedStudent(EMPTY_SHARED);
     setSharedStudentSearch("");
     setShowStudentDialog(true);
+  };
+
+  const openEditDialog = (demand: any) => {
+    setEditingDemandId(demand.id);
+    setForm({
+      email: demand.email || "",
+      schoolName: demand.schoolName,
+      studentName: demand.studentName,
+      dateOfBirth: demand.dateOfBirth ? new Date(demand.dateOfBirth).toISOString().split("T")[0] : "",
+      cpf: demand.cpf || "",
+      shift: demand.shift,
+      grade: demand.grade || "",
+      disabilities: demand.disabilities ? JSON.parse(demand.disabilities) : [],
+      attendanceStatus: demand.attendanceStatus,
+      attendantStatus: demand.attendantStatus,
+      hasAttendant: demand.hasAttendant,
+      attendantName: demand.attendantName || "",
+      isShared: demand.isShared,
+      notes: demand.notes || "",
+      needsAttendant: demand.needsAttendant || "yes",
+    });
+    setSchoolSearch(demand.schoolName);
+    setAttendantSearch(demand.attendantName || "");
+    setSharedStudent(EMPTY_SHARED);
+    setSharedStudentSearch("");
+    setShowStudentDialog(true);
+  };
+
+  const checkDuplicateSubmission = () => {
+    if (!history || history.length === 0) return null;
+    const lastSubmission = history[0];
+    const lastDate = new Date(lastSubmission.createdAt);
+    const now = new Date();
+    const daysDiff = Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysDiff < 7) {
+      return `Quadro já foi enviado em ${lastDate.toLocaleDateString("pt-BR")} (${daysDiff} dia(s) atrás). Deseja enviar novamente?`;
+    }
+    return null;
   };
 
   const handleStudentSubmit = (e: React.FormEvent) => {
@@ -237,7 +292,7 @@ export default function Cadastros() {
       notes = notes ? `${notes}\n${sharedInfo}` : sharedInfo;
     }
 
-    createMutation.mutate({
+    const payload = {
       email: form.email || undefined,
       schoolName: form.schoolName,
       studentName: form.studentName,
@@ -253,7 +308,13 @@ export default function Cadastros() {
       isShared: form.isShared,
       notes: notes || undefined,
       needsAttendant: form.needsAttendant,
-    });
+    };
+
+    if (editingDemandId !== null) {
+      updateMutation.mutate({ id: editingDemandId, ...payload });
+    } else {
+      createMutation.mutate(payload);
+    }
   };
 
   const toggleDisability = (d: string) =>
@@ -459,6 +520,18 @@ export default function Cadastros() {
               <Printer className="h-4 w-4 mr-2" />
               Imprimir
             </Button>
+            <Select value={filterShift} onValueChange={(v: any) => setFilterShift(v)}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Filtrar por turno" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os turnos</SelectItem>
+                <SelectItem value="morning">Manhã</SelectItem>
+                <SelectItem value="afternoon">Tarde</SelectItem>
+                <SelectItem value="full">Integral</SelectItem>
+                <SelectItem value="evening">Noite</SelectItem>
+              </SelectContent>
+            </Select>
             {history && history.length > 0 && (
               <div className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock className="h-4 w-4" />
@@ -484,10 +557,20 @@ export default function Cadastros() {
                   <th className="border px-3 py-2 text-left font-semibold min-w-[200px]">Aluno Atendido</th>
                   <th className="border px-3 py-2 text-center font-semibold w-24">Ano/Turma</th>
                   <th className="border px-3 py-2 text-left font-semibold min-w-[160px]">Deficiência</th>
+                  <th className="border px-3 py-2 text-center font-semibold w-12 print:hidden">Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {quadro.rows.map((row: any) =>
+                {quadro.rows
+                  .filter((row: any) => {
+                    if (filterShift === "all") return true;
+                    if (filterShift === "morning") return row.turno1;
+                    if (filterShift === "afternoon") return row.turno2;
+                    if (filterShift === "full") return row.turno1 && row.turno2;
+                    if (filterShift === "evening") return !row.turno1 && !row.turno2;
+                    return true;
+                  })
+                  .map((row: any) =>
                   row.alunos.map((aluno: any, idx: number) => (
                     <tr
                       key={`${row.numero}-${idx}`}
@@ -522,12 +605,27 @@ export default function Cadastros() {
                       <td className="border px-3 py-2">{aluno.nome}</td>
                       <td className="border px-3 py-2 text-center">{aluno.anoTurma}</td>
                       <td className="border px-3 py-2 text-sm">{aluno.deficiencia || "-"}</td>
+                      {idx === 0 && (
+                        <td rowSpan={row.alunos.length} className="border px-3 py-2 text-center print:hidden">
+                          <button
+                            onClick={() => {
+                              if (aluno.id && aluno.id > 0) {
+                                openEditDialog({ id: aluno.id, studentName: aluno.nome, grade: aluno.anoTurma, schoolName: quadro?.school?.name });
+                              }
+                            }}
+                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                            title="Editar aluno"
+                          >
+                            ✎ Editar
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))
                 )}
                 {quadro.rows.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="border px-4 py-8 text-center text-muted-foreground">
+                    <td colSpan={8} className="border px-4 py-8 text-center text-muted-foreground">
                       Nenhum registro encontrado. Cadastre alunos e mediadores para gerar o quadro.
                     </td>
                   </tr>
@@ -897,6 +995,12 @@ export default function Cadastros() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {checkDuplicateSubmission() && (
+              <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
+                <p className="font-medium">⚠️ Aviso</p>
+                <p>{checkDuplicateSubmission()}</p>
+              </div>
+            )}
             <div>
               <label className="text-sm font-medium">Observações (opcional)</label>
               <Textarea value={submitNotes} onChange={(e) => setSubmitNotes(e.target.value)} placeholder="Informações adicionais sobre alterações, vagas, etc." rows={3} />

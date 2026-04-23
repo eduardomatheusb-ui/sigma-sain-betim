@@ -217,3 +217,9 @@
 - [x] Corrigir texto desconfigurado no Quadro de Mediadores (escapamentos \u00b0 etc. → UTF-8 correto)
 - [x] Substituir formulário inline de alunos por botão "Cadastrar Aluno" que abre dialog completo
 - [x] Pré-preencher escola no dialog de cadastro com a escola selecionada no quadro
+
+## Melhorias do Quadro de Mediadores (Fase 9)
+
+- [x] Edição de aluno direto no Quadro com ícone de edição em cada linha (openEditDialog)
+- [x] Filtro por turno (Manhã/Tarde/Integral) no Quadro de Mediadores (Select com filterShift)
+- [x] Validação de envio duplicado na semana com aviso visível (checkDuplicateSubmission)

@@ -1591,6 +1591,7 @@ export const appRouter = router({
             turno1: boolean;
             turno2: boolean;
             alunos: {
+              id: number;
               nome: string;
               anoTurma: string;
               deficiencia: string;
@@ -1621,6 +1622,7 @@ export const appRouter = router({
               let disab = s.disabilities || s.disability || "";
               try { const arr = JSON.parse(disab); disab = Array.isArray(arr) ? arr.join(", ") : disab; } catch {}
               return {
+                id: s.id,
                 nome: s.studentName || s.name || "",
                 anoTurma: s.grade || "",
                 deficiencia: disab,
@@ -1628,7 +1630,7 @@ export const appRouter = router({
             });
 
             if (alunos.length === 0) {
-              alunos.push({ nome: "(sem aluno vinculado)", anoTurma: "", deficiencia: "" });
+              alunos.push({ id: 0, nome: "(sem aluno vinculado)", anoTurma: "", deficiencia: "" });
             }
 
             const shift = linkedStudentsList[0]?.shift;
@@ -1677,6 +1679,7 @@ export const appRouter = router({
               turno1: s.shift === "morning" || s.shift === "full" || !s.shift,
               turno2: s.shift === "afternoon" || s.shift === "full",
               alunos: [{
+                id: s.id,
                 nome: s.studentName,
                 anoTurma: s.grade || "",
                 deficiencia: disab,
