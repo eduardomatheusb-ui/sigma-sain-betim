@@ -9,11 +9,11 @@ export function generateQuadroPDF(quadro: any, schoolName: string) {
   // Logo/Cabeçalho institucional
   doc.setFontSize(14);
   doc.setFont('Helvetica', 'bold');
-  doc.text('SECRETARIA ADJUNTA DE INCLUSÃO', pageWidth / 2, yPosition, { align: 'center' });
+  doc.text('SECRETARIA MUNICIPAL DE EDUCAÇÃO / SECRETARIA ADJUNTA DE INCLUSÃO', pageWidth / 2, yPosition, { align: 'center' });
   yPosition += 6;
   
   doc.setFontSize(12);
-  doc.text('SIGMA - Sistema de Gestão de Mediadores e Atendimentos', pageWidth / 2, yPosition, { align: 'center' });
+  doc.text('NEXUS - Plataforma de Gestão e Articulação da Rede de Inclusão', pageWidth / 2, yPosition, { align: 'center' });
   yPosition += 8;
 
   // Linha divisória

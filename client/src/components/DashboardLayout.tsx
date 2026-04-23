@@ -41,7 +41,7 @@ import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
 const adminMenuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
+  { icon: LayoutDashboard, label: "Dashboard Estratégico", path: "/dashboard" },
   { icon: FileText, label: "Quadro de Mediadores", path: "/cadastros" },
   { icon: BarChart3, label: "Dashboard Gerencial", path: "/dashboard-gerencial" },
   { icon: School, label: "Escolas", path: "/escolas" },
@@ -54,7 +54,7 @@ const adminMenuItems = [
 ];
 
 const schoolMenuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
+  { icon: LayoutDashboard, label: "Dashboard Estratégico", path: "/dashboard" },
   { icon: GraduationCap, label: "Alunos", path: "/alunos" },
   { icon: UserCheck, label: "Mediadores", path: "/mediadores" },
   { icon: FileText, label: "Quadro de Mediadores", path: "/cadastros" },
@@ -92,14 +92,14 @@ export default function DashboardLayout({
             <div className="mb-6">
               <div className="flex items-center justify-center mb-4">
                 <img
-                  src="/manus-storage/logo-prefeitura-betim_1714c7e3.png"
-                  alt="Prefeitura de Betim"
-                  className="h-16 w-16 object-contain"
+                  src="/manus-storage/nexus-logo_be12f249.png"
+                  alt="NEXUS"
+                  className="h-20 w-auto object-contain"
                 />
               </div>
-              <h1 className="text-3xl font-bold text-primary">SIGMA</h1>
-              <p className="text-sm text-muted-foreground mt-1">Sistema Integrado de Gestão de Mediadores e Atendimentos</p>
-              <p className="text-xs text-muted-foreground mt-1">SAIN — Secretaria Adjunta de Inclusão</p>
+              <h1 className="text-3xl font-bold text-primary">NEXUS</h1>
+              <p className="text-sm text-muted-foreground mt-1">Plataforma de Gestão e Articulação da Rede de Inclusão</p>
+              <p className="text-xs text-muted-foreground mt-1">NEXUS — SEMED/SAIN</p>
               <p className="text-xs text-muted-foreground">Prefeitura Municipal de Betim</p>
             </div>
             <Button
@@ -189,13 +189,13 @@ function DashboardLayoutContent({
               {!isCollapsed && (
                 <div className="flex items-center gap-2 min-w-0">
                   <img
-                    src="/manus-storage/logo-prefeitura-betim_1714c7e3.png"
-                    alt="Prefeitura de Betim"
-                    className="h-7 w-7 rounded-md object-contain bg-white p-0.5 shrink-0"
+                    src="/manus-storage/nexus-logo_be12f249.png"
+                    alt="NEXUS"
+                    className="h-7 w-auto rounded-md object-contain bg-white p-0.5 shrink-0"
                   />
                   <div className="min-w-0">
-                    <p className="font-bold text-white text-sm leading-none truncate">SIGMA</p>
-                    <p className="text-white/60 text-xs truncate">SAIN — Betim</p>
+                    <p className="font-bold text-white text-sm leading-none truncate">NEXUS</p>
+                    <p className="text-white/60 text-xs truncate">SEMED/SAIN</p>
                   </div>
                 </div>
               )}
@@ -276,7 +276,7 @@ function DashboardLayoutContent({
             <div className="flex items-center gap-2">
               <SidebarTrigger className="h-9 w-9 rounded-lg text-white hover:bg-white/10" />
               <span className="font-medium text-white text-sm">
-                {activeMenuItem?.label ?? "SIGMA"}
+                {activeMenuItem?.label ?? "NEXUS"}
               </span>
             </div>
           </div>
@@ -284,8 +284,8 @@ function DashboardLayoutContent({
         <main className="flex-1 p-4 md:p-6">{children}</main>
         {/* Rodapé institucional */}
         <footer className="border-t border-border/50 px-4 md:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-1 text-xs text-muted-foreground bg-muted/20">
-          <span>SIGMA — Sistema Integrado de Gestão de Mediadores e Atendimentos</span>
-          <span>SAIN — Secretaria Adjunta de Inclusão · Prefeitura Municipal de Betim</span>
+          <span>NEXUS — Plataforma de Gestão e Articulação da Rede de Inclusão</span>
+          <span>SEMED/SAIN — Prefeitura Municipal de Betim</span>
         </footer>
       </SidebarInset>
     </>

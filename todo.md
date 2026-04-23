@@ -368,3 +368,17 @@
 - [x] Aplicar InfoTooltip na tabela de mediadores da escola (título + colunas Status e Alunos)
 - [x] Confirmar que nenhuma fórmula foi alterada (TypeScript: 0 erros, Testes: 40/40)
 - [x] Rodar testes e salvar checkpoint
+
+## Fase 20 — Renomeação para NEXUS e Atualização de Identidade Visual
+
+- [x] Fazer upload do logo NEXUS para o CDN do webdev (/manus-storage/nexus-logo_be12f249.png)
+- [x] Atualizar título da aba do browser (index.html) para NEXUS
+- [x] Atualizar logo no DashboardLayout (sidebar): logo NEXUS + "NEXUS" + "SEMED/SAIN"
+- [x] Atualizar cabeçalho do Dashboard admin: "Secretaria Municipal de Educação" (linha 1) + "Secretaria Adjunta de Inclusão" (linha 2)
+- [x] Renomear item "Dashboard" para "Dashboard Estratégico" na sidebar (admin e escola)
+- [x] Atualizar página de login: logo NEXUS + "NEXUS" + "NEXUS — SEMED/SAIN"
+- [x] Atualizar Home.tsx: cabeçalho admin com duas linhas de secretaria + "Visão geral do sistema NEXUS"
+- [x] Atualizar cabeçalho do PDF do Quadro de Mediadores para NEXUS/SEMED/SAIN
+- [x] Atualizar rodapé institucional do DashboardLayout para NEXUS/SEMED/SAIN
+- [x] Confirmar que nenhuma fórmula ou funcionalidade foi alterada (TypeScript: 0 erros, Testes: 40/40)
+- [x] Rodar testes e salvar checkpoint

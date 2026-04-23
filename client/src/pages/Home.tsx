@@ -20,10 +20,10 @@ export default function Home() {
                 <Briefcase className="w-8 h-8 text-primary" />
               </div>
             </div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">SIGMA</h1>
-            <p className="text-muted-foreground mb-2">Sistema Integrado de Gestao</p>
+            <h1 className="text-3xl font-bold text-foreground mb-2">NEXUS</h1>
+            <p className="text-muted-foreground mb-2">Plataforma de Gestão e Articulação da Rede de Inclusão</p>
             <p className="text-sm text-muted-foreground mb-8">
-              Mediadores e Atendimentos - SAIN/Betim
+              SEMED/SAIN — Prefeitura Municipal de Betim
             </p>
             <a href={getLoginUrl()}>
               <Button size="lg" className="w-full">
@@ -70,9 +70,10 @@ function AdminHome({ userName }: { userName: string }) {
   return (
     <div className="space-y-8">
       <div>
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Secretaria Adjunta de Inclusao</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Secretaria Municipal de Educação</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Secretaria Adjunta de Inclusão</p>
         <h1 className="text-2xl font-bold mt-1">Bem-vindo, {userName}!</h1>
-        <p className="text-sm text-muted-foreground mt-1">Visao geral do sistema SIGMA</p>
+        <p className="text-sm text-muted-foreground mt-1">Visão geral do sistema NEXUS</p>
       </div>
 
       {/* Metricas */}

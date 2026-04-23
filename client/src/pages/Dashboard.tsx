@@ -223,7 +223,8 @@ function AdminDashboard() {
     <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Secretaria Adjunta de Inclusao</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Secretaria Municipal de Educação</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Secretaria Adjunta de Inclusão</p>
           <h1 className="text-2xl font-bold mt-1">Painel da Secretaria</h1>
           <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
             Acompanhamento em tempo real das escolas atualizadas, pendentes, afastamentos, vagas e novas demandas.
