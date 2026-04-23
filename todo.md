@@ -237,19 +237,19 @@
 - [x] Melhorar espaçamento e layout (já implementado em Schools.tsx)
 
 ### Módulo de Alunos
-- [ ] Organizar formulário em seções (dados, escolares, deficiência, atendimento, observações)
-- [ ] Validação de duplicidade por nome + data de nascimento + escola
-- [ ] Filtro por escola, turno, situação, deficiência, com/sem atendente
-- [ ] Histórico de alterações do aluno
-- [ ] Destacar status: com atendente / sem atendente / substituição / compartilhado
+- [x] Organizar formulário em seções (dados, escolares, deficiência, atendimento, observações) (StudentFormSections.tsx criado)
+- [x] Validação de duplicidade por nome + data de nascimento + escola (procedure students.checkDuplicate corrigida)
+- [x] Filtro por escola, turno, situação, deficiência, com/sem atendente (StudentFilters.tsx criado)
+- [ ] Histórico de alterações do aluno (requer schema update)
+- [x] Destacar status: com atendente / sem atendente / substituição / compartilhado (já implementado em Students.tsx)
 
 ### Módulo de Mediadores
-- [ ] Organizar formulário de cadastro
-- [ ] Campos estruturados de situação (ativo, inativo, motivo, data, previsão retorno)
-- [ ] Visualizar alunos vinculados e quantidade
-- [ ] Filtro por nome, status, escola, quantidade de alunos
-- [ ] Histórico de mudanças de situação e vínculos
-- [ ] Indicador de sobrecarga (1, 2, 3+ alunos)
+- [x] Organizar formulário de cadastro (MediatorFormSections.tsx criado)
+- [x] Campos estruturados de situação (ativo, inativo, motivo, data, previsão retorno) (MediatorStatusSection)
+- [x] Visualizar alunos vinculados e quantidade (MediatorStudentsSection)
+- [x] Filtro por nome, status, escola, quantidade de alunos (MediatorFilters.tsx criado)
+- [ ] Histórico de mudanças de situação e vínculos (requer schema update)
+- [x] Indicador de sobrecarga (1, 2, 3+ alunos) (MediatorFilters com opção 3+ alunos)
 
 ### Dashboard Gerencial
 - [ ] Aperfeiçoar cards principais (alunos com/sem atendente, mediadores, demandas, substituições)

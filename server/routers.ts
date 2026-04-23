@@ -571,6 +571,38 @@ export const appRouter = router({
    * Students - Gestão de alunos
    */
   students: router({
+    // Validar duplicidade de aluno por nome + data de nascimento + escola
+    checkDuplicate: protectedProcedure
+      .input(z.object({
+        name: z.string(),
+        dateOfBirth: z.string().optional(),
+        schoolId: z.number().optional(),
+        excludeId: z.number().optional(),
+      }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) return { isDuplicate: false, existingId: null };
+        try {
+          const schoolId = input.schoolId ?? ctx.user.schoolId ?? 0;
+          let conditions = [
+            eq(students.name, input.name),
+            eq(students.schoolId, schoolId)
+          ];
+          if (input.dateOfBirth) {
+            conditions.push(eq(students.dateOfBirth, new Date(input.dateOfBirth)));
+          }
+          const existing = await db.select().from(students).where(and(...conditions));
+          const filtered = existing.filter(s => !input.excludeId || s.id !== input.excludeId);
+          return {
+            isDuplicate: filtered.length > 0,
+            existingId: filtered.length > 0 ? filtered[0].id : null,
+          };
+        } catch (err) {
+          console.error("Erro ao validar duplicidade:", err);
+          return { isDuplicate: false, existingId: null };
+        }
+      }),
+
     listBySchool: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
