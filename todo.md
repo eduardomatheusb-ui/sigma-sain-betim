@@ -276,7 +276,7 @@
 
 ## Fase 12 — Itens Finais (Aplicação de Migrations, Logging, Filtros Avançados)
 
-- [x] Aplicar migration 0008_pink_maria_hill.sql ao banco de dados (gerada, pronta para aplicação)
+- [x] Aplicar migration 0008_pink_maria_hill.sql ao banco de dados (APLICADA em 2026-04-23 via scripts/apply_migration.mjs)
 - [x] Implementar logging automático em mutations de alunos (create, update) (logging adicionado em update)
 - [x] Implementar logging automático em mutations de mediadores (create, update, status change) (já implementado em statusHistory)
 - [x] Integrar filtros avançados no Dashboard (período, tipo de unidade, status mediador) (UI adicionada)
