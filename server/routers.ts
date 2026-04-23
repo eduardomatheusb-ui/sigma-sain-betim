@@ -60,7 +60,7 @@ export const appRouter = router({
       }).optional())
       .query(async ({ ctx, input }) => {
         const db = await getDb();
-        const emptyResult = { totalStudents: 0, activeMediators: 0, pendingAttendances: 0, externalDemands: 0, onLeave: 0, vacancies: 0, totalSchools: 0, totalMediators: 0, studentsWithMediator: 0, studentsWithoutMediator: 0, emRanking: [], cimRanking: [], byDisability: [], byShift: [], byInactivity: [], filtersApplied: { period: "all_time", unitType: "all", mediatorStatus: "all" } };
+        const emptyResult = { totalStudents: 0, activeMediators: 0, pendingAttendances: 0, externalDemands: 0, onLeave: 0, vacancies: 0, totalSchools: 0, totalMediators: 0, studentsWithMediator: 0, studentsWithoutMediator: 0, sharedMediators: 0, studentsInSharedCare: 0, mediators1Student: 0, mediators2Students: 0, mediators3PlusStudents: 0, avgStudentsPerMediator: 0, coverageRate: 0, emRanking: [], cimRanking: [], byDisability: [], byShift: [], byInactivity: [], filtersApplied: { period: "all_time", unitType: "all", mediatorStatus: "all" } };
         if (!db) return emptyResult;
 
         const period = input?.period ?? "all_time";
@@ -134,20 +134,76 @@ export const appRouter = router({
             });
           }
 
-          const activeMediators = mediatorList.filter(m => m.status === "active").length;
-          const onLeave = mediatorList.filter(m => m.status === "on_leave" || m.status === "temp_leave").length;
-          const vacancies = mediatorList.filter(m => m.status === "vacancy").length;
+          // ─── MEDIADORES DEDUPLICADOS ───────────────────────────────────────
+          // Cada mediador é contado UMA vez, independente de quantos alunos atende.
+          // ANTES: activeMediators = mediatorList.filter(active).length  → correto pois mediatorList já é 1 linha por mediador
+          // AGORA: explicitamos a deduplicação por mediator.id para garantia futura
+          const uniqueMediatorIds = new Set(mediatorList.map(m => m.id));
+          const activeMediators = mediatorList.filter(m => m.status === "active" && uniqueMediatorIds.has(m.id)).length;
+          const onLeave = mediatorList.filter(m => (m.status === "on_leave" || m.status === "temp_leave") && uniqueMediatorIds.has(m.id)).length;
+          const vacancies = mediatorList.filter(m => m.status === "vacancy" && uniqueMediatorIds.has(m.id)).length;
 
+          // ─── ALUNOS COM / SEM ATENDENTE ───────────────────────────────────
+          // Conta alunos (não vínculos). Um aluno compartilhado conta UMA vez.
+          // ANTES: studentsWithMediator = filteredStudents.filter(hasAttendant).length  → correto
+          // AGORA: mantido, mas explicitamos que contamos alunos únicos por id
           const studentsWithMediator = filteredStudents.filter((s: any) => s.hasAttendant === true).length;
           const studentsWithoutMediator = filteredStudents.filter((s: any) => s.hasAttendant === false).length;
 
-          // Ranking de escolas por demanda
-          const schoolDemandMap = new Map<number, number>();
-          mediatorList.filter(m => m.status === "vacancy" || m.status === "on_leave" || m.status === "temp_leave").forEach(m => {
-            schoolDemandMap.set(m.schoolId, (schoolDemandMap.get(m.schoolId) || 0) + 1);
+          // ─── INDICADORES DE COMPARTILHAMENTO ─────────────────────────────
+          // Usa mediator_students (links) para calcular carga por mediador
+          // Filtra apenas vínculos de mediadores ativos dentro do escopo filtrado
+          const activeMediatorIdSet = new Set(mediatorList.filter(m => m.status === "active").map(m => m.id));
+          const filteredStudentIdSet = new Set(filteredStudents.map((s: any) => s.id));
+
+          // Vínculos válidos: mediador ativo + aluno no escopo filtrado
+          const validLinks = links.filter(l =>
+            activeMediatorIdSet.has(l.mediatorId) &&
+            (l.demandId ? filteredStudentIdSet.has(l.demandId) : true)
+          );
+
+          // Mapa: mediatorId → quantidade de alunos vinculados
+          const mediatorLoadMap = new Map<number, number>();
+          validLinks.forEach(l => {
+            mediatorLoadMap.set(l.mediatorId, (mediatorLoadMap.get(l.mediatorId) || 0) + 1);
           });
+
+          // Mediadores que atendem 2+ alunos = compartilhados
+          const sharedMediators = Array.from(mediatorLoadMap.entries()).filter(([, count]) => count >= 2).length;
+          const mediators1Student = Array.from(mediatorLoadMap.entries()).filter(([, count]) => count === 1).length;
+          const mediators2Students = Array.from(mediatorLoadMap.entries()).filter(([, count]) => count === 2).length;
+          const mediators3PlusStudents = Array.from(mediatorLoadMap.entries()).filter(([, count]) => count >= 3).length;
+
+          // Alunos em atendimento compartilhado: alunos cujo mediador atende 2+ alunos
+          const sharedMediatorIds = new Set(
+            Array.from(mediatorLoadMap.entries()).filter(([, count]) => count >= 2).map(([id]) => id)
+          );
+          const studentsInSharedCare = validLinks.filter(l => sharedMediatorIds.has(l.mediatorId)).length;
+
+          // Média de alunos por atendente ativo com vínculo
+          const totalLinkedStudents = Array.from(mediatorLoadMap.values()).reduce((a, b) => a + b, 0);
+          const avgStudentsPerMediator = mediatorLoadMap.size > 0
+            ? Math.round((totalLinkedStudents / mediatorLoadMap.size) * 10) / 10
+            : 0;
+
+          // Taxa de cobertura: % de alunos com atendente
+          const coverageRate = filteredStudents.length > 0
+            ? Math.round((studentsWithMediator / filteredStudents.length) * 1000) / 10
+            : 0;
+
+          // ─── RANKING DE ESCOLAS ───────────────────────────────────────────
+          // ANTES: contava mediadores com vacancy/on_leave por escola → podia contar o mesmo mediador
+          //        múltiplas vezes se ele tivesse múltiplos registros (não era o caso, mas era frágil)
+          // AGORA: conta mediadores únicos por escola com status de demanda
+          const schoolDemandMap = new Map<number, Set<number>>();
+          mediatorList
+            .filter(m => m.status === "vacancy" || m.status === "on_leave" || m.status === "temp_leave")
+            .forEach(m => {
+              if (!schoolDemandMap.has(m.schoolId)) schoolDemandMap.set(m.schoolId, new Set());
+              schoolDemandMap.get(m.schoolId)!.add(m.id); // deduplicado por mediator.id
+            });
           const schoolRanking = schoolList
-            .map(s => ({ id: s.id, name: s.name, demand: schoolDemandMap.get(s.id) || 0 }))
+            .map(s => ({ id: s.id, name: s.name, demand: schoolDemandMap.get(s.id)?.size || 0 }))
             .filter(s => s.demand > 0)
             .sort((a, b) => b.demand - a.demand);
           const emRanking = schoolRanking.filter(s => s.name.startsWith("E M") || s.name.startsWith("EM ")).slice(0, 10);
@@ -192,6 +248,14 @@ export const appRouter = router({
             totalMediators: mediatorList.length,
             studentsWithMediator,
             studentsWithoutMediator,
+            // Indicadores de compartilhamento (novos)
+            sharedMediators,
+            studentsInSharedCare,
+            mediators1Student,
+            mediators2Students,
+            mediators3PlusStudents,
+            avgStudentsPerMediator,
+            coverageRate,
             emRanking,
             cimRanking,
             byDisability,

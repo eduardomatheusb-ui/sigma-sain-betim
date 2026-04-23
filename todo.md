@@ -296,3 +296,17 @@
 - [x] Criar modal de histórico de mediador (HistoryModal.tsx + mediators.getHistory procedure)
 - [x] Registrar alterações em student_edit_history ao salvar edição de aluno (Students.tsx update mutation)
 - [x] Registrar alterações em mediator_status_change_history ao salvar edição de mediador (statusHistory já implementado)
+
+## Fase 14 — Revisão de Cálculos do Dashboard (Compartilhamento) (CONCLUÍDA)
+
+- [x] Auditar procedure dashboard.stats: identificar quais indicadores usam contagem simples vs. deduplicada
+- [x] Corrigir "Mediadores Ativos": deduplicar por mediator.id (Set de IDs únicos)
+- [x] Corrigir "Alunos com atendente": mantida contagem de alunos (não de vínculos)
+- [x] Criar indicador: alunos em atendimento compartilhado (studentsInSharedCare)
+- [x] Criar indicador: atendentes compartilhados (sharedMediators)
+- [x] Criar indicador: média de alunos por atendente (avgStudentsPerMediator)
+- [x] Criar indicador: distribuição de carga (mediators1Student / 2Students / 3PlusStudents)
+- [x] Criar indicador: taxa de cobertura de alunos (coverageRate %)
+- [x] Revisar rankings por escola: deduplicado com Set<number> por mediator.id
+- [x] Atualizar UI do Dashboard: card de compartilhamento com 5 indicadores
+- [x] Documentar diff das fórmulas (comentários ANTES/AGORA no código)

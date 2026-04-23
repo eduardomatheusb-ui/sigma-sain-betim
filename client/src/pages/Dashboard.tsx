@@ -103,6 +103,14 @@ function AdminDashboard() {
   const pendingSchools = schoolPanel.filter((s: any) => !s.weeklyStatus || s.weeklyStatus === "pending").length;
   const studentsWithMediator = (stats as any)?.studentsWithMediator ?? 0;
   const studentsWithoutMediator = (stats as any)?.studentsWithoutMediator ?? 0;
+  // Indicadores de compartilhamento
+  const sharedMediators = (stats as any)?.sharedMediators ?? 0;
+  const studentsInSharedCare = (stats as any)?.studentsInSharedCare ?? 0;
+  const mediators1Student = (stats as any)?.mediators1Student ?? 0;
+  const mediators2Students = (stats as any)?.mediators2Students ?? 0;
+  const mediators3PlusStudents = (stats as any)?.mediators3PlusStudents ?? 0;
+  const avgStudentsPerMediator = (stats as any)?.avgStudentsPerMediator ?? 0;
+  const coverageRate = (stats as any)?.coverageRate ?? 0;
   const emRanking = (stats as any)?.emRanking ?? [];
   const cimRanking = (stats as any)?.cimRanking ?? [];
   const byDisability = (stats as any)?.byDisability ?? [];
@@ -185,8 +193,8 @@ function AdminDashboard() {
         ))}
       </div>
 
-      {/* Alunos com/sem atendente */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {/* Alunos com/sem atendente + Taxa de Cobertura */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="pt-5">
             <div className="flex items-center gap-3">
@@ -209,7 +217,68 @@ function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="pt-5">
+            <div className="flex items-center gap-3">
+              <TrendingUp className="w-8 h-8 text-blue-600 opacity-80" />
+              <div>
+                <p className="text-xs text-muted-foreground">Taxa de cobertura</p>
+                <p className="text-2xl font-bold">{coverageRate}%</p>
+                <p className="text-xs text-muted-foreground">alunos com atendente</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Indicadores de Atendimento Compartilhado */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Users className="w-5 h-5 text-amber-600" />
+            Atendimento Compartilhado
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">Atendentes que atendem mais de um aluno simultaneamente</p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            <div className="text-center p-3 rounded-lg bg-muted">
+              <p className="text-2xl font-bold text-amber-700">{sharedMediators}</p>
+              <p className="text-xs text-muted-foreground mt-1">Atendentes compartilhados</p>
+            </div>
+            <div className="text-center p-3 rounded-lg bg-muted">
+              <p className="text-2xl font-bold text-amber-700">{studentsInSharedCare}</p>
+              <p className="text-xs text-muted-foreground mt-1">Alunos em atend. compartilhado</p>
+            </div>
+            <div className="text-center p-3 rounded-lg bg-muted">
+              <p className="text-2xl font-bold">{avgStudentsPerMediator}</p>
+              <p className="text-xs text-muted-foreground mt-1">Média alunos/atendente</p>
+            </div>
+            <div className="text-center p-3 rounded-lg bg-muted">
+              <p className="text-xs text-muted-foreground mb-2">Distribuição de carga</p>
+              <div className="space-y-1 text-left">
+                <div className="flex justify-between text-xs">
+                  <span>1 aluno</span>
+                  <span className="font-semibold">{mediators1Student}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span>2 alunos</span>
+                  <span className="font-semibold text-amber-600">{mediators2Students}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span>3+ alunos</span>
+                  <span className="font-semibold text-red-600">{mediators3PlusStudents}</span>
+                </div>
+              </div>
+            </div>
+            <div className="text-center p-3 rounded-lg bg-blue-50 border border-blue-200">
+              <p className="text-2xl font-bold text-blue-700">{coverageRate}%</p>
+              <p className="text-xs text-muted-foreground mt-1">Cobertura de alunos</p>
+              <p className="text-xs text-blue-600 mt-1">{studentsWithMediator} de {studentsWithMediator + studentsWithoutMediator}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Lembrete semanal */}
       <Card className={weeklyStatusData && weeklyStatusData.pending > 0 ? "border-amber-300 bg-amber-50" : "border-green-300 bg-green-50"}>
