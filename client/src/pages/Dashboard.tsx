@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
-import { Users, Briefcase, ClipboardList, AlertCircle, TrendingUp, School, Download, CheckCircle2, Clock, UserCheck, UserX, GraduationCap, Calendar } from "lucide-react";
+import { toast } from "sonner";
+import { Users, Briefcase, ClipboardList, AlertCircle, TrendingUp, School, Download, CheckCircle2, Clock, UserCheck, UserX, GraduationCap, Calendar, Bell } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { Link } from "wouter";
 
@@ -64,6 +65,16 @@ function AdminDashboard() {
   const { data: stats } = trpc.dashboard.stats.useQuery();
   const { data: schoolPanel = [] } = trpc.schools.panel.useQuery();
   const { data: alerts = [] } = trpc.schools.alerts.useQuery();
+  const { data: weeklyStatusData, refetch: refetchWeeklyStatus } = trpc.quadroAAP.weeklyStatus.useQuery();
+  const sendReminderMutation = trpc.quadroAAP.sendWeeklyReminder.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message || "Lembrete enviado com sucesso!");
+      refetchWeeklyStatus();
+    },
+    onError: (err) => {
+      toast.error("Erro ao enviar lembrete: " + err.message);
+    },
+  });
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -155,6 +166,37 @@ function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Lembrete semanal */}
+      <Card className={weeklyStatusData && weeklyStatusData.pending > 0 ? "border-amber-300 bg-amber-50" : "border-green-300 bg-green-50"}>
+        <CardContent className="pt-4 pb-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Bell className={"w-6 h-6 flex-shrink-0 " + (weeklyStatusData && weeklyStatusData.pending > 0 ? "text-amber-600" : "text-green-600")} />
+              <div>
+                <p className={"font-semibold " + (weeklyStatusData && weeklyStatusData.pending > 0 ? "text-amber-800" : "text-green-800")}>
+                  Quadros semanais — semana {weeklyStatusData?.weekReference || "atual"}
+                </p>
+                <p className={"text-sm " + (weeklyStatusData && weeklyStatusData.pending > 0 ? "text-amber-700" : "text-green-700")}>
+                  {weeklyStatusData
+                    ? `${weeklyStatusData.sent} de ${weeklyStatusData.total} escolas enviaram o quadro esta semana. ${weeklyStatusData.pending > 0 ? `${weeklyStatusData.pending} pendente(s).` : "Todas atualizadas!"}`
+                    : "Carregando status semanal..."}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className={weeklyStatusData && weeklyStatusData.pending > 0 ? "border-amber-400 text-amber-800 hover:bg-amber-100" : "border-green-400 text-green-800 hover:bg-green-100"}
+              disabled={sendReminderMutation.isPending || !weeklyStatusData || weeklyStatusData.pending === 0}
+              onClick={() => sendReminderMutation.mutate()}
+            >
+              <Bell className="w-4 h-4 mr-2" />
+              {sendReminderMutation.isPending ? "Enviando..." : weeklyStatusData?.pending === 0 ? "Todas enviaram" : `Enviar lembrete (${weeklyStatusData?.pending ?? 0})`}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Graficos */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

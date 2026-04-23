@@ -201,3 +201,13 @@
 - [x] Attendances.tsx: dropdown de alunos usa `students.listBySchool` — corrigido para usar `demands.list`
 - [x] Corrigir 5 demands com hasAttendant=true mas attendantName nulo (marcados como sem atendente)
 - [x] Limpar 11 registros de teste na tabela `students` (nomes fictícios)
+
+## Vínculo Formal Mediador↔Aluno e Lembrete Semanal (Fase 7)
+
+- [x] Script para cruzar attendantName dos demands com mediators e popular mediator_students
+- [x] Atualizar quadroAAP.generate para usar mediator_students no agrupamento por mediador
+- [x] Procedure backend: verificar escolas sem quadro enviado na semana atual (quadroAAP.weeklyStatus)
+- [x] Procedure backend: enviar notificação para escolas pendentes (quadroAAP.sendWeeklyReminder)
+- [x] UI no Dashboard: botão "Enviar lembrete para escolas pendentes" (admin)
+- [x] UI no Dashboard: indicador de quantas escolas já enviaram vs. pendentes na semana
+- [ ] Agendamento automático: lembrete toda sexta-feira para escolas sem envio (opcional)

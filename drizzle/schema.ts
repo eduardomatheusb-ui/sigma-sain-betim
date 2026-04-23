@@ -140,6 +140,7 @@ export const mediatorStudents = mysqlTable("mediator_students", {
   id: int("id").autoincrement().primaryKey(),
   mediatorId: int("mediatorId").notNull(),
   studentId: int("studentId").notNull(),
+  demandId: int("demandId"),
   isPrimary: boolean("isPrimary").default(true).notNull(),
   startDate: date("startDate"),
   endDate: date("endDate"),

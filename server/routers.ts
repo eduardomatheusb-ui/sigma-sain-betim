@@ -1567,23 +1567,21 @@ export const appRouter = router({
           // Buscar mediadores da escola
           const mediatorList = await db.select().from(mediators).where(eq(mediators.schoolId, input.schoolId));
 
-          // Buscar vínculos mediator_students
+          // Buscar vínculos mediator_students (usando demandId quando disponível)
           const allLinks = await db.select().from(mediatorStudents);
-
-          // Buscar escolas para nome da escola do outro turno
-          const schoolList = await db.select({ id: schools.id, name: schools.name }).from(schools);
-          const schoolMap = Object.fromEntries(schoolList.map(s => [s.id, s.name]));
 
           // Montar mapa de alunos (demands: usar studentName como name)
           const studentMap = Object.fromEntries(studentList.map((s: any) => [s.id, { ...s, name: s.studentName, disability: s.disabilities, status: s.attendantStatus }]));
 
-          // Montar mapa de mediador -> alunos vinculados
+          // Montar mapa de mediador -> demands vinculados (usando demandId se disponível, senão studentId como fallback)
           const mediatorToStudents: Record<number, number[]> = {};
           const studentToMediator: Record<number, number> = {};
           for (const link of allLinks) {
+            // Usar demandId se disponível (vínculos novos), senão studentId (legado)
+            const targetId = (link as any).demandId ?? link.studentId;
             if (!mediatorToStudents[link.mediatorId]) mediatorToStudents[link.mediatorId] = [];
-            mediatorToStudents[link.mediatorId].push(link.studentId);
-            studentToMediator[link.studentId] = link.mediatorId;
+            mediatorToStudents[link.mediatorId].push(targetId);
+            studentToMediator[targetId] = link.mediatorId;
           }
 
           // Montar linhas do quadro
@@ -1760,7 +1758,7 @@ export const appRouter = router({
           try {
             await notifyOwner({
               title: `Quadro de Mediadores Enviado - ${schoolName}`,
-              content: `A escola ${schoolName} enviou o Quadro de Mediadores da semana ${weekRef}.\nMediadores ativos: ${mediatorList.filter(m => m.status === "active").length}\nAlunos: ${studentList.length} (${(studentList as any[]).filter(s => s.hasAttendant).length} com mediador)\nEnviado por: ${ctx.user.name || "Usu\u00e1rio"}` + (input.notes ? `\nObs: ${input.notes}` : ""),
+              content: `A escola ${schoolName} enviou o Quadro de Mediadores da semana ${weekRef}.\nMediadores ativos: ${mediatorList.filter(m => m.status === "active").length}\nAlunos: ${studentList.length} (${(studentList as any[]).filter(s => s.hasAttendant).length} com mediador)\nEnviado por: ${ctx.user.name || "Usuario"}${input.notes ? `\nObs: ${input.notes}` : ""}`,
             });
           } catch (notifErr) {
             console.warn("[QuadroAAP] Notification failed:", notifErr);
@@ -1787,6 +1785,71 @@ export const appRouter = router({
           return [];
         }
       }),
+
+    // Status semanal: quantas escolas enviaram vs. pendentes
+    weeklyStatus: protectedProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return { sent: 0, pending: 0, total: 0, sentSchools: [], pendingSchools: [] };
+      try {
+        const weekRef = getWeekReference();
+        const allSchools = await db.select({ id: schools.id, name: schools.name }).from(schools);
+        const sentSnapshots = await db
+          .select({ schoolId: weeklySnapshots.schoolId })
+          .from(weeklySnapshots)
+          .where(eq(weeklySnapshots.weekReference, weekRef));
+        const sentIds = new Set(sentSnapshots.map(s => s.schoolId));
+        const sentSchools = allSchools.filter(s => sentIds.has(s.id));
+        const pendingSchools = allSchools.filter(s => !sentIds.has(s.id));
+        return {
+          sent: sentSchools.length,
+          pending: pendingSchools.length,
+          total: allSchools.length,
+          sentSchools,
+          pendingSchools,
+          weekReference: weekRef,
+        };
+      } catch (error) {
+        console.error("[QuadroAAP] Error getting weekly status:", error);
+        return { sent: 0, pending: 0, total: 0, sentSchools: [], pendingSchools: [], weekReference: "" };
+      }
+    }),
+
+    // Enviar lembrete para escolas pendentes
+    sendWeeklyReminder: protectedProcedure.mutation(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      try {
+        const weekRef = getWeekReference();
+        const allSchools = await db.select({ id: schools.id, name: schools.name }).from(schools);
+        const sentSnapshots = await db
+          .select({ schoolId: weeklySnapshots.schoolId })
+          .from(weeklySnapshots)
+          .where(eq(weeklySnapshots.weekReference, weekRef));
+        const sentIds = new Set(sentSnapshots.map(s => s.schoolId));
+        const pendingSchools = allSchools.filter(s => !sentIds.has(s.id));
+
+        if (pendingSchools.length === 0) {
+          return { success: true, sent: 0, message: "Todas as escolas ja enviaram o quadro esta semana." };
+        }
+
+        const pendingNames = pendingSchools.map(s => s.name).join(", ");
+        await notifyOwner({
+          title: `Lembrete Semanal SIGMA - ${pendingSchools.length} escola(s) pendente(s)`,
+          content: `Semana ${weekRef}: ${pendingSchools.length} de ${allSchools.length} escolas ainda nao enviaram o Quadro de Mediadores.\n\nEscolas pendentes:\n${pendingNames}\n\nEnviado por: ${ctx.user.name || "Admin"}`,
+        });
+
+        return {
+          success: true,
+          sent: pendingSchools.length,
+          message: `Lembrete enviado para ${pendingSchools.length} escola(s) pendente(s).`,
+          pendingSchools: pendingSchools.map(s => s.name),
+        };
+      } catch (error) {
+        console.error("[QuadroAAP] Error sending reminder:", error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao enviar lembrete" });
+      }
+    }),
   }),
 });
 export type AppRouter = typeof appRouter;
