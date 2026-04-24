@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -160,12 +161,16 @@ function AdminHome({ userName }: { userName: string }) {
 }
 
 function SchoolHome({ userName }: { userName: string }) {
+  const { user } = useAuth();
   const { data: mediatorsData } = trpc.mediators.listBySchool.useQuery();
-  const { data: studentsData } = trpc.students.listBySchool.useQuery();
+  // Usar demands.list (tabela correta com 1.122 alunos) em vez de students.listBySchool (tabela vazia)
+  const { data: demandsData = [] } = trpc.demands.list.useQuery();
+  const studentsList = useMemo(() => {
+    if (!user?.schoolId) return demandsData;
+    return demandsData.filter((d: any) => d.schoolId === user.schoolId);
+  }, [demandsData, user?.schoolId]);
   const { data: attendancesData } = trpc.attendances.listBySchool.useQuery();
-
   const mediators = mediatorsData || [];
-  const studentsList = studentsData || [];
   const attendancesList = attendancesData || [];
 
   const activeMediators = mediators.filter((m: any) => m.status === "active").length;

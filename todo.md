@@ -390,3 +390,10 @@
 - [x] Corrigir SchoolDashboard para usar `trpc.demands.list` com filtro por `schoolId` do usuário
 - [x] Confirmar que `demands.list` já filtra por escola no backend para `school_user`
 - [x] TypeScript: 0 erros | Testes: 40/40 passando
+
+## Fase 22 — Correção: Alunos da Escola Não Calculados na Página Inicial
+
+- [x] Identificar causa raiz: SchoolHome usava trpc.students.listBySchool (tabela students = 0 registros)
+- [x] Corrigir para usar trpc.demands.list com filtro por schoolId (mesma correção aplicada no Dashboard)
+- [x] Adicionar import useMemo que faltava no Home.tsx
+- [x] TypeScript: 0 erros | Testes: 40/40 passando
