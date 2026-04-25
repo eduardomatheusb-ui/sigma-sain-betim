@@ -1536,6 +1536,48 @@ export const appRouter = router({
             const [school] = await db.select({ id: schools.id }).from(schools).where(eq(schools.name, input.schoolName)).limit(1);
             if (school) schoolId = school.id;
           }
+          
+          // VALIDAÇÃO 1: Rejeitar mediadores inativos
+          if (input.hasAttendant && input.attendantName) {
+            if (input.attendantStatus !== "active") {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: `Não é possível vincular o mediador "${input.attendantName}" porque ele está inativo. Apenas mediadores ativos podem ser vinculados.`,
+              });
+            }
+            const [mediator] = await db.select({ id: mediators.id, status: mediators.status })
+              .from(mediators)
+              .where(and(eq(mediators.name, input.attendantName), eq(mediators.status, "active")))
+              .limit(1);
+            if (!mediator) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: `Mediador "${input.attendantName}" não encontrado ou inativo no sistema.`,
+              });
+            }
+          }
+          
+          // VALIDAÇÃO 2: Verificar duplicação de aluno
+          if (schoolId) {
+            const conditions = [
+              eq(demands.schoolId, schoolId),
+              eq(demands.studentName, input.studentName),
+            ];
+            if (input.dateOfBirth) {
+              conditions.push(eq(demands.dateOfBirth, new Date(input.dateOfBirth)));
+            }
+            const [existingStudent] = await db.select({ id: demands.id })
+              .from(demands)
+              .where(and(...conditions))
+              .limit(1);
+            if (existingStudent) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: `Aluno "${input.studentName}" já está cadastrado nesta escola.`,
+              });
+            }
+          }
+          
           await db.insert(demands).values({
             email: input.email || ctx.user.email || undefined,
             schoolName: input.schoolName,

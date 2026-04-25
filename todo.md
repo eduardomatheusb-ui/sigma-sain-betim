@@ -397,3 +397,13 @@
 - [x] Corrigir para usar trpc.demands.list com filtro por schoolId (mesma correção aplicada no Dashboard)
 - [x] Adicionar import useMemo que faltava no Home.tsx
 - [x] TypeScript: 0 erros | Testes: 40/40 passando
+
+## Fase 23 — Validações: Mediadores Inativos e Duplicação de Alunos/Mediadores
+
+- [x] Investigar: alunos/mediadores adicionados em Cadastros.tsx (Quadro de Mediadores) e Students.tsx/Mediators.tsx
+- [x] Verificar: demands.create não tinha validações de mediadores inativos ou duplicatas
+- [x] Implementar validação 1: rejeitar mediadores com status != 'active' ao vincular
+- [x] Implementar validação 2: impedir cadastro de aluno duplicado (nome + data nascimento + escola)
+- [x] Adicionar mensagens de erro claras em português no backend (TRPCError)
+- [x] Mensagens de erro serão exibidas automaticamente no frontend via toast/alert
+- [x] TypeScript: 0 erros | Testes: 40/40 passando
