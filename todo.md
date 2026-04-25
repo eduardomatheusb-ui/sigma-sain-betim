@@ -441,3 +441,18 @@
 - [x] Corrigir: Validação deve usar .trim() como em Cadastros.tsx
 - [x] Testar: Envio de aluno funciona para admin e school_user
 - [x] Rodar testes e salvar checkpoint
+
+
+## Fase 29 — Restrições de Acesso para Perfil Escola na Página de Mediadores
+
+- [x] Implementar no backend: escola_user só pode listar mediadores da própria escola
+- [x] Implementar no backend: escola_user não pode criar novos mediadores (bloquear procedure)
+- [x] Implementar no backend: escola_user não pode excluir mediadores (bloquear procedure)
+- [x] Implementar no backend: escola_user pode atualizar mediadores (manter procedure)
+- [x] Implementar no frontend: ocultar botão "Adicionar Mediador" para perfil escola
+- [x] Implementar no frontend: ocultar botão "Excluir" para perfil escola
+- [x] Implementar no frontend: manter botão "Editar" para perfil escola
+- [x] Testar: verificar que escola_user só vê mediadores da própria escola
+- [x] Testar: verificar que escola_user não consegue adicionar ou excluir
+- [x] Testar: verificar que escola_user consegue editar
+- [x] Rodar testes e salvar checkpoint

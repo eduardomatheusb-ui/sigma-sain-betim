@@ -1034,6 +1034,12 @@ export const appRouter = router({
         returnDate: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Apenas administradores podem criar novos mediadores. Usuários de escola podem apenas editar mediadores existentes.",
+          });
+        }
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         const schoolId = input.schoolId || ctx.user.schoolId || 1;
@@ -1094,6 +1100,22 @@ export const appRouter = router({
         // Buscar mediador atual
         const [current] = await db.select({ status: mediators.status, schoolId: mediators.schoolId }).from(mediators).where(eq(mediators.id, id));
         if (!current) throw new TRPCError({ code: "NOT_FOUND", message: "Mediador não encontrado" });
+        
+        // RESTRIÇÃO: school_user só pode editar mediadores da própria escola
+        if (ctx.user.role === "school_user" && ctx.user.schoolId !== current.schoolId) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Você só pode editar mediadores vinculados à sua escola.",
+          });
+        }
+        
+        // RESTRIÇÃO: school_user não pode alterar schoolId (movimentação entre escolas)
+        if (ctx.user.role === "school_user" && newSchoolId && newSchoolId !== current.schoolId) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Usuários de escola não podem transferir mediadores entre escolas.",
+          });
+        }
 
         // VALIDAÇÃO: Movimentação entre escolas requer mudança de status
         if (newSchoolId && newSchoolId !== current.schoolId) {
@@ -1152,6 +1174,12 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Apenas administradores podem deletar mediadores. Usuários de escola podem apenas editar mediadores existentes.",
+          });
+        }
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         try {

@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Download, Users, Briefcase, AlertCircle, Clock, UserPlus, X, History } from "lucide-react";
 import { HistoryModal } from "@/components/HistoryModal";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { BETIM_SCHOOLS, INACTIVITY_REASONS } from "@/lib/schools";
 
 const STATUS_OPTIONS = [
@@ -82,6 +83,8 @@ const defaultForm = {
 
 export default function Mediators() {
   const utils = trpc.useUtils();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const { data: mediatorsData = [], isLoading } = trpc.mediators.listBySchool.useQuery();
   const { data: schoolsData = [] } = trpc.schools.list.useQuery();
 
@@ -204,9 +207,11 @@ export default function Mediators() {
           <Button variant="outline" size="sm" onClick={() => downloadCSV(filtered)}>
             <Download className="w-4 h-4 mr-2" /> Exportar CSV
           </Button>
-          <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>
-            <Plus className="w-4 h-4 mr-2" /> Novo Atendente
-          </Button>
+          {isAdmin && (
+            <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>
+              <Plus className="w-4 h-4 mr-2" /> Novo Atendente
+            </Button>
+          )}
         </div>
       </div>
 
@@ -321,9 +326,11 @@ export default function Mediators() {
                           >
                             <History className="w-3.5 h-3.5" />
                           </Button>
-                          <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => setDeleteTarget(row.id)}>
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
+                          {isAdmin && (
+                            <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => setDeleteTarget(row.id)}>
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -341,17 +348,23 @@ export default function Mediators() {
           <DialogHeader>
             <DialogTitle>{editingId ? "Editar Atendente" : "Cadastrar Atendente"}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-2">
-            <div className="sm:col-span-2">
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-2">            <div className="sm:col-span-2">
               <Label>Escola</Label>
-              <Select value={String(form.schoolId)} onValueChange={v => setForm(f => ({ ...f, schoolId: v }))}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Selecionar escola..." /></SelectTrigger>
-                <SelectContent>
-                  {schoolsData.map((s: any) => (
-                    <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {isAdmin ? (
+                <Select value={String(form.schoolId)} onValueChange={v => setForm(f => ({ ...f, schoolId: v }))}>\n                  <SelectTrigger className="mt-1"><SelectValue placeholder="Selecionar escola..." /></SelectTrigger>
+                  <SelectContent>
+                    {schoolsData.map((s: any) => (
+                      <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  value={schoolsData.find((s: any) => s.id === user?.schoolId)?.name || "Carregando..."}
+                  disabled
+                  className="bg-muted"
+                />
+              )}
             </div>
             <div className="sm:col-span-2">
               <Label>Responsável pelo envio</Label>
