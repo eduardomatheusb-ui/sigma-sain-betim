@@ -407,3 +407,12 @@
 - [x] Adicionar mensagens de erro claras em português no backend (TRPCError)
 - [x] Mensagens de erro serão exibidas automaticamente no frontend via toast/alert
 - [x] TypeScript: 0 erros | Testes: 40/40 passando
+
+## Fase 24 — Correção: Formulário de Cadastro de Alunos
+
+- [x] Investigar: formulário em Cadastros.tsx (Quadro de Mediadores)
+- [x] Identificar: validação usava !form.studentName sem .trim()
+- [x] Implementar: substituir Input por Select com dropdown
+- [x] Carregar: mediatorNames já carregado via trpc.mediators.listBySchoolId
+- [x] Adicionar validação: exigir attendantName se hasAttendant=true
+- [x] TypeScript: 0 erros | Testes: 40/40 passando

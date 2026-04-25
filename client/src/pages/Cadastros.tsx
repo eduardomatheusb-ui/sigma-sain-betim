@@ -269,8 +269,12 @@ export default function Cadastros() {
 
   const handleStudentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.studentName || !form.schoolName) {
+    if (!form.studentName?.trim() || !form.schoolName?.trim()) {
       toast.error("Preencha os campos obrigatórios: Nome do aluno e Unidade educacional.");
+      return;
+    }
+    if (form.hasAttendant && !form.attendantName?.trim()) {
+      toast.error("Selecione um mediador para o aluno.");
       return;
     }
     if (form.disabilities.length === 0) {
@@ -839,15 +843,20 @@ export default function Cadastros() {
             {/* Mediador */}
             {form.hasAttendant && (
               <div className="space-y-1 relative">
-                <Label htmlFor="s-attendant">Mediador (atendente)</Label>
-                <Input
-                  id="s-attendant"
-                  value={attendantSearch || form.attendantName}
-                  onChange={(e) => { setAttendantSearch(e.target.value); setForm({ ...form, attendantName: e.target.value }); setShowAttendantDropdown(true); }}
-                  onFocus={() => setShowAttendantDropdown(true)}
-                  onBlur={() => setTimeout(() => setShowAttendantDropdown(false), 200)}
-                  placeholder="Selecione um mediador cadastrado na escola"
-                />
+                <Label htmlFor="s-attendant">Mediador (atendente) *</Label>
+                <Select value={form.attendantName} onValueChange={(v) => setForm({ ...form, attendantName: v })}>
+                  <SelectTrigger id="s-attendant">
+                    <SelectValue placeholder="Selecione um mediador cadastrado na escola" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {mediatorNames.map((name: string) => (
+                      <SelectItem key={name} value={name}>{name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {mediatorNames.length === 0 && (
+                  <p className="text-xs text-amber-600">Nenhum mediador ativo cadastrado para esta escola</p>
+                )}
                 {showAttendantDropdown && filteredAttendants.length > 0 && (
                   <div className="absolute z-50 top-full left-0 right-0 bg-white border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
                     {filteredAttendants.map((name: string) => (
