@@ -416,3 +416,18 @@
 - [x] Carregar: mediatorNames já carregado via trpc.mediators.listBySchoolId
 - [x] Adicionar validação: exigir attendantName se hasAttendant=true
 - [x] TypeScript: 0 erros | Testes: 40/40 passando
+
+
+## Fase 28 — Validações Críticas: Duplicação, Sincronização e Movimentação
+
+- [x] Implementar detecção de duplicação de alunos: mesmo nome + data nascimento + escola
+- [x] Adicionar validação no backend (demands.create) para rejeitar duplicatas
+- [x] Exibir mensagem clara no frontend quando aluno duplicado é detectado
+- [x] Implementar sincronização de status de mediadores: tabela mediators ↔ demands (Quadro)
+- [x] Quando status muda em Mediadores, atualizar automaticamente em demands
+- [x] Quando status muda em Quadro, atualizar automaticamente em mediators
+- [x] Implementar movimentação de mediadores entre escolas
+- [x] Adicionar validação: não permitir salvar sem alterar status
+- [x] Adicionar campo "Escola anterior" no formulário de mediador
+- [x] Exibir aviso quando tentar salvar sem alterar status
+- [x] Rodar testes e salvar checkpoint

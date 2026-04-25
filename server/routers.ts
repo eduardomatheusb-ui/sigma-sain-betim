@@ -1084,25 +1084,37 @@ export const appRouter = router({
         inactivityReason: z.string().optional(),
         inactivityDate: z.string().optional(),
         returnDate: z.string().optional(),
+        previousSchoolId: z.number().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
-        const { id, inactivityDate, returnDate, status: newStatus, ...rest } = input;
+        const { id, inactivityDate, returnDate, status: newStatus, schoolId: newSchoolId, previousSchoolId, ...rest } = input;
+
+        // Buscar mediador atual
+        const [current] = await db.select({ status: mediators.status, schoolId: mediators.schoolId }).from(mediators).where(eq(mediators.id, id));
+        if (!current) throw new TRPCError({ code: "NOT_FOUND", message: "Mediador não encontrado" });
+
+        // VALIDAÇÃO: Movimentação entre escolas requer mudança de status
+        if (newSchoolId && newSchoolId !== current.schoolId) {
+          if (!newStatus || newStatus === current.status) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Ao transferir um mediador para outra escola, é obrigatório alterar seu status. Por favor, selecione um novo status antes de salvar.",
+            });
+          }
+        }
 
         // Log de mudança de status
-        if (newStatus) {
+        if (newStatus && newStatus !== current.status) {
           try {
-            const [current] = await db.select({ status: mediators.status }).from(mediators).where(eq(mediators.id, id));
-            if (current && current.status !== newStatus) {
-              await db.insert(statusHistory).values({
-                mediatorId: id,
-                previousStatus: current.status,
-                newStatus,
-                reason: input.inactivityReason || input.changeType || undefined,
-                changedBy: ctx.user.id,
-              });
-            }
+            await db.insert(statusHistory).values({
+              mediatorId: id,
+              previousStatus: current.status,
+              newStatus,
+              reason: input.inactivityReason || input.changeType || undefined,
+              changedBy: ctx.user.id,
+            });
           } catch (e) {
             console.error("[StatusHistory] Error logging:", e);
           }
@@ -1111,12 +1123,25 @@ export const appRouter = router({
         const data: Record<string, unknown> = {
           ...rest,
           status: newStatus,
+          schoolId: newSchoolId,
           inactivityDate: inactivityDate ? new Date(inactivityDate) : undefined,
           returnDate: returnDate ? new Date(returnDate) : undefined,
         };
         Object.keys(data).forEach(k => data[k] === undefined && delete data[k]);
         try {
           await db.update(mediators).set(data as any).where(eq(mediators.id, id));
+
+          // SINCRONIZAÇÃO: Atualizar status em demands quando mediador muda de status
+          if (newStatus && newStatus !== current.status) {
+            const mediatorName = rest.name || (await db.select({ name: mediators.name }).from(mediators).where(eq(mediators.id, id)).then(r => r[0]?.name));
+            if (mediatorName) {
+              // Mapear status de mediadores para demands
+              const demandStatus = newStatus === "active" ? "active" : "inactive";
+              await db.update(demands).set({ attendantStatus: demandStatus })
+                .where(eq(demands.attendantName, mediatorName as string));
+            }
+          }
+
           return { success: true };
         } catch (error) {
           console.error("[Mediators] Error updating mediator:", error);
@@ -1561,10 +1586,14 @@ export const appRouter = router({
           if (schoolId) {
             const conditions = [
               eq(demands.schoolId, schoolId),
-              eq(demands.studentName, input.studentName),
+              eq(demands.studentName, input.studentName.trim()),
             ];
             if (input.dateOfBirth) {
-              conditions.push(eq(demands.dateOfBirth, new Date(input.dateOfBirth)));
+              // Converter para Date e depois comparar como string para evitar problemas de timezone
+              const dobDate = new Date(input.dateOfBirth);
+              const dobString = dobDate.toISOString().split('T')[0];
+              // Usar sql.raw para comparar como string
+              conditions.push(sql`DATE(${demands.dateOfBirth}) = ${dobString}`);
             }
             const [existingStudent] = await db.select({ id: demands.id })
               .from(demands)
@@ -1605,6 +1634,10 @@ export const appRouter = router({
           return { success: true };
         } catch (error) {
           console.error("[Demands] Error creating:", error);
+          // Se for um TRPCError, re-lançar com a mensagem original
+          if (error instanceof TRPCError) {
+            throw error;
+          }
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create demand" });
         }
       }),
@@ -1635,16 +1668,32 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
-        const { id, dateOfBirth, disabilities, ...rest } = input;
+        const { id, dateOfBirth, disabilities, attendantName: newAttendantName, ...rest } = input;
+
+        // Buscar demand atual para sincronização de status
+        const [currentDemand] = await db.select({ attendantName: demands.attendantName }).from(demands).where(eq(demands.id, id));
+        if (!currentDemand) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+
         const data: Record<string, unknown> = {
           ...rest,
           dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
           disabilities: disabilities ? JSON.stringify(disabilities) : undefined,
+          attendantName: newAttendantName,
           updatedBy: ctx.user.id,
         };
         Object.keys(data).forEach(k => data[k] === undefined && delete data[k]);
         try {
           await db.update(demands).set(data as any).where(eq(demands.id, id));
+
+          // SINCRONIZAÇÃO: Se mediador foi alterado, sincronizar status do novo mediador
+          if (newAttendantName && newAttendantName !== currentDemand.attendantName) {
+            const [newMediator] = await db.select({ status: mediators.status }).from(mediators).where(eq(mediators.name, newAttendantName));
+            if (newMediator) {
+              const syncedStatus = newMediator.status === "active" ? "active" : "inactive";
+              await db.update(demands).set({ attendantStatus: syncedStatus }).where(eq(demands.id, id));
+            }
+          }
+
           return { success: true };
         } catch (error) {
           console.error("[Demands] Error updating:", error);
