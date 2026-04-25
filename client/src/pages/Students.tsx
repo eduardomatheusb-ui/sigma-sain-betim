@@ -632,49 +632,37 @@ export default function Students() {
               </Select>
             </div>
 
-            {/* Mediador — dropdown com mediadores cadastrados na escola */}
+            {/* Mediador — Select com loading state */}
             {form.hasAttendant && (
-              <div className="space-y-1 relative">
-                <Label htmlFor="attendantName">Mediador (atendente)</Label>
-                <div className="relative">
-                  <Input
-                    id="attendantName"
-                    value={attendantSearch || form.attendantName}
-                    onChange={(e) => {
-                      setAttendantSearch(e.target.value);
-                      setForm({ ...form, attendantName: e.target.value });
-                      setShowAttendantDropdown(true);
-                    }}
-                    onFocus={() => setShowAttendantDropdown(true)}
-                    onBlur={() => setTimeout(() => setShowAttendantDropdown(false), 200)}
-                    placeholder="Selecione um mediador cadastrado na escola"
-                  />
-                  {showAttendantDropdown && filteredAttendants.length > 0 && (
-                    <div className="absolute z-50 top-full left-0 right-0 bg-white border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                      {filteredAttendants.map((name: string) => (
-                        <button
-                          key={name}
-                          type="button"
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
-                          onMouseDown={() => {
-                            setAttendantSearch(name);
-                            setForm({ ...form, attendantName: name });
-                            setShowAttendantDropdown(false);
-                          }}
-                        >
-                          {name}
-                        </button>
-                      ))}
+              <div className="space-y-1">
+                <Label htmlFor="attendantName">Mediador (atendente) *</Label>
+                {mediatorsList.length === 0 ? (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-600"></div>
+                      <p className="text-sm text-amber-800 font-medium">Carregando mediadores...</p>
                     </div>
-                  )}
-                </div>
-                {mediatorNames.length > 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    {mediatorNames.length} mediador(es) cadastrado(s) na escola. Selecione um da lista.
-                  </p>
+                  </div>
+                ) : mediatorNames.length === 0 ? (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                    <p className="text-sm text-amber-800 font-medium">Nenhum mediador cadastrado nesta escola.</p>
+                    <p className="text-xs text-amber-700 mt-1">Cadastre primeiro na aba Mediadores.</p>
+                  </div>
                 ) : (
-                  <p className="text-xs text-amber-600">
-                    Nenhum mediador cadastrado nesta escola. Cadastre primeiro na aba Mediadores.
+                  <Select value={form.attendantName} onValueChange={(v) => setForm({ ...form, attendantName: v })}>
+                    <SelectTrigger id="attendantName">
+                      <SelectValue placeholder="Selecione um mediador cadastrado na escola" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {mediatorNames.map((name: string) => (
+                        <SelectItem key={name} value={name}>{name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                {mediatorNames.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {mediatorNames.length} mediador(es) cadastrado(s) na escola.
                   </p>
                 )}
               </div>
