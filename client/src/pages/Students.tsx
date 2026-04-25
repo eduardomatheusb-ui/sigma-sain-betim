@@ -70,6 +70,7 @@ const ATTENDANCE_STATUS_COLORS: Record<string, string> = {
 
 type FormData = {
   email: string;
+  schoolId: number | null;
   schoolName: string;
   studentName: string;
   dateOfBirth: string;
@@ -97,6 +98,7 @@ type SharedStudentData = {
 
 const EMPTY_FORM: FormData = {
   email: "",
+  schoolId: null,
   schoolName: "",
   studentName: "",
   dateOfBirth: "",
@@ -132,12 +134,11 @@ export default function Students() {
   // Estado do formulário
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
 
-  // Encontrar schoolId pela escola selecionada no formulário
+  // Usar schoolId diretamente do formulário (ou da escola do usuário se for school_user)
   const selectedSchoolId = useMemo(() => {
-    if (!form.schoolName) return null;
-    const found = schools.find((s) => s.name === form.schoolName);
-    return found?.id ?? null;
-  }, [form.schoolName, schools]);
+    if (user?.role === "admin") return form.schoolId;
+    return user?.schoolId ?? null;
+  }, [form.schoolId, user?.schoolId, user?.role]);
 
   // Buscar mediadores da escola selecionada no formulário (reativo)
   const { data: mediatorsList = [] } = trpc.mediators.listBySchoolId.useQuery(
@@ -176,6 +177,9 @@ export default function Students() {
     { query: sharedStudentSearch },
     { enabled: sharedStudentSearch.length >= 2 }
   );
+
+  // Admin check
+  const isAdmin = user?.role === "admin";
 
   // Mutations
   const createMutation = trpc.demands.create.useMutation({
@@ -328,8 +332,10 @@ export default function Students() {
 
   const handleEdit = (demand: typeof demands[0]) => {
     setEditingId(demand.id);
+    const schoolId = schools.find(s => s.name === demand.schoolName)?.id || null;
     setForm({
       email: demand.email || "",
+      schoolId,
       schoolName: demand.schoolName,
       studentName: demand.studentName,
       dateOfBirth: demand.dateOfBirth ? new Date(demand.dateOfBirth).toISOString().split("T")[0] : "",
@@ -395,7 +401,6 @@ export default function Students() {
     toast.success("CSV exportado com sucesso!");
   };
 
-  const isAdmin = user?.role === "admin";
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
@@ -476,7 +481,7 @@ export default function Students() {
                           className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
                           onMouseDown={() => {
                             setSchoolSearch(school.name);
-                            setForm({ ...form, schoolName: school.name });
+                            setForm({ ...form, schoolId: school.id, schoolName: school.name });
                             setShowSchoolDropdown(false);
                           }}
                         >
