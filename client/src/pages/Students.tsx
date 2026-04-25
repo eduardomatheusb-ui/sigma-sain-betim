@@ -281,7 +281,14 @@ export default function Students() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.studentName || !form.schoolName) {
+    // Para school_user, preencher schoolName automaticamente se não estiver preenchido
+    let finalSchoolName = form.schoolName;
+    if (!isAdmin && !finalSchoolName && user?.schoolId) {
+      const userSchool = schools.find(s => s.id === user.schoolId);
+      finalSchoolName = userSchool?.name || "";
+    }
+    
+    if (!form.studentName?.trim() || !finalSchoolName?.trim()) {
       toast.error("Preencha os campos obrigatórios: Nome do aluno e Unidade educacional.");
       return;
     }
@@ -307,8 +314,8 @@ export default function Students() {
 
     const payload = {
       email: form.email || undefined,
-      schoolName: form.schoolName,
-      studentName: form.studentName,
+      schoolName: finalSchoolName,
+      studentName: form.studentName.trim(),
       dateOfBirth: form.dateOfBirth || undefined,
       cpf: form.cpf || undefined,
       shift: form.shift,

@@ -431,3 +431,13 @@
 - [x] Adicionar campo "Escola anterior" no formulário de mediador
 - [x] Exibir aviso quando tentar salvar sem alterar status
 - [x] Rodar testes e salvar checkpoint
+
+
+## Bug: Validação do Formulário de Alunos em Students.tsx
+
+- [x] Investigar: formulário rejeita envio com erro "Preencha os campos obrigatórios: Nome do aluno e Unidade educacional" mesmo com campos preenchidos
+- [x] Causa raiz: Para perfil escola, o campo schoolName não é preenchido (disabled input não atualiza form state)
+- [x] Corrigir: Preencher form.schoolName automaticamente para school_user com o nome da escola do usuário
+- [x] Corrigir: Validação deve usar .trim() como em Cadastros.tsx
+- [x] Testar: Envio de aluno funciona para admin e school_user
+- [x] Rodar testes e salvar checkpoint
