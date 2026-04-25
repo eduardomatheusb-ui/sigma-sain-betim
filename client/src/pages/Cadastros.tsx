@@ -155,7 +155,13 @@ export default function Cadastros() {
     { schoolId: formSchoolId! },
     { enabled: !!formSchoolId }
   );
-  const mediatorNames = useMemo(() => mediatorsList.map((m: any) => m.name), [mediatorsList]);
+  const mediatorNames = useMemo(() => {
+    const names = mediatorsList.map((m: any) => m.name);
+    if (showStudentDialog && names.length === 0 && formSchoolId) {
+      console.warn('[Cadastros] Nenhum mediador carregado para schoolId:', formSchoolId, 'mediatorsList:', mediatorsList);
+    }
+    return names;
+  }, [mediatorsList, showStudentDialog, formSchoolId]);
 
   // Busca de alunos existentes para atendimento compartilhado
   const { data: existingStudents = [] } = trpc.demands.searchStudents.useQuery(
@@ -720,25 +726,18 @@ export default function Cadastros() {
                 />
               </div>
               {isAdmin ? (
-                <div className="space-y-1 relative">
+                <div className="space-y-1">
                   <Label>Unidade educacional *</Label>
-                  <Input
-                    value={schoolSearch}
-                    onChange={(e) => { setSchoolSearch(e.target.value); setForm({ ...form, schoolName: e.target.value }); setShowSchoolDropdown(true); }}
-                    onFocus={() => setShowSchoolDropdown(true)}
-                    onBlur={() => setTimeout(() => setShowSchoolDropdown(false), 200)}
-                    placeholder="Selecione ou digite a unidade educacional"
-                  />
-                  {showSchoolDropdown && filteredSchools.length > 0 && (
-                    <div className="absolute z-50 top-full left-0 right-0 bg-white border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                      {filteredSchools.slice(0, 20).map((school) => (
-                        <button key={school.id} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
-                          onMouseDown={() => { setSchoolSearch(school.name); setForm({ ...form, schoolName: school.name }); setShowSchoolDropdown(false); }}>
-                          {school.name}
-                        </button>
+                  <Select value={form.schoolName} onValueChange={(v) => setForm({ ...form, schoolName: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a unidade educacional" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {schools.map((school) => (
+                        <SelectItem key={school.id} value={school.name}>{school.name}</SelectItem>
                       ))}
-                    </div>
-                  )}
+                    </SelectContent>
+                  </Select>
                 </div>
               ) : (
                 <div className="space-y-1">
@@ -844,18 +843,33 @@ export default function Cadastros() {
             {form.hasAttendant && (
               <div className="space-y-1 relative">
                 <Label htmlFor="s-attendant">Mediador (atendente) *</Label>
-                <Select value={form.attendantName} onValueChange={(v) => setForm({ ...form, attendantName: v })}>
-                  <SelectTrigger id="s-attendant">
-                    <SelectValue placeholder="Selecione um mediador cadastrado na escola" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mediatorNames.map((name: string) => (
-                      <SelectItem key={name} value={name}>{name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {mediatorNames.length === 0 && (
-                  <p className="text-xs text-amber-600">Nenhum mediador ativo cadastrado para esta escola</p>
+                {mediatorsList.length === 0 && !form.schoolName ? (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <p className="text-sm text-blue-800">Selecione uma escola para carregar os mediadores disponíveis.</p>
+                  </div>
+                ) : mediatorsList.length === 0 ? (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-600"></div>
+                      <p className="text-sm text-amber-800 font-medium">Carregando mediadores...</p>
+                    </div>
+                  </div>
+                ) : mediatorNames.length === 0 ? (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                    <p className="text-sm text-amber-800 font-medium">Nenhum mediador cadastrado nesta escola.</p>
+                    <p className="text-xs text-amber-700 mt-1">Cadastre primeiro na aba Mediadores.</p>
+                  </div>
+                ) : (
+                  <Select value={form.attendantName} onValueChange={(v) => setForm({ ...form, attendantName: v })}>
+                    <SelectTrigger id="s-attendant">
+                      <SelectValue placeholder="Selecione um mediador cadastrado na escola" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {mediatorNames.map((name: string) => (
+                        <SelectItem key={name} value={name}>{name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
                 {showAttendantDropdown && filteredAttendants.length > 0 && (
                   <div className="absolute z-50 top-full left-0 right-0 bg-white border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
