@@ -2,12 +2,13 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { farolRouter } from "./routers/farol";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { getSchools, getStudentsBySchool, getMediatorsBySchool, getAttendancesBySchool, getExternalDemandsBySchool } from "./db";
 import { notifyOwner } from "./_core/notification";
 import { getDb } from "./db";
-import { students, mediators, attendances, externalDemands, schools, users, demands, mediatorStudents, statusHistory, weeklySnapshots, studentEditHistory, mediatorStatusChangeHistory } from "../drizzle/schema";
+import { students, mediators, attendances, externalDemands, schools, users, demands, mediatorStudents, statusHistory, weeklySnapshots, studentEditHistory, mediatorStatusChangeHistory, farolCases, farolCaseHistory, farolCaseMovements } from "../drizzle/schema";
 import { eq, and, like, sql, desc, inArray } from "drizzle-orm";
 
 // Status e tipos de alteração do Quadro de Atendentes (MVP integrado)
@@ -38,6 +39,7 @@ function getWeekReference(date?: Date): string {
 
 export const appRouter = router({
   system: systemRouter,
+  farol: farolRouter,
 
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),

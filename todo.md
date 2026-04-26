@@ -476,3 +476,19 @@
 - [x] Testar: verificar que admin vê todas as escolas com alunos
 - [x] Testar: verificar que school_user vê apenas sua escola
 - [x] Rodar testes e salvar checkpoint
+
+
+## Fase 31 — Integração do Farol da Gestão
+
+- [x] Criar schema Drizzle para farol_cases, farol_case_history, farol_case_movements
+- [x] Gerar e aplicar migration SQL no banco
+- [x] Implementar procedures tRPC para farol (listCases, getCase, createCase, updateCase, deleteCase, etc)
+- [x] Criar página React FarolGestao.tsx com dashboard de indicadores
+- [x] Adicionar tabela de casos com filtros e busca
+- [x] Implementar formulário de novo caso
+- [x] Implementar detalhamento de caso
+- [x] Integrar Farol no menu lateral do DashboardLayout
+- [x] Testar permissões (admin acessa, school_user não)
+- [x] Corrigir todos os erros de TypeScript
+- [x] Rodar pnpm build e verificar
+- [x] Salvar checkpoint

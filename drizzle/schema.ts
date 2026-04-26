@@ -302,3 +302,77 @@ export type InsertMediatorStatusChangeHistory = typeof mediatorStatusChangeHisto
  * Schools - Adicionar campos isActive e type (para filtros avançados)
  * Nota: Estes campos serão adicionados via migration
  */
+
+/**
+ * Farol da Gestao - Tabelas para gerenciamento de casos intersetoriais
+ */
+
+/**
+ * FarolCases - Casos/protocolos gerenciados pelo Farol da Gestao
+ */
+export const farolCases = mysqlTable("farol_cases", {
+  id: int("id").autoincrement().primaryKey(),
+  numeroCaso: varchar("numeroCaso", { length: 50 }).notNull().unique(),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  escola: varchar("escola", { length: 255 }),
+  schoolId: int("schoolId"),
+  regional: varchar("regional", { length: 255 }),
+  segmento: varchar("segmento", { length: 100 }),
+  responsavel: varchar("responsavel", { length: 255 }),
+  tipoDemanda: varchar("tipoDemanda", { length: 100 }),
+  origem: varchar("origem", { length: 100 }),
+  situacao: mysqlEnum("situacao", ["Ativo", "Inativo", "Arquivado", "Suspenso"]).default("Ativo").notNull(),
+  status: mysqlEnum("status", ["Novo", "Em acompanhamento", "Aguardando retorno", "Encaminhado", "Resolvido", "Encerrado"]).default("Novo").notNull(),
+  classificacao: varchar("classificacao", { length: 100 }),
+  descricao: text("descricao"),
+  encaminhamentos: text("encaminhamentos"),
+  assignedTo: int("assignedTo"),
+  assignedToName: varchar("assignedToName", { length: 255 }),
+  createdBy: int("createdBy").notNull(),
+  createdByName: varchar("createdByName", { length: 255 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  dataEntrada: date("dataEntrada"),
+  resolvedAt: timestamp("resolvedAt"),
+  isDeleted: boolean("isDeleted").default(false).notNull(),
+  deletedAt: timestamp("deletedAt"),
+  deletedBy: int("deletedBy"),
+  deletionReason: text("deletionReason"),
+});
+
+export type FarolCase = typeof farolCases.$inferSelect;
+export type InsertFarolCase = typeof farolCases.$inferInsert;
+
+/**
+ * FarolCaseHistory - Historico de acoes em cada caso
+ */
+export const farolCaseHistory = mysqlTable("farol_case_history", {
+  id: int("id").autoincrement().primaryKey(),
+  caseId: int("caseId").notNull(),
+  numeroCaso: varchar("numeroCaso", { length: 50 }).notNull(),
+  tipoAcao: varchar("tipoAcao", { length: 100 }).notNull(),
+  descricao: text("descricao"),
+  createdBy: int("createdBy").notNull(),
+  createdByName: varchar("createdByName", { length: 255 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type FarolCaseHistory = typeof farolCaseHistory.$inferSelect;
+export type InsertFarolCaseHistory = typeof farolCaseHistory.$inferInsert;
+
+/**
+ * FarolCaseMovements - Trilha de auditoria de movimentacoes
+ */
+export const farolCaseMovements = mysqlTable("farol_case_movements", {
+  id: int("id").autoincrement().primaryKey(),
+  caseId: int("caseId").notNull(),
+  numeroCaso: varchar("numeroCaso", { length: 50 }).notNull(),
+  action: varchar("action", { length: 100 }).notNull(),
+  metadata: text("metadata"),
+  actorId: int("actorId").notNull(),
+  actorName: varchar("actorName", { length: 255 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type FarolCaseMovement = typeof farolCaseMovements.$inferSelect;
+export type InsertFarolCaseMovement = typeof farolCaseMovements.$inferInsert;

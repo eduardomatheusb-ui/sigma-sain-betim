@@ -35,6 +35,7 @@ import {
   Shield,
   FileText,
   Home,
+  Briefcase,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -53,6 +54,7 @@ const adminMenuItems = [
   { icon: AlertCircle, label: "Demandas Externas", path: "/demandas" },
   { icon: BarChart3, label: "Relatórios", path: "/relatorios" },
   { icon: Shield, label: "Usuários", path: "/usuarios" },
+  { icon: Briefcase, label: "Farol da Gestão", path: "/farol" },
 ];
 
 const schoolMenuItems = [
