@@ -165,9 +165,11 @@ export default function Mediators() {
         return;
       }
     }
+    // Para school_user, forcar schoolId = user.schoolId (nao permitir alteracao)
+    const finalSchoolId = isAdmin ? (form.schoolId ? Number(form.schoolId) : undefined) : (user?.schoolId || undefined);
     const payload = {
       ...form,
-      schoolId: form.schoolId ? Number(form.schoolId) : undefined,
+      schoolId: finalSchoolId,
       maxAttendances: Number(form.maxAttendances),
       additionalStudents: form.isShared ? form.additionalStudents.filter(Boolean).join(" | ") : "",
     };

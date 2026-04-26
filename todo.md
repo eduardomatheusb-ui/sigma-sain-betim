@@ -456,3 +456,12 @@
 - [x] Testar: verificar que escola_user não consegue adicionar ou excluir
 - [x] Testar: verificar que escola_user consegue editar
 - [x] Rodar testes e salvar checkpoint
+
+
+## Bug: Campo de Escola Alterável para School_user em Mediadores
+
+- [x] Investigar: formulário permite que school_user altere schoolId mesmo com input desabilitado
+- [x] Corrigir: Forçar schoolId = user.schoolId no handleSubmit para school_user
+- [x] Corrigir: Não permitir que school_user altere schoolId no payload
+- [x] Testar: Verificar que school_user não consegue alterar escola
+- [x] Rodar testes e salvar checkpoint
