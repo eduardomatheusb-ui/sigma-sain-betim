@@ -410,3 +410,5 @@ export const farolRouter = router({
       }
     }),
 });
+
+// Advisor procedures will be added here in next phase
