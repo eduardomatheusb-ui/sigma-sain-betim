@@ -227,12 +227,12 @@ export default function FarolGestao() {
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-sm"
         />
-        <Select value={situacao} onValueChange={setSituacao}>
+        <Select value={situacao || "all"} onValueChange={(val) => setSituacao(val === "all" ? "" : val)}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Situação" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todas</SelectItem>
+            <SelectItem value="all">Todas</SelectItem>
             {situacaoOptions.map((opt) => (
               <SelectItem key={opt} value={opt}>
                 {opt}
@@ -240,12 +240,12 @@ export default function FarolGestao() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={status} onValueChange={setStatus}>
+        <Select value={status || "all"} onValueChange={(val) => setStatus(val === "all" ? "" : val)}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todos</SelectItem>
+            <SelectItem value="all">Todos</SelectItem>
             {statusOptions.map((opt) => (
               <SelectItem key={opt} value={opt}>
                 {opt}
