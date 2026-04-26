@@ -121,7 +121,7 @@ export default function FarolGestao() {
               <CardTitle className="text-sm font-medium">Ativos</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{metrics.active}</div>
+              <div className="text-2xl font-bold text-green-600">{metrics.ativo}</div>
             </CardContent>
           </Card>
           <Card>
@@ -129,7 +129,7 @@ export default function FarolGestao() {
               <CardTitle className="text-sm font-medium">Urgentes</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">{metrics.urgent}</div>
+              <div className="text-2xl font-bold text-red-600">{metrics.urgentes}</div>
             </CardContent>
           </Card>
           <Card>
@@ -137,7 +137,7 @@ export default function FarolGestao() {
               <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-600">{metrics.pending}</div>
+              <div className="text-2xl font-bold text-orange-600">{metrics.aguardando}</div>
             </CardContent>
           </Card>
           <Card>
@@ -145,7 +145,7 @@ export default function FarolGestao() {
               <CardTitle className="text-sm font-medium">Resolvidos</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{metrics.resolved}</div>
+              <div className="text-2xl font-bold text-blue-600">{metrics.resolvidos}</div>
             </CardContent>
           </Card>
         </div>
@@ -163,18 +163,22 @@ export default function FarolGestao() {
                 e.preventDefault();
                 const formData = new FormData(e.currentTarget);
                 createMutation.mutate({
-                  nome: formData.get("nome") as string,
+                  dataEntrada: formData.get("dataEntrada") as string,
+                  nomeEstudante: formData.get("nomeEstudante") as string,
                   tipoDemanda: formData.get("tipoDemanda") as string,
                   origem: formData.get("origem") as string,
                   situacao: (formData.get("situacao") as "Ativo" | "Inativo" | "Arquivado" | "Suspenso") || "Ativo",
                   status: (formData.get("status") as "Novo" | "Em acompanhamento" | "Aguardando retorno" | "Encaminhado" | "Resolvido" | "Encerrado") || "Novo",
-                  descricao: (formData.get("descricao") as string) || undefined,
+                  observacaoGeral: (formData.get("observacaoGeral") as string) || undefined,
                 });
               }}
               className="space-y-4"
             >
               <div className="grid grid-cols-2 gap-4">
-                <Input name="nome" placeholder="Nome do caso" required />
+                <Input type="date" name="dataEntrada" required />
+                <Input name="nomeEstudante" placeholder="Nome do estudante" required />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <Input name="tipoDemanda" placeholder="Tipo de demanda" required />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -197,8 +201,8 @@ export default function FarolGestao() {
                 </select>
               </div>
               <textarea
-                name="descricao"
-                placeholder="Descrição"
+                name="observacaoGeral"
+                placeholder="Observação Geral"
                 className="w-full p-2 border rounded"
                 rows={3}
               />
@@ -274,7 +278,7 @@ export default function FarolGestao() {
                         {caseItem.status}
                       </Badge>
                     </div>
-                    <p className="text-sm text-gray-600">{caseItem.nome}</p>
+                    <p className="text-sm text-gray-600">{caseItem.nomeEstudante}</p>
                     <p className="text-xs text-gray-500 mt-1">
                       Tipo: {caseItem.tipoDemanda} | Origem: {caseItem.origem}
                     </p>
@@ -315,8 +319,8 @@ export default function FarolGestao() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-gray-600">Nome</p>
-                <p className="font-semibold">{selectedCase.nome}</p>
+                <p className="text-sm text-gray-600">Estudante</p>
+                <p className="font-semibold">{selectedCase.nomeEstudante}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Tipo de Demanda</p>
@@ -328,13 +332,13 @@ export default function FarolGestao() {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Classificação</p>
-                <p className="font-semibold">{selectedCase.classificacao || "Não informada"}</p>
+                <p className="font-semibold">{selectedCase.classificacaoCaso || "Não informada"}</p>
               </div>
             </div>
-            {selectedCase.descricao && (
+            {selectedCase.observacaoGeral && (
               <div>
-                <p className="text-sm text-gray-600">Descrição</p>
-                <p className="text-sm">{selectedCase.descricao}</p>
+                <p className="text-sm text-gray-600">Observação Geral</p>
+                <p className="text-sm">{selectedCase.observacaoGeral}</p>
               </div>
             )}
             {selectedCase.history && selectedCase.history.length > 0 && (
@@ -343,7 +347,7 @@ export default function FarolGestao() {
                 <div className="space-y-1">
                   {selectedCase.history.map((h) => (
                     <p key={h.id} className="text-xs text-gray-600">
-                      {h.tipoAcao} - {h.createdByName}
+                      {h.actionType} - {h.createdByName}
                     </p>
                   ))}
                 </div>

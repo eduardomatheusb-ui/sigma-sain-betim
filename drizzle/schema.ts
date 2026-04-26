@@ -313,26 +313,34 @@ export type InsertMediatorStatusChangeHistory = typeof mediatorStatusChangeHisto
 export const farolCases = mysqlTable("farol_cases", {
   id: int("id").autoincrement().primaryKey(),
   numeroCaso: varchar("numeroCaso", { length: 50 }).notNull().unique(),
-  nome: varchar("nome", { length: 255 }).notNull(),
+  dataEntrada: date("dataEntrada").notNull(),
+  nomeEstudante: varchar("nomeEstudante", { length: 255 }).notNull(),
+  diagnostico: text("diagnostico"),
+  responsavel: varchar("responsavel", { length: 255 }),
+  telefone: varchar("telefone", { length: 20 }),
   escola: varchar("escola", { length: 255 }),
   schoolId: int("schoolId"),
-  regional: varchar("regional", { length: 255 }),
+  regional: varchar("regional", { length: 100 }),
   segmento: varchar("segmento", { length: 100 }),
-  responsavel: varchar("responsavel", { length: 255 }),
   tipoDemanda: varchar("tipoDemanda", { length: 100 }),
   origem: varchar("origem", { length: 100 }),
+  analiseConjunta: text("analiseConjunta"),
+  setorCraei: varchar("setorCraei", { length: 255 }),
+  profissionalResponsavelId: int("profissionalResponsavelId"),
+  coordenadorResponsavelId: int("coordenadorResponsavelId"),
   situacao: mysqlEnum("situacao", ["Ativo", "Inativo", "Arquivado", "Suspenso"]).default("Ativo").notNull(),
   status: mysqlEnum("status", ["Novo", "Em acompanhamento", "Aguardando retorno", "Encaminhado", "Resolvido", "Encerrado"]).default("Novo").notNull(),
-  classificacao: varchar("classificacao", { length: 100 }),
-  descricao: text("descricao"),
-  encaminhamentos: text("encaminhamentos"),
-  assignedTo: int("assignedTo"),
-  assignedToName: varchar("assignedToName", { length: 255 }),
+  classificacaoCaso: varchar("classificacaoCaso", { length: 100 }),
+  alerta: boolean("alerta").default(false),
+  observacaoGeral: text("observacaoGeral"),
+  driveFolderUrl: varchar("driveFolderUrl", { length: 500 }),
+  active: boolean("active").default(true).notNull(),
   createdBy: int("createdBy").notNull(),
   createdByName: varchar("createdByName", { length: 255 }).notNull(),
+  updatedBy: int("updatedBy"),
+  updatedByName: varchar("updatedByName", { length: 255 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-  dataEntrada: date("dataEntrada"),
   resolvedAt: timestamp("resolvedAt"),
   isDeleted: boolean("isDeleted").default(false).notNull(),
   deletedAt: timestamp("deletedAt"),
@@ -350,10 +358,13 @@ export const farolCaseHistory = mysqlTable("farol_case_history", {
   id: int("id").autoincrement().primaryKey(),
   caseId: int("caseId").notNull(),
   numeroCaso: varchar("numeroCaso", { length: 50 }).notNull(),
-  tipoAcao: varchar("tipoAcao", { length: 100 }).notNull(),
-  descricao: text("descricao"),
+  actionType: varchar("actionType", { length: 100 }).notNull(),
+  description: text("description"),
+  forwarding: text("forwarding"),
+  internalNote: text("internalNote"),
   createdBy: int("createdBy").notNull(),
   createdByName: varchar("createdByName", { length: 255 }).notNull(),
+  createdByRole: varchar("createdByRole", { length: 50 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -376,3 +387,43 @@ export const farolCaseMovements = mysqlTable("farol_case_movements", {
 
 export type FarolCaseMovement = typeof farolCaseMovements.$inferSelect;
 export type InsertFarolCaseMovement = typeof farolCaseMovements.$inferInsert;
+
+/**
+ * FarolAudit - Trilha de auditoria completa do Farol
+ */
+export const farolAudit = mysqlTable("farol_audit", {
+  id: int("id").autoincrement().primaryKey(),
+  caseId: int("caseId"),
+  numeroCaso: varchar("numeroCaso", { length: 50 }),
+  actionType: varchar("actionType", { length: 100 }).notNull(),
+  userId: int("userId").notNull(),
+  userName: varchar("userName", { length: 255 }).notNull(),
+  userRole: varchar("userRole", { length: 50 }).notNull(),
+  targetField: varchar("targetField", { length: 100 }),
+  oldValue: text("oldValue"),
+  newValue: text("newValue"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type FarolAudit = typeof farolAudit.$inferSelect;
+export type InsertFarolAudit = typeof farolAudit.$inferInsert;
+
+/**
+ * FarolAdvisors - Assessores do Farol
+ */
+export const farolAdvisors = mysqlTable("farol_advisors", {
+  id: int("id").autoincrement().primaryKey(),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  email: varchar("email", { length: 320 }),
+  regional: varchar("regional", { length: 100 }).notNull(),
+  schools: text("schools"), // JSON array of school IDs
+  role: mysqlEnum("role", ["admin", "coordinator", "advisor", "childhood_coordination", "viewer"]).default("advisor").notNull(),
+  active: boolean("active").default(true).notNull(),
+  createdBy: int("createdBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedBy: int("updatedBy"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type FarolAdvisor = typeof farolAdvisors.$inferSelect;
+export type InsertFarolAdvisor = typeof farolAdvisors.$inferInsert;

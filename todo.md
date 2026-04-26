@@ -492,3 +492,85 @@
 - [x] Corrigir todos os erros de TypeScript
 - [x] Rodar pnpm build e verificar
 - [x] Salvar checkpoint
+
+
+## Fase 32 — Melhoria Completa do Farol da Gestão (Especificações Institucionais)
+
+### 1. Schema Drizzle Expandido
+- [x] Adicionar campos completos ao schema: nomeEstudante, diagnostico, responsavel, telefone, segmento, tipoDemanda, origem, analiseConjunta, setorCraei, profissionalResponsavelId, coordenadorResponsavelId, classificacaoCaso, alerta, observacaoGeral, driveFolderUrl, regional, active
+- [x] Criar tabela de auditoria (farol_audit) com: id, caseId, numeroCaso, actionType, userId, userName, userRole, targetField, oldValue, newValue, createdAt
+- [x] Criar tabela de assessores (farol_advisors) com: id, nome, regional, schools[], role, active, createdAt, updatedAt
+- [x] Gerar e aplicar migration SQL
+
+### 2. Perfis e Permissões
+- [x] Implementar enum de roles: admin, coordinator, advisor, childhood_coordination, viewer
+- [x] Criar procedures com validação de escopo por perfil
+- [x] admin: acesso total ao Farol
+- [x] coordinator: acesso global, gerencia assessores
+- [x] advisor: acesso apenas a schools[] vinculadas
+- [x] childhood_coordination: acesso especial a creches/CIMs
+- [x] viewer: somente leitura no escopo
+
+### 3. Procedures tRPC com Validação
+- [x] listCases com filtro por perfil e escopo
+- [x] getCase com validação de acesso
+- [x] createCase com auditoria
+- [x] updateCase com auditoria e histórico
+- [x] deleteCase apenas para admin/coordinator (exclusão lógica)
+- [ ] listAdvisors, createAdvisor, updateAdvisor, deleteAdvisor
+- [ ] getAuditTrail para admin/coordinator
+- [ ] exportCaseToWord
+- [ ] exportCasesToExcel
+
+### 4. Dashboard Gerencial
+- [ ] Total de casos
+- [ ] Casos ativos
+- [ ] Casos urgentes
+- [ ] Casos aguardando retorno
+- [ ] Tempo médio de resolução
+- [ ] Gráfico por tipo de demanda
+- [ ] Gráfico por origem
+- [ ] Assessores com mais casos
+- [ ] Tempo de resposta
+- [ ] Casos sem movimentação recente
+- [ ] Últimas movimentações
+- [ ] Visibilidade por perfil (admin/coordinator: sim, advisor/childhood_coordination/viewer: não)
+
+### 5. Exportação Word Institucional
+- [ ] Implementar geração de Word com biblioteca docx
+- [ ] Cabeçalho com logo e timbrado institucional
+- [ ] Fonte Arial, corpo 12, espaçamento 1,5
+- [ ] Margens: superior 3cm, esquerda 3cm, inferior 2cm, direita 2cm
+- [ ] Rodapé com protocolo, data e paginação
+- [ ] Campos vazios como "não informado"
+- [ ] Nome do arquivo: caso-[numeroCaso].docx
+
+### 6. Auditoria Completa
+- [ ] Registrar criação, edição, exclusão, reatribuição, mudança de vínculo
+- [ ] Registrar mudança de permissão e geração de protocolo
+- [ ] Criar dashboard de auditoria para admin/coordinator
+- [ ] Mostrar: usuário, perfil, ação, data/hora, diff resumido
+
+### 7. Padronização de Texto
+- [ ] Corrigir acentuação integralmente no Farol
+- [ ] Padronizar regionais: Alterosas, Centro, Citrolândia, Icaivera, Imbiruçu, Norte, Petrovale, PTB, Terezópolis, Vianópolis
+- [ ] Padronizar unidades: Escola Municipal, CIM, Rede Parceira
+- [ ] Usar "CIM" sempre em maiúsculas
+- [ ] Corrigir títulos, subtítulos, botões, mensagens
+
+### 8. Manual/Documentação
+- [ ] Criar documento com capa, sumário, seções organizadas
+- [ ] Explicar cada módulo e atribuições por perfil
+- [ ] Passo a passo de uso
+- [ ] Linguagem institucional
+- [ ] Revisão completa de acentuação
+
+### 9. Testes e Validação
+- [ ] Testar permissões por perfil
+- [ ] Testar exclusão lógica de casos
+- [ ] Testar auditoria
+- [ ] Testar exportação Word
+- [ ] Testar exportação Excel
+- [ ] Verificar nenhuma regressão no resto do sistema
+- [ ] Rodar pnpm test
+- [ ] Salvar checkpoint
