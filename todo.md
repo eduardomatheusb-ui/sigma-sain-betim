@@ -518,23 +518,23 @@
 - [x] updateCase com auditoria e histórico
 - [x] deleteCase apenas para admin/coordinator (exclusão lógica)
 - [ ] listAdvisors, createAdvisor, updateAdvisor, deleteAdvisor
-- [ ] getAuditTrail para admin/coordinator
-- [ ] exportCaseToWord
-- [ ] exportCasesToExcel
+- [x] getAuditTrail para admin/coordinator
+- [x] exportCaseToWord
+- [x] exportCasesToExcel
 
 ### 4. Dashboard Gerencial
-- [ ] Total de casos
-- [ ] Casos ativos
-- [ ] Casos urgentes
-- [ ] Casos aguardando retorno
-- [ ] Tempo médio de resolução
-- [ ] Gráfico por tipo de demanda
-- [ ] Gráfico por origem
+- [x] Total de casos
+- [x] Casos ativos
+- [x] Casos urgentes
+- [x] Casos aguardando retorno
+- [x] Tempo médio de resolução
+- [x] Gráfico por tipo de demanda
+- [x] Gráfico por origem
 - [ ] Assessores com mais casos
 - [ ] Tempo de resposta
-- [ ] Casos sem movimentação recente
-- [ ] Últimas movimentações
-- [ ] Visibilidade por perfil (admin/coordinator: sim, advisor/childhood_coordination/viewer: não)
+- [x] Casos sem movimentação recente
+- [x] Últimas movimentações
+- [x] Visibilidade por perfil (admin/coordinator: sim, advisor/childhood_coordination/viewer: não)
 
 ### 5. Exportação Word Institucional
 - [ ] Implementar geração de Word com biblioteca docx

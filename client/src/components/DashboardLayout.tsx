@@ -55,6 +55,7 @@ const adminMenuItems = [
   { icon: BarChart3, label: "Relatórios", path: "/relatorios" },
   { icon: Shield, label: "Usuários", path: "/usuarios" },
   { icon: Briefcase, label: "Farol da Gestão", path: "/farol" },
+  { icon: BarChart3, label: "Dashboard Farol", path: "/farol/dashboard" },
 ];
 
 const schoolMenuItems = [

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { exportCaseToWord, exportCasesToExcel } from "@/lib/farol-export";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -151,11 +152,71 @@ export default function FarolGestao() {
         </div>
       )}
 
+      {/* Botões de Exportação */}
+      <div className="flex gap-2">
+        <Button
+          onClick={() => {
+            if (cases && cases.length > 0) {
+              exportCasesToExcel(cases as any);
+            }
+          }}
+          variant="outline"
+          disabled={!cases || cases.length === 0}
+        >
+          📊 Exportar Excel
+        </Button>
+      </div>
+
+      {/* Tabela de Casos */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Casos Cadastrados</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {cases && cases.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2">Protocolo</th>
+                    <th className="text-left py-2">Estudante</th>
+                    <th className="text-left py-2">Tipo Demanda</th>
+                    <th className="text-left py-2">Status</th>
+                    <th className="text-left py-2">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cases.map((c: any) => (
+                    <tr key={c.id} className="border-b hover:bg-gray-50">
+                      <td className="py-2 font-mono text-xs">{c.numeroCaso}</td>
+                      <td className="py-2">{c.nomeEstudante}</td>
+                      <td className="py-2">{c.tipoDemanda}</td>
+                      <td className="py-2">{c.status}</td>
+                      <td className="py-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => exportCaseToWord(c as any)}
+                        >
+                          📋 Word
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-8">Nenhum caso cadastrado</p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Formulário de Novo Caso */}
       {showForm && (
         <Card>
           <CardHeader>
-            <CardTitle>Criar Novo Caso</CardTitle>
+            <CardTitle>Novo Caso</CardTitle>
           </CardHeader>
           <CardContent>
             <form
@@ -206,15 +267,11 @@ export default function FarolGestao() {
                 className="w-full p-2 border rounded"
                 rows={3}
               />
-              <div className="flex gap-2">
+               <div className="flex gap-2">
                 <Button type="submit" disabled={createMutation.isPending}>
                   {createMutation.isPending ? "Criando..." : "Criar Caso"}
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowForm(false)}
-                >
+                <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
                   Cancelar
                 </Button>
               </div>

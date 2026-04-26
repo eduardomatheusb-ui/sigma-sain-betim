@@ -381,4 +381,32 @@ export const farolRouter = router({
         return null;
       }
     }),
+
+  getAuditTrail: protectedProcedure
+    .input(z.object({ caseId: z.number().optional(), limit: z.number().default(50) }))
+    .query(async ({ ctx, input }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Permissão negada" });
+      }
+      
+      const db = await getDb();
+      if (!db) return [];
+      
+      try {
+        let conditions: any[] = [];
+        if (input.caseId) {
+          conditions.push(eq(farolAudit.caseId, input.caseId));
+        }
+        
+        const audit = await db.select().from(farolAudit)
+          .where(conditions.length > 0 ? and(...conditions) : undefined)
+          .orderBy(desc(farolAudit.createdAt))
+          .limit(input.limit);
+        
+        return audit;
+      } catch (error) {
+        console.error("[Farol] Error getting audit trail:", error);
+        return [];
+      }
+    }),
 });
