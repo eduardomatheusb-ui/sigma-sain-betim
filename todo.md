@@ -574,3 +574,66 @@
 - [ ] Verificar nenhuma regressão no resto do sistema
 - [ ] Rodar pnpm test
 - [ ] Salvar checkpoint
+
+
+## Fase 33 — Módulo de Assessores do Farol da Gestão
+
+### 1. Schema e Banco de Dados
+- [ ] Verificar se tabela farol_advisors existe com todos os 15 campos
+- [ ] Campos obrigatórios: id, nome, email, telefone, cargo, areaAtuacao, regional, ativo, createdAt, updatedAt, createdBy, updatedBy, isDeleted, deletedAt, deletedBy
+- [ ] Criar migration SQL se necessário
+- [ ] Aplicar migration ao banco
+
+### 2. Procedures tRPC
+- [ ] Implementar farol.listAdvisors (filtro por regional, nome, areaAtuacao, status)
+- [ ] Implementar farol.getAdvisor (buscar um assessor por ID)
+- [ ] Implementar farol.createAdvisor (criar novo assessor com auditoria)
+- [ ] Implementar farol.updateAdvisor (editar assessor com auditoria)
+- [ ] Implementar farol.deleteAdvisor (desativar/reativar assessor com auditoria)
+- [ ] Adicionar validações de permissão (apenas admin)
+
+### 3. Interface React
+- [ ] Criar página FarolAssessores.tsx com CRUD completo
+- [ ] Listar assessores com tabela responsiva
+- [ ] Formulário de novo assessor
+- [ ] Formulário de edição de assessor
+- [ ] Filtros por nome, regional, área de atuação, status
+- [ ] Botões de ação: editar, desativar, reativar, deletar
+- [ ] Validação de campos obrigatórios
+- [ ] Mensagens de sucesso/erro
+
+### 4. Integração com Casos
+- [ ] Adicionar campo advisorId no formulário de novo caso
+- [ ] Adicionar campo advisorId no formulário de edição de caso
+- [ ] Select de assessores (apenas ativos)
+- [ ] Salvar advisorId e advisorName no banco
+- [ ] Exibir assessor responsável na tabela de casos
+
+### 5. Auditoria
+- [ ] Registrar criação de assessor em farol_audit
+- [ ] Registrar edição de assessor em farol_audit
+- [ ] Registrar desativação/reativação em farol_audit
+- [ ] Registrar deleção em farol_audit
+- [ ] Incluir userId, userName, userRole, actionType, targetField, oldValue, newValue
+
+### 6. Rotas e Menu
+- [ ] Adicionar rota /farol/assessores em App.tsx
+- [ ] Proteger rota com AdminRoute
+- [ ] Adicionar menu "Assessores" no DashboardLayout com ícone Users
+- [ ] Integrar no menu lateral do Farol
+
+### 7. Validações Finais
+- [ ] Rodar pnpm check
+- [ ] Rodar pnpm test
+- [ ] Rodar pnpm build
+- [ ] Verificar TypeScript: 0 erros
+- [ ] Verificar testes: 46+ passando
+
+### 8. Relatório Final
+- [ ] Listar arquivos alterados
+- [ ] Listar tabelas criadas/alteradas
+- [ ] Listar procedures criadas
+- [ ] Listar rotas criadas
+- [ ] Resultado do pnpm check
+- [ ] Resultado do pnpm test
+- [ ] Resultado do pnpm build

@@ -411,18 +411,28 @@ export type InsertFarolAudit = typeof farolAudit.$inferInsert;
 /**
  * FarolAdvisors - Assessores do Farol
  */
+
+
 export const farolAdvisors = mysqlTable("farol_advisors", {
   id: int("id").autoincrement().primaryKey(),
   nome: varchar("nome", { length: 255 }).notNull(),
-  email: varchar("email", { length: 320 }),
+  email: varchar("email", { length: 320 }).notNull(),
+  telefone: varchar("telefone", { length: 20 }).notNull(),
+  cargo: varchar("cargo", { length: 100 }).notNull(),
+  areaAtuacao: varchar("areaAtuacao", { length: 100 }).notNull(),
   regional: varchar("regional", { length: 100 }).notNull(),
-  schools: text("schools"), // JSON array of school IDs
+  schools: text("schools"),
   role: mysqlEnum("role", ["admin", "coordinator", "advisor", "childhood_coordination", "viewer"]).default("advisor").notNull(),
   active: boolean("active").default(true).notNull(),
   createdBy: int("createdBy").notNull(),
+  createdByName: varchar("createdByName", { length: 255 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedBy: int("updatedBy"),
+  updatedByName: varchar("updatedByName", { length: 255 }),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  isDeleted: boolean("isDeleted").default(false).notNull(),
+  deletedAt: timestamp("deletedAt"),
+  deletedBy: int("deletedBy"),
 });
 
 export type FarolAdvisor = typeof farolAdvisors.$inferSelect;
