@@ -325,6 +325,24 @@ export const appRouter = router({
       return await getSchools();
     }),
 
+    // Lista de escolas que tem alunos cadastrados (para Mediators.tsx)
+    listWithStudents: protectedProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      try {
+        // Obter todas as escolas que tem alunos (demands) cadastrados
+        const schoolsWithStudents = await db
+          .selectDistinct({ id: demands.schoolId, name: schools.name })
+          .from(demands)
+          .leftJoin(schools, eq(demands.schoolId, schools.id))
+          .orderBy(schools.name);
+        return schoolsWithStudents.filter(s => s.id !== null);
+      } catch (error) {
+        console.error("[Schools] Error listing with students:", error);
+        return [];
+      }
+    }),
+
     // Dados detalhados de uma escola (para Schools.tsx)
     detail: protectedProcedure
       .input(z.object({ id: z.number() }))

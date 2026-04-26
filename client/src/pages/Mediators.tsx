@@ -86,7 +86,7 @@ export default function Mediators() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   const { data: mediatorsData = [], isLoading } = trpc.mediators.listBySchool.useQuery();
-  const { data: schoolsData = [] } = trpc.schools.list.useQuery();
+  const { data: schoolsData = [] } = trpc.schools.listWithStudents.useQuery();
 
   const createMutation = trpc.mediators.create.useMutation({
     onSuccess: () => {

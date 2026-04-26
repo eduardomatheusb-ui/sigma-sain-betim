@@ -465,3 +465,14 @@
 - [x] Corrigir: Não permitir que school_user altere schoolId no payload
 - [x] Testar: Verificar que school_user não consegue alterar escola
 - [x] Rodar testes e salvar checkpoint
+
+
+## Fase 30 — Sincronização de Escolas entre Alunos e Mediadores
+
+- [x] Investigar: lista de escolas em Mediadores deve mostrar apenas escolas com alunos cadastrados
+- [x] Implementar: criar procedure backend que retorna escolas com alunos (distinct schoolId de demands)
+- [x] Implementar: usar essa lista em Mediators.tsx para filtrar escolas disponíveis
+- [x] Testar: verificar que escolas sem alunos não aparecem na lista
+- [x] Testar: verificar que admin vê todas as escolas com alunos
+- [x] Testar: verificar que school_user vê apenas sua escola
+- [x] Rodar testes e salvar checkpoint
