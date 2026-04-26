@@ -327,6 +327,8 @@ export const farolCases = mysqlTable("farol_cases", {
   analiseConjunta: text("analiseConjunta"),
   setorCraei: varchar("setorCraei", { length: 255 }),
   profissionalResponsavelId: int("profissionalResponsavelId"),
+  advisorName: varchar("advisorName", { length: 255 }),
+  advisorId: int("advisorId"),
   coordenadorResponsavelId: int("coordenadorResponsavelId"),
   situacao: mysqlEnum("situacao", ["Ativo", "Inativo", "Arquivado", "Suspenso"]).default("Ativo").notNull(),
   status: mysqlEnum("status", ["Novo", "Em acompanhamento", "Aguardando retorno", "Encaminhado", "Resolvido", "Encerrado"]).default("Novo").notNull(),

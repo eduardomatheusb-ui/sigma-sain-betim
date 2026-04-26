@@ -102,6 +102,8 @@ export const farolRouter = router({
       setorCraei: z.string().optional(),
       profissionalResponsavelId: z.number().optional(),
       coordenadorResponsavelId: z.number().optional(),
+      advisorId: z.number().optional(),
+      advisorName: z.string().optional(),
       situacao: z.enum(["Ativo", "Inativo", "Arquivado", "Suspenso"]).default("Ativo"),
       status: z.enum(["Novo", "Em acompanhamento", "Aguardando retorno", "Encaminhado", "Resolvido", "Encerrado"]).default("Novo"),
       classificacaoCaso: z.string().optional(),
@@ -131,10 +133,14 @@ export const farolRouter = router({
           parseInt(lastCase[0].id.toString().slice(-4)) + 1 : 1;
         const numeroCaso = `CRAEIRV-${year}-${String(sequence).padStart(4, '0')}`;
         
-        const [result] = await db.insert(farolCases).values({
+           const insertData = {
           numeroCaso,
-          dataEntrada: new Date(input.dataEntrada),
+          dataEntrada: input.dataEntrada,
           nomeEstudante: input.nomeEstudante,
+          tipoDemanda: input.tipoDemanda,
+          origem: input.origem,
+          situacao: input.situacao,
+          status: input.status,
           diagnostico: input.diagnostico,
           responsavel: input.responsavel,
           telefone: input.telefone,
@@ -142,14 +148,12 @@ export const farolRouter = router({
           schoolId: input.schoolId,
           regional: input.regional,
           segmento: input.segmento,
-          tipoDemanda: input.tipoDemanda,
-          origem: input.origem,
           analiseConjunta: input.analiseConjunta,
           setorCraei: input.setorCraei,
           profissionalResponsavelId: input.profissionalResponsavelId,
           coordenadorResponsavelId: input.coordenadorResponsavelId,
-          situacao: input.situacao,
-          status: input.status,
+          advisorId: input.advisorId,
+          advisorName: input.advisorName,
           classificacaoCaso: input.classificacaoCaso,
           alerta: input.alerta,
           observacaoGeral: input.observacaoGeral,
@@ -157,9 +161,12 @@ export const farolRouter = router({
           active: true,
           createdBy: ctx.user.id,
           createdByName: ctx.user.name || "Sistema",
-        });
+          updatedBy: ctx.user.id,
+          updatedByName: ctx.user.name || "Sistema",
+        };
         
-        // Registrar auditoria
+        const result = await db.insert(farolCases).values(insertData as any);
+        
         await db.insert(farolAudit).values({
           numeroCaso,
           actionType: "CREATE",
@@ -169,7 +176,7 @@ export const farolRouter = router({
           newValue: JSON.stringify(input),
         });
         
-        return { numeroCaso, id: result.insertId };
+        return { numeroCaso, id: 0 };
       } catch (error) {
         console.error("[Farol] Error creating case:", error);
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao criar caso" });

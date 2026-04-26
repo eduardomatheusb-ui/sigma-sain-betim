@@ -29,6 +29,7 @@ export default function FarolGestao() {
     { enabled: !!selectedCaseId }
   );
 
+  const { data: advisors = [] } = trpc.farol.listAdvisors.useQuery({ ativo: true });
   const { data: metrics } = trpc.farol.metrics.useQuery();
 
   // Mutations
@@ -231,6 +232,8 @@ export default function FarolGestao() {
                   situacao: (formData.get("situacao") as "Ativo" | "Inativo" | "Arquivado" | "Suspenso") || "Ativo",
                   status: (formData.get("status") as "Novo" | "Em acompanhamento" | "Aguardando retorno" | "Encaminhado" | "Resolvido" | "Encerrado") || "Novo",
                   observacaoGeral: (formData.get("observacaoGeral") as string) || undefined,
+                  advisorId: formData.get("advisorId") ? parseInt(formData.get("advisorId") as string) : undefined,
+                  advisorName: formData.get("advisorName") as string | undefined,
                 });
               }}
               className="space-y-4"
@@ -257,6 +260,14 @@ export default function FarolGestao() {
                   {statusOptions.map((opt) => (
                     <option key={opt} value={opt}>
                       {opt}
+                    </option>
+                  ))}
+                </select>
+                <select name="advisorId" className="w-full p-2 border rounded">
+                  <option value="">Selecione um assessor</option>
+                  {advisors.map((adv: any) => (
+                    <option key={adv.id} value={adv.id}>
+                      {adv.nome}
                     </option>
                   ))}
                 </select>
