@@ -63,9 +63,10 @@ export const farolRouter = router({
         if (input?.classificacao && input.classificacao !== "todos") {
           conditions.push(eq(farolCases.classificacaoCaso, input.classificacao));
         }
-        if (input?.advisorId && input.advisorId > 0) {
-          conditions.push(eq(farolCases.advisorId, input.advisorId));
-        }
+        // advisorId filter removed - column doesn't exist
+        // if (input?.advisorId && input.advisorId > 0) {
+        //   conditions.push(eq(farolCases.advisorId, input.advisorId));
+        // }
         if (input?.dataInicio) {
           const startDate = new Date(input.dataInicio);
           conditions.push(sql`${farolCases.dataEntrada} >= ${startDate}`);
