@@ -24,6 +24,11 @@ interface FarolCase {
   situacao: "Ativo" | "Inativo" | "Arquivado" | "Suspenso";
   status: "Novo" | "Em acompanhamento" | "Aguardando retorno" | "Encaminhado" | "Resolvido" | "Encerrado";
   escola?: string;
+  schoolId?: number;
+  idade?: number;
+  advisorId?: number;
+  advisorName?: string;
+  encaminhamentos?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -189,16 +194,22 @@ export function exportCasesToExcel(cases: FarolCase[]): void {
     "Protocolo": c.numeroCaso,
     "Data Entrada": new Date(c.dataEntrada).toLocaleDateString("pt-BR"),
     "Estudante": c.nomeEstudante,
-    "Tipo Demanda": c.tipoDemanda,
-    "Origem": c.origem,
-    "Status": c.status,
-    "Situação": c.situacao,
+    "Idade": c.idade || "-",
+    "Segmento": c.segmento || "-",
     "Escola": c.escola || "Não informado",
     "Regional": c.regional || "Não informado",
-    "Responsável": c.responsavel || "Não informado",
+    "Tipo Demanda": c.tipoDemanda,
+    "Origem": c.origem,
+    "Classificação": c.classificacaoCaso || "-",
+    "Situação": c.situacao,
+    "Status": c.status,
+    "Responsável": c.advisorName || c.responsavel || "Não informado",
     "Telefone": c.telefone || "Não informado",
     "Diagnóstico": c.diagnostico || "Não informado",
+    "Análise Conjunta": c.analiseConjunta || "Não informado",
+    "Encaminhamentos": c.encaminhamentos || "Não informado",
     "Observações": c.observacaoGeral || "Não informado",
+    "Última Atualização": new Date(c.updatedAt).toLocaleDateString("pt-BR"),
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(data);
@@ -210,16 +221,22 @@ export function exportCasesToExcel(cases: FarolCase[]): void {
     { wch: 18 }, // Protocolo
     { wch: 12 }, // Data Entrada
     { wch: 25 }, // Estudante
-    { wch: 20 }, // Tipo Demanda
-    { wch: 20 }, // Origem
-    { wch: 20 }, // Status
-    { wch: 15 }, // Situação
+    { wch: 8 },  // Idade
+    { wch: 15 }, // Segmento
     { wch: 25 }, // Escola
     { wch: 15 }, // Regional
+    { wch: 20 }, // Tipo Demanda
+    { wch: 20 }, // Origem
+    { wch: 15 }, // Classificação
+    { wch: 15 }, // Situação
+    { wch: 20 }, // Status
     { wch: 20 }, // Responsável
     { wch: 15 }, // Telefone
     { wch: 30 }, // Diagnóstico
+    { wch: 30 }, // Análise Conjunta
+    { wch: 30 }, // Encaminhamentos
     { wch: 40 }, // Observações
+    { wch: 15 }, // Última Atualização
   ];
   worksheet["!cols"] = colWidths;
 

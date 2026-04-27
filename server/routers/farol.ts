@@ -14,9 +14,17 @@ export const farolRouter = router({
   listCases: protectedProcedure
     .input(z.object({
       search: z.string().optional(),
+      protocolo: z.string().optional(),
       situacao: z.string().optional(),
       status: z.string().optional(),
       regional: z.string().optional(),
+      schoolId: z.number().optional(),
+      classificacao: z.string().optional(),
+      advisorId: z.number().optional(),
+      dataInicio: z.string().optional(),
+      dataFim: z.string().optional(),
+      ordenacao: z.string().optional(),
+      ordem: z.enum(["asc", "desc"]).optional(),
     }).optional())
     .query(async ({ ctx, input }) => {
       const db = await getDb();
@@ -37,19 +45,57 @@ export const farolRouter = router({
         if (input?.search) {
           conditions.push(like(farolCases.nomeEstudante, `%${input.search}%`));
         }
-        if (input?.situacao && input.situacao !== "Todas") {
+        if (input?.protocolo) {
+          conditions.push(like(farolCases.numeroCaso, `%${input.protocolo}%`));
+        }
+        if (input?.situacao && input.situacao !== "todos") {
           conditions.push(eq(farolCases.situacao, input.situacao as any));
         }
-        if (input?.status && input.status !== "Todos") {
+        if (input?.status && input.status !== "todos") {
           conditions.push(eq(farolCases.status, input.status as any));
         }
-        if (input?.regional && input.regional !== "Todas") {
+        if (input?.regional && input.regional !== "todos") {
           conditions.push(eq(farolCases.regional, input.regional));
+        }
+        if (input?.schoolId && input.schoolId > 0) {
+          conditions.push(eq(farolCases.schoolId, input.schoolId));
+        }
+        if (input?.classificacao && input.classificacao !== "todos") {
+          conditions.push(eq(farolCases.classificacaoCaso, input.classificacao));
+        }
+        if (input?.advisorId && input.advisorId > 0) {
+          conditions.push(eq(farolCases.advisorId, input.advisorId));
+        }
+        if (input?.dataInicio) {
+          const startDate = new Date(input.dataInicio);
+          conditions.push(sql`${farolCases.dataEntrada} >= ${startDate}`);
+        }
+        if (input?.dataFim) {
+          const endDate = new Date(input.dataFim);
+          endDate.setHours(23, 59, 59, 999);
+          conditions.push(sql`${farolCases.dataEntrada} <= ${endDate}`);
+        }
+        
+        // Definir ordenacao
+        let orderByClause: any = desc(farolCases.updatedAt);
+        if (input?.ordenacao) {
+          const fieldMap: Record<string, any> = {
+            updatedAt: farolCases.updatedAt,
+            createdAt: farolCases.createdAt,
+            nomeEstudante: farolCases.nomeEstudante,
+            numeroCaso: farolCases.numeroCaso,
+            classificacaoCaso: farolCases.classificacaoCaso,
+            status: farolCases.status,
+          };
+          const field = fieldMap[input.ordenacao];
+          if (field) {
+            orderByClause = input.ordem === "asc" ? asc(field) : desc(field);
+          }
         }
         
         const cases = await db.select().from(farolCases)
           .where(and(...conditions))
-          .orderBy(desc(farolCases.createdAt));
+          .orderBy(orderByClause);
         
         return cases;
       } catch (error) {

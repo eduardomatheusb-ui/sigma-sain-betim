@@ -576,58 +576,58 @@
 - [ ] Salvar checkpoint
 
 
-## Fase 33 — Módulo de Assessores do Farol da Gestão
+## Fase 33 — Módulo de Assessores do Farol da Gestão (PARCIALMENTE COMPLETO)
 
 ### 1. Schema e Banco de Dados
-- [ ] Verificar se tabela farol_advisors existe com todos os 15 campos
-- [ ] Campos obrigatórios: id, nome, email, telefone, cargo, areaAtuacao, regional, ativo, createdAt, updatedAt, createdBy, updatedBy, isDeleted, deletedAt, deletedBy
-- [ ] Criar migration SQL se necessário
-- [ ] Aplicar migration ao banco
+- [x] Verificar se tabela farol_advisors existe com todos os 15 campos
+- [x] Campos obrigatórios: id, nome, email, telefone, cargo, areaAtuacao, regional, ativo, createdAt, updatedAt, createdBy, updatedBy, isDeleted, deletedAt, deletedBy
+- [x] Criar migration SQL se necessário
+- [x] Aplicar migration ao banco
 
 ### 2. Procedures tRPC
-- [ ] Implementar farol.listAdvisors (filtro por regional, nome, areaAtuacao, status)
-- [ ] Implementar farol.getAdvisor (buscar um assessor por ID)
-- [ ] Implementar farol.createAdvisor (criar novo assessor com auditoria)
-- [ ] Implementar farol.updateAdvisor (editar assessor com auditoria)
-- [ ] Implementar farol.deleteAdvisor (desativar/reativar assessor com auditoria)
-- [ ] Adicionar validações de permissão (apenas admin)
+- [x] Implementar farol.listAdvisors (filtro por regional, nome, areaAtuacao, status)
+- [x] Implementar farol.getAdvisor (buscar um assessor por ID)
+- [x] Implementar farol.createAdvisor (criar novo assessor com auditoria)
+- [x] Implementar farol.updateAdvisor (editar assessor com auditoria)
+- [x] Implementar farol.deleteAdvisor (desativar/reativar assessor com auditoria)
+- [x] Adicionar validações de permissão (apenas admin)
 
 ### 3. Interface React
-- [ ] Criar página FarolAssessores.tsx com CRUD completo
-- [ ] Listar assessores com tabela responsiva
-- [ ] Formulário de novo assessor
-- [ ] Formulário de edição de assessor
-- [ ] Filtros por nome, regional, área de atuação, status
-- [ ] Botões de ação: editar, desativar, reativar, deletar
-- [ ] Validação de campos obrigatórios
-- [ ] Mensagens de sucesso/erro
+- [x] Criar página FarolAssessores.tsx com CRUD completo
+- [x] Listar assessores com tabela responsiva
+- [x] Formulário de novo assessor
+- [x] Formulário de edição de assessor
+- [x] Filtros por nome, regional, área de atuação, status
+- [x] Botões de ação: editar, desativar, reativar, deletar
+- [x] Validação de campos obrigatórios
+- [x] Mensagens de sucesso/erro
 
 ### 4. Integração com Casos
-- [ ] Adicionar campo advisorId no formulário de novo caso
-- [ ] Adicionar campo advisorId no formulário de edição de caso
-- [ ] Select de assessores (apenas ativos)
-- [ ] Salvar advisorId e advisorName no banco
+- [x] Adicionar campo advisorId no formulário de novo caso
+- [x] Adicionar campo advisorId no formulário de edição de caso
+- [x] Select de assessores (apenas ativos)
+- [x] Salvar advisorId e advisorName no banco
 - [ ] Exibir assessor responsável na tabela de casos
 
 ### 5. Auditoria
-- [ ] Registrar criação de assessor em farol_audit
-- [ ] Registrar edição de assessor em farol_audit
-- [ ] Registrar desativação/reativação em farol_audit
-- [ ] Registrar deleção em farol_audit
-- [ ] Incluir userId, userName, userRole, actionType, targetField, oldValue, newValue
+- [x] Registrar criação de assessor em farol_audit
+- [x] Registrar edição de assessor em farol_audit
+- [x] Registrar desativação/reatvação em farol_audit
+- [x] Registrar deleção em farol_audit
+- [x] Incluir userId, userName, userRole, actionType, targetField, oldValue, newValue
 
 ### 6. Rotas e Menu
-- [ ] Adicionar rota /farol/assessores em App.tsx
-- [ ] Proteger rota com AdminRoute
-- [ ] Adicionar menu "Assessores" no DashboardLayout com ícone Users
-- [ ] Integrar no menu lateral do Farol
+- [x] Adicionar rota /farol/assessores em App.tsx
+- [x] Proteger rota com AdminRoute
+- [x] Adicionar menu "Assessores" no DashboardLayout com ícone Users
+- [x] Integrar no menu lateral do Farol
 
 ### 7. Validações Finais
-- [ ] Rodar pnpm check
-- [ ] Rodar pnpm test
-- [ ] Rodar pnpm build
-- [ ] Verificar TypeScript: 0 erros
-- [ ] Verificar testes: 46+ passando
+- [x] Rodar pnpm check
+- [x] Rodar pnpm test
+- [x] Rodar pnpm build
+- [x] Verificar TypeScript: 0 erros
+- [x] Verificar testes: 46+ passando
 
 ### 8. Relatório Final
 - [ ] Listar arquivos alterados
@@ -637,3 +637,121 @@
 - [ ] Resultado do pnpm check
 - [ ] Resultado do pnpm test
 - [ ] Resultado do pnpm build
+
+
+## Fase 34 — Paridade Funcional da Tela de Casos do Farol (Sistema Antigo)
+
+### 1. Exibir Assessor Responsável na Tabela
+- [ ] Adicionar coluna "Responsável" na tabela de casos
+- [ ] Exibir advisorName quando existir
+- [ ] Fallback para responsibleName ou campo legado equivalente
+- [ ] Exibir "Não informado" quando não houver responsável
+- [ ] Garantir compatibilidade com casos antigos sem advisorId
+
+### 2. Ajustar Coluna de Ações
+- [ ] Adicionar coluna "Ações" com botões claros
+- [ ] Botão "Ver detalhes" com ícone e texto
+- [ ] Botão "Editar" com ícone e texto
+- [ ] Botão "Registrar movimentação" com ícone e texto
+- [ ] Botão "Exportar caso" (se exportação individual existir)
+- [ ] Botão "Arquivar/Excluir" apenas para admin
+- [ ] Adicionar tooltips em todos os botões
+- [ ] Evitar ícones sem texto
+
+### 3. Filtros Avançados Completos
+- [ ] Implementar busca geral por nome, escola ou protocolo
+- [ ] Filtro por número do caso/protocolo
+- [ ] Filtro por regional (com opção "Todas as regionais")
+- [ ] Filtro por escola (com opção "Todas as escolas")
+- [ ] Filtro por situação (com opção "Todas as situações")
+- [ ] Filtro por status (com opção "Todos os status")
+- [ ] Filtro por classificação (com opção "Todas as classificações")
+- [ ] Filtro por profissional/responsável (com opção "Todos os profissionais")
+- [ ] Filtro por período inicial (data)
+- [ ] Filtro por período final (data)
+- [ ] Ordenação por: atualizado em, criado em, nome, nº do caso, classificação, status
+- [ ] Ordem crescente/decrescente
+- [ ] Botão "Limpar filtros"
+- [ ] Usar valores reais em SelectItem (todos, todas, nenhum, nao_informado) — nunca value=""
+- [ ] Padronizar placeholders em português
+
+### 4. Revisar Formulário de Casos
+- [ ] Campo "Nº do Caso" bloqueado com texto "Gerado automaticamente ao salvar"
+- [ ] Campo "Nome" obrigatório
+- [ ] Campo "Idade" numérico
+- [ ] Campo "Escola" como select/autocomplete (com dados reais do SIGMA)
+- [ ] Campo "Regional" preenchido automaticamente ao selecionar escola
+- [ ] Campo "Segmento" (enum: creche, pré-escolar, fundamental, médio)
+- [ ] Campo "Situação" (enum: aberto, em andamento, resolvido, arquivado)
+- [ ] Campo "Status" (enum: novo, em análise, aguardando, urgente, resolvido)
+- [ ] Campo "Classificação" (enum: baixa, média, alta, crítica)
+- [ ] Campo "Tipo de demanda" (enum: educacional, social, saúde, outro)
+- [ ] Campo "Origem" (enum: escola, família, comunidade, encaminhamento)
+- [ ] Campo "Assessor responsável" (select de assessores ativos)
+- [ ] Campo "Observação geral" (textarea)
+- [ ] Campo "Encaminhamentos" (textarea)
+- [ ] Organizar em blocos: Identificação, Dados do Estudante, Escola/Território, Classificação, Responsável, Observações
+- [ ] Salvar advisorId e advisorName ao selecionar assessor
+- [ ] Garantir compatibilidade com casos antigos sem advisorId
+
+### 5. Exportação Excel com Filtros e Histórico
+- [ ] Botão "Exportar Excel" na tabela de casos
+- [ ] Checkbox "Incluir histórico consolidado"
+- [ ] Exportar listagem conforme filtros aplicados
+- [ ] Se histórico marcado: incluir movimentações/histórico no arquivo
+- [ ] Se histórico não marcado: exportar apenas dados principais
+- [ ] Manter arquivo organizado e legível
+- [ ] Testar com e sem histórico
+
+### 6. Histórico e Movimentações
+- [ ] Garantir que tela permite registrar movimentação
+- [ ] Garantir que tela permite visualizar histórico
+- [ ] Salvar usuário, data, hora e descrição da movimentação
+- [ ] Registrar alteração de assessor responsável no histórico/auditoria
+
+### 7. Dados do Sistema Antigo
+- [ ] Verificar se registros são dados reais, mockados, seed ou persistidos
+- [ ] Não migrar dados fictícios para produção
+- [ ] Manter dados de exemplo apenas em seed/teste
+- [ ] Informar no relatório final
+
+### 8. Validação Manual Obrigatória
+- [ ] Abrir tela de Casos
+- [ ] Criar novo caso
+- [ ] Editar caso existente
+- [ ] Listar casos
+- [ ] Filtrar por nome
+- [ ] Filtrar por protocolo
+- [ ] Filtrar por regional
+- [ ] Filtrar por escola
+- [ ] Filtrar por situação
+- [ ] Filtrar por status
+- [ ] Filtrar por classificação
+- [ ] Filtrar por profissional/responsável
+- [ ] Filtrar por período
+- [ ] Ordenar resultados
+- [ ] Limpar filtros
+- [ ] Registrar movimentação
+- [ ] Visualizar histórico
+- [ ] Exportar Excel sem histórico
+- [ ] Exportar Excel com histórico consolidado
+- [ ] Confirmar assessor responsável na tabela
+- [ ] Confirmar compatibilidade com casos antigos sem advisorId
+- [ ] Testar responsividade
+
+### 9. Testes Automatizados
+- [ ] Rodar pnpm check
+- [ ] Rodar pnpm test
+- [ ] Rodar pnpm build
+
+### 10. Relatório Final
+- [ ] Listar funcionalidades adaptadas do sistema antigo
+- [ ] Listar arquivos alterados
+- [ ] Listar rotas alteradas ou criadas
+- [ ] Listar procedures tRPC ajustadas
+- [ ] Listar campos de banco alterados
+- [ ] Resultado dos testes manuais
+- [ ] Resultado do pnpm check
+- [ ] Resultado do pnpm test
+- [ ] Resultado do pnpm build
+- [ ] Salvar checkpoint

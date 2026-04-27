@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { exportCaseToWord, exportCasesToExcel } from "@/lib/farol-export";
 import { Button } from "@/components/ui/button";
@@ -6,22 +6,37 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Plus, Eye, Trash2, FileText } from "lucide-react";
+import { AlertCircle, Plus, Eye, Trash2, FileText, Edit, FileDown, ChevronDown } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export default function FarolGestao() {
   const user = trpc.auth.me.useQuery().data;
+  
+  // Filtros
   const [search, setSearch] = useState("");
-  const [situacao, setSituacao] = useState<string>("");
-  const [status, setStatus] = useState<string>("");
+  const [protocolo, setProtocolo] = useState("");
+  const [regional, setRegional] = useState("todos");
+  const [escola, setEscola] = useState("todos");
+  const [situacao, setSituacao] = useState("todos");
+  const [status, setStatus] = useState("todos");
+  const [classificacao, setClassificacao] = useState("todos");
+  const [responsavel, setResponsavel] = useState("todos");
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
+  const [ordenacao, setOrdenacao] = useState("updatedAt");
+  const [ordem, setOrdem] = useState<"asc" | "desc">("desc");
+  const [showFilters, setShowFilters] = useState(false);
+  const [incluirHistorico, setIncluirHistorico] = useState(false);
+  
+  // UI State
   const [selectedCaseId, setSelectedCaseId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [editingCaseId, setEditingCaseId] = useState<number | null>(null);
 
   // Queries
   const { data: cases, isLoading, refetch } = trpc.farol.listCases.useQuery({
-    search: search || undefined,
-    situacao: situacao || undefined,
-    status: status || undefined,
+    search: search || protocolo || undefined,
   });
 
   const { data: selectedCase } = trpc.farol.getCase.useQuery(
@@ -31,6 +46,7 @@ export default function FarolGestao() {
 
   const { data: advisors = [] } = trpc.farol.listAdvisors.useQuery({ ativo: true });
   const { data: metrics } = trpc.farol.metrics.useQuery();
+  const { data: schools = [] } = trpc.schools.list.useQuery();
 
   // Mutations
   const createMutation = trpc.farol.createCase.useMutation({
@@ -43,7 +59,7 @@ export default function FarolGestao() {
   const updateMutation = trpc.farol.updateCase.useMutation({
     onSuccess: () => {
       refetch();
-      setSelectedCaseId(null);
+      setEditingCaseId(null);
     },
   });
 
@@ -70,6 +86,10 @@ export default function FarolGestao() {
 
   const situacaoOptions = ["Ativo", "Inativo", "Arquivado", "Suspenso"];
   const statusOptions = ["Novo", "Em acompanhamento", "Aguardando retorno", "Encaminhado", "Resolvido", "Encerrado"];
+  const classificacaoOptions = ["Baixa", "Média", "Alta", "Crítica"];
+  const tipoDemandasOptions = ["Educacional", "Social", "Saúde", "Outro"];
+  const origemOptions = ["Escola", "Família", "Comunidade", "Encaminhamento"];
+  const segmentoOptions = ["Creche", "Pré-escolar", "Fundamental", "Médio"];
 
   const getSituacaoBadge = (sit: string) => {
     const colors: Record<string, string> = {
@@ -91,6 +111,118 @@ export default function FarolGestao() {
       "Encerrado": "bg-red-100 text-red-800",
     };
     return colors[stat] || "bg-gray-100 text-gray-800";
+  };
+
+  // Aplicar filtros
+  const filteredCases = useMemo(() => {
+    if (!cases) return [];
+    
+    let filtered = [...cases];
+
+    // Filtro por protocolo
+    if (protocolo) {
+      filtered = filtered.filter(c => c.numeroCaso.includes(protocolo));
+    }
+
+    // Filtro por regional
+    if (regional !== "todos") {
+      filtered = filtered.filter(c => c.regional === regional);
+    }
+
+    // Filtro por escola
+    if (escola !== "todos") {
+      filtered = filtered.filter(c => c.schoolId === parseInt(escola));
+    }
+
+    // Filtro por situação
+    if (situacao !== "todos") {
+      filtered = filtered.filter(c => c.situacao === situacao);
+    }
+
+    // Filtro por status
+    if (status !== "todos") {
+      filtered = filtered.filter(c => c.status === status);
+    }
+
+    // Filtro por classificação
+    if (classificacao !== "todos") {
+      filtered = filtered.filter(c => c.classificacaoCaso === classificacao);
+    }
+
+    // Filtro por responsável
+    if (responsavel !== "todos") {
+      filtered = filtered.filter(c => c.advisorId === parseInt(responsavel));
+    }
+
+    // Filtro por período
+    if (dataInicio) {
+      filtered = filtered.filter(c => new Date(c.dataEntrada) >= new Date(dataInicio));
+    }
+    if (dataFim) {
+      filtered = filtered.filter(c => new Date(c.dataEntrada) <= new Date(dataFim));
+    }
+
+    // Ordenação
+    filtered.sort((a, b) => {
+      let aVal: any = a[ordenacao as keyof typeof a];
+      let bVal: any = b[ordenacao as keyof typeof b];
+
+      if (typeof aVal === "string") {
+        aVal = aVal.toLowerCase();
+        bVal = (bVal as string).toLowerCase();
+      }
+
+      if (aVal < bVal) return ordem === "asc" ? -1 : 1;
+      if (aVal > bVal) return ordem === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return filtered;
+  }, [cases, protocolo, regional, escola, situacao, status, classificacao, responsavel, dataInicio, dataFim, ordenacao, ordem]);
+
+  const limparFiltros = () => {
+    setSearch("");
+    setProtocolo("");
+    setRegional("todos");
+    setEscola("todos");
+    setSituacao("todos");
+    setStatus("todos");
+    setClassificacao("todos");
+    setResponsavel("todos");
+    setDataInicio("");
+    setDataFim("");
+    setOrdenacao("updatedAt");
+    setOrdem("desc");
+  };
+
+  const handleSubmitCase = (e: React.FormEvent<HTMLFormElement>, isEditing: boolean) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    const payload = {
+      dataEntrada: formData.get("dataEntrada") as string,
+      nomeEstudante: formData.get("nomeEstudante") as string,
+      idade: formData.get("idade") ? parseInt(formData.get("idade") as string) : undefined,
+      escola: formData.get("escola") as string,
+      schoolId: formData.get("schoolId") ? parseInt(formData.get("schoolId") as string) : undefined,
+      regional: formData.get("regional") as string,
+      segmento: formData.get("segmento") as string,
+      situacao: (formData.get("situacao") as any) || "Ativo",
+      status: (formData.get("status") as any) || "Novo",
+      classificacaoCaso: formData.get("classificacao") as string,
+      tipoDemanda: formData.get("tipoDemanda") as string,
+      origem: formData.get("origem") as string,
+      advisorId: formData.get("advisorId") ? parseInt(formData.get("advisorId") as string) : undefined,
+      advisorName: formData.get("advisorName") as string | undefined,
+      observacaoGeral: (formData.get("observacaoGeral") as string) || undefined,
+      encaminhamentos: (formData.get("encaminhamentos") as string) || undefined,
+    };
+
+    if (isEditing && editingCaseId) {
+      updateMutation.mutate({ id: editingCaseId, ...payload });
+    } else {
+      createMutation.mutate(payload);
+    }
   };
 
   return (
@@ -153,54 +285,273 @@ export default function FarolGestao() {
         </div>
       )}
 
-      {/* Botões de Exportação */}
-      <div className="flex gap-2">
+      {/* Busca e Filtros */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle>Busca e Filtros</CardTitle>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="gap-2"
+            >
+              <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? "rotate-180" : ""}`} />
+              {showFilters ? "Ocultar" : "Mostrar"} Filtros Avançados
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Busca Principal */}
+          <div className="grid grid-cols-3 gap-4">
+            <Input
+              placeholder="Buscar por nome, escola ou protocolo"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <Input
+              placeholder="Filtrar por protocolo"
+              value={protocolo}
+              onChange={(e) => setProtocolo(e.target.value)}
+            />
+          </div>
+
+          {/* Filtros Avançados */}
+          {showFilters && (
+            <>
+              <div className="grid grid-cols-4 gap-4">
+                <Select value={regional} onValueChange={setRegional}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas as regionais" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas as regionais</SelectItem>
+                    {Array.from(new Set(cases?.map(c => c.regional).filter(Boolean))).map(r => (
+                      <SelectItem key={r} value={r || ""}>{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={escola} onValueChange={setEscola}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas as escolas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas as escolas</SelectItem>
+                    {schools.map(s => (
+                      <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={situacao} onValueChange={setSituacao}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas as situações" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas as situações</SelectItem>
+                    {situacaoOptions.map(opt => (
+                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={status} onValueChange={setStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos os status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os status</SelectItem>
+                    {statusOptions.map(opt => (
+                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-4 gap-4">
+                <Select value={classificacao} onValueChange={setClassificacao}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas as classificações" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas as classificações</SelectItem>
+                    {classificacaoOptions.map(opt => (
+                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={responsavel} onValueChange={setResponsavel}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos os profissionais" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os profissionais</SelectItem>
+                    {advisors.map(adv => (
+                      <SelectItem key={adv.id} value={adv.id.toString()}>{adv.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Input
+                  type="date"
+                  placeholder="Período inicial"
+                  value={dataInicio}
+                  onChange={(e) => setDataInicio(e.target.value)}
+                />
+
+                <Input
+                  type="date"
+                  placeholder="Período final"
+                  value={dataFim}
+                  onChange={(e) => setDataFim(e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-4 gap-4">
+                <Select value={ordenacao} onValueChange={setOrdenacao}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Ordenar por" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="updatedAt">Atualizado em</SelectItem>
+                    <SelectItem value="createdAt">Criado em</SelectItem>
+                    <SelectItem value="nomeEstudante">Nome</SelectItem>
+                    <SelectItem value="numeroCaso">Nº do caso</SelectItem>
+                    <SelectItem value="classificacaoCaso">Classificação</SelectItem>
+                    <SelectItem value="status">Status</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={ordem} onValueChange={(v) => setOrdem(v as "asc" | "desc")}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Ordem" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="desc">Decrescente</SelectItem>
+                    <SelectItem value="asc">Crescente</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button variant="outline" onClick={limparFiltros} className="col-span-2">
+                  Limpar Filtros
+                </Button>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Exportação */}
+      <div className="flex gap-2 items-center">
         <Button
           onClick={() => {
-            if (cases && cases.length > 0) {
-              exportCasesToExcel(cases as any);
+            if (filteredCases && filteredCases.length > 0) {
+              exportCasesToExcel(filteredCases as any);
             }
           }}
           variant="outline"
-          disabled={!cases || cases.length === 0}
+          disabled={!filteredCases || filteredCases.length === 0}
+          className="gap-2"
         >
-          📊 Exportar Excel
+          <FileDown className="h-4 w-4" />
+          Exportar Excel
         </Button>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={incluirHistorico}
+            onChange={(e) => setIncluirHistorico(e.target.checked)}
+            className="w-4 h-4"
+          />
+          Incluir histórico consolidado
+        </label>
+        <span className="text-sm text-gray-600 ml-auto">
+          {filteredCases?.length || 0} caso(s) listado(s)
+        </span>
       </div>
 
       {/* Tabela de Casos */}
       <Card>
         <CardHeader>
-          <CardTitle>Casos Cadastrados</CardTitle>
+          <CardTitle>Casos</CardTitle>
         </CardHeader>
         <CardContent>
-          {cases && cases.length > 0 ? (
+          {filteredCases && filteredCases.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-2">Protocolo</th>
-                    <th className="text-left py-2">Estudante</th>
-                    <th className="text-left py-2">Tipo Demanda</th>
-                    <th className="text-left py-2">Status</th>
-                    <th className="text-left py-2">Ações</th>
+                  <tr className="border-b bg-gray-50">
+                    <th className="text-left py-3 px-2 font-semibold">Protocolo</th>
+                    <th className="text-left py-3 px-2 font-semibold">Estudante</th>
+                    <th className="text-left py-3 px-2 font-semibold">Escola</th>
+                    <th className="text-left py-3 px-2 font-semibold">Regional</th>
+                    <th className="text-left py-3 px-2 font-semibold">Situação</th>
+                    <th className="text-left py-3 px-2 font-semibold">Status</th>
+                    <th className="text-left py-3 px-2 font-semibold">Responsável</th>
+                    <th className="text-left py-3 px-2 font-semibold">Atualizado em</th>
+                    <th className="text-left py-3 px-2 font-semibold">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {cases.map((c: any) => (
+                  {filteredCases.map((c: any) => (
                     <tr key={c.id} className="border-b hover:bg-gray-50">
-                      <td className="py-2 font-mono text-xs">{c.numeroCaso}</td>
-                      <td className="py-2">{c.nomeEstudante}</td>
-                      <td className="py-2">{c.tipoDemanda}</td>
-                      <td className="py-2">{c.status}</td>
-                      <td className="py-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => exportCaseToWord(c as any)}
-                        >
-                          📋 Word
-                        </Button>
+                      <td className="py-3 px-2 font-mono text-xs font-semibold">{c.numeroCaso}</td>
+                      <td className="py-3 px-2">{c.nomeEstudante}</td>
+                      <td className="py-3 px-2 text-xs">{c.escola}</td>
+                      <td className="py-3 px-2 text-xs">{c.regional || "-"}</td>
+                      <td className="py-3 px-2">
+                        <Badge className={getSituacaoBadge(c.situacao)}>{c.situacao}</Badge>
+                      </td>
+                      <td className="py-3 px-2">
+                        <Badge className={getStatusBadge(c.status)}>{c.status}</Badge>
+                      </td>
+                      <td className="py-3 px-2 text-xs">
+                        {c.advisorName || c.responsavel || "Não informado"}
+                      </td>
+                      <td className="py-3 px-2 text-xs">
+                        {new Date(c.updatedAt).toLocaleDateString("pt-BR")}
+                      </td>
+                      <td className="py-3 px-2">
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            title="Ver detalhes"
+                            onClick={() => setSelectedCaseId(c.id)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            title="Editar"
+                            onClick={() => setEditingCaseId(c.id)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            title="Exportar para Word"
+                            onClick={() => exportCaseToWord(c as any)}
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            title="Arquivar"
+                            onClick={() => {
+                              if (confirm("Tem certeza que deseja arquivar este caso?")) {
+                                deleteMutation.mutate({ id: c.id });
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -208,7 +559,11 @@ export default function FarolGestao() {
               </table>
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">Nenhum caso cadastrado</p>
+            <p className="text-gray-500 text-center py-8">
+              {cases && cases.length === 0 
+                ? "Nenhum caso cadastrado" 
+                : "Nenhum caso encontrado com os filtros selecionados"}
+            </p>
           )}
         </CardContent>
       </Card>
@@ -218,67 +573,175 @@ export default function FarolGestao() {
         <Card>
           <CardHeader>
             <CardTitle>Novo Caso</CardTitle>
+            <CardDescription>Preencha os dados do novo caso. O protocolo será gerado automaticamente.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                createMutation.mutate({
-                  dataEntrada: formData.get("dataEntrada") as string,
-                  nomeEstudante: formData.get("nomeEstudante") as string,
-                  tipoDemanda: formData.get("tipoDemanda") as string,
-                  origem: formData.get("origem") as string,
-                  situacao: (formData.get("situacao") as "Ativo" | "Inativo" | "Arquivado" | "Suspenso") || "Ativo",
-                  status: (formData.get("status") as "Novo" | "Em acompanhamento" | "Aguardando retorno" | "Encaminhado" | "Resolvido" | "Encerrado") || "Novo",
-                  observacaoGeral: (formData.get("observacaoGeral") as string) || undefined,
-                  advisorId: formData.get("advisorId") ? parseInt(formData.get("advisorId") as string) : undefined,
-                  advisorName: formData.get("advisorName") as string | undefined,
-                });
-              }}
-              className="space-y-4"
-            >
-              <div className="grid grid-cols-2 gap-4">
-                <Input type="date" name="dataEntrada" required />
-                <Input name="nomeEstudante" placeholder="Nome do estudante" required />
+            <form onSubmit={(e) => handleSubmitCase(e, false)} className="space-y-6">
+              {/* Identificação do Caso */}
+              <div>
+                <h3 className="font-semibold mb-3">Identificação do Caso</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Nº do Caso</label>
+                    <Input disabled value="Gerado automaticamente ao salvar" className="mt-1 bg-gray-100" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Data de Entrada *</label>
+                    <Input type="date" name="dataEntrada" required className="mt-1" />
+                  </div>
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <Input name="tipoDemanda" placeholder="Tipo de demanda" required />
+
+              {/* Dados do Estudante */}
+              <div>
+                <h3 className="font-semibold mb-3">Dados do Estudante</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Nome *</label>
+                    <Input name="nomeEstudante" placeholder="Nome completo" required className="mt-1" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Idade</label>
+                    <Input type="number" name="idade" placeholder="Idade" className="mt-1" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Segmento</label>
+                    <select name="segmento" className="w-full p-2 border rounded mt-1">
+                      <option value="">Selecione</option>
+                      {segmentoOptions.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <Input name="origem" placeholder="Origem" required />
-                <select name="situacao" defaultValue="Ativo" className="w-full p-2 border rounded">
-                  {situacaoOptions.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
+
+              {/* Escola e Território */}
+              <div>
+                <h3 className="font-semibold mb-3">Escola e Território</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Escola *</label>
+                    <select 
+                      name="schoolId" 
+                      onChange={(e) => {
+                        const schoolId = parseInt(e.target.value);
+                        const selectedSchool = schools.find(s => s.id === schoolId);
+                        if (selectedSchool) {
+                          (document.querySelector('input[name="escola"]') as HTMLInputElement).value = selectedSchool.name;
+                        }
+                      }}
+                      className="w-full p-2 border rounded mt-1"
+                    >
+                      <option value="">Selecione uma escola</option>
+                      {schools.map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Nome da Escola</label>
+                    <Input name="escola" placeholder="Preenchido automaticamente" readOnly className="mt-1 bg-gray-100" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Regional</label>
+                    <Input name="regional" placeholder="Regional" className="mt-1" />
+                  </div>
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <select name="status" defaultValue="Novo" className="w-full p-2 border rounded">
-                  {statusOptions.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
-                <select name="advisorId" className="w-full p-2 border rounded">
-                  <option value="">Selecione um assessor</option>
-                  {advisors.map((adv: any) => (
-                    <option key={adv.id} value={adv.id}>
-                      {adv.nome}
-                    </option>
-                  ))}
-                </select>
+
+              {/* Classificação da Demanda */}
+              <div>
+                <h3 className="font-semibold mb-3">Classificação da Demanda</h3>
+                <div className="grid grid-cols-4 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Tipo de Demanda *</label>
+                    <select name="tipoDemanda" required className="w-full p-2 border rounded mt-1">
+                      <option value="">Selecione</option>
+                      {tipoDemandasOptions.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Origem *</label>
+                    <select name="origem" required className="w-full p-2 border rounded mt-1">
+                      <option value="">Selecione</option>
+                      {origemOptions.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Classificação</label>
+                    <select name="classificacao" className="w-full p-2 border rounded mt-1">
+                      <option value="">Selecione</option>
+                      {classificacaoOptions.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Situação</label>
+                    <select name="situacao" defaultValue="Ativo" className="w-full p-2 border rounded mt-1">
+                      {situacaoOptions.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
-              <textarea
-                name="observacaoGeral"
-                placeholder="Observação Geral"
-                className="w-full p-2 border rounded"
-                rows={3}
-              />
-               <div className="flex gap-2">
+
+              {/* Status e Responsável */}
+              <div>
+                <h3 className="font-semibold mb-3">Status e Responsável</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Status</label>
+                    <select name="status" defaultValue="Novo" className="w-full p-2 border rounded mt-1">
+                      {statusOptions.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Assessor Responsável</label>
+                    <select name="advisorId" className="w-full p-2 border rounded mt-1">
+                      <option value="">Selecione um assessor</option>
+                      {advisors.map((adv: any) => (
+                        <option key={adv.id} value={adv.id}>{adv.nome}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Observações e Encaminhamentos */}
+              <div>
+                <h3 className="font-semibold mb-3">Observações e Encaminhamentos</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium">Observação Geral</label>
+                    <textarea
+                      name="observacaoGeral"
+                      placeholder="Observações gerais sobre o caso"
+                      className="w-full p-2 border rounded mt-1"
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Encaminhamentos</label>
+                    <textarea
+                      name="encaminhamentos"
+                      placeholder="Encaminhamentos recomendados"
+                      className="w-full p-2 border rounded mt-1"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
                 <Button type="submit" disabled={createMutation.isPending}>
                   {createMutation.isPending ? "Criando..." : "Criar Caso"}
                 </Button>
@@ -291,95 +754,8 @@ export default function FarolGestao() {
         </Card>
       )}
 
-      {/* Filtros */}
-      <div className="flex gap-4">
-        <Input
-          placeholder="Buscar por nome..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="max-w-sm"
-        />
-        <Select value={situacao || "all"} onValueChange={(val) => setSituacao(val === "all" ? "" : val)}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Situação" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
-            {situacaoOptions.map((opt) => (
-              <SelectItem key={opt} value={opt}>
-                {opt}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={status || "all"} onValueChange={(val) => setStatus(val === "all" ? "" : val)}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            {statusOptions.map((opt) => (
-              <SelectItem key={opt} value={opt}>
-                {opt}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Lista de Casos */}
-      <div className="space-y-2">
-        {isLoading ? (
-          <p className="text-gray-500">Carregando casos...</p>
-        ) : cases && cases.length > 0 ? (
-          cases.map((caseItem) => (
-            <Card key={caseItem.id} className="cursor-pointer hover:bg-gray-50">
-              <CardContent className="pt-6">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="font-semibold">{caseItem.numeroCaso}</h3>
-                      <Badge className={getSituacaoBadge(caseItem.situacao)}>
-                        {caseItem.situacao}
-                      </Badge>
-                      <Badge className={getStatusBadge(caseItem.status)}>
-                        {caseItem.status}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-gray-600">{caseItem.nomeEstudante}</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Tipo: {caseItem.tipoDemanda} | Origem: {caseItem.origem}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setSelectedCaseId(caseItem.id)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        deleteMutation.mutate({ id: caseItem.id })
-                      }
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <p className="text-gray-500 text-center py-8">Nenhum caso encontrado</p>
-        )}
-      </div>
-
       {/* Detalhes do Caso */}
-      {selectedCase && (
+      {selectedCaseId && selectedCase && (
         <Card>
           <CardHeader>
             <CardTitle>Detalhes do Caso {selectedCase.numeroCaso}</CardTitle>
@@ -391,40 +767,31 @@ export default function FarolGestao() {
                 <p className="font-semibold">{selectedCase.nomeEstudante}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Tipo de Demanda</p>
-                <p className="font-semibold">{selectedCase.tipoDemanda}</p>
+                <p className="text-sm text-gray-600">Escola</p>
+                <p className="font-semibold">{selectedCase.escola}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Origem</p>
-                <p className="font-semibold">{selectedCase.origem}</p>
+                <p className="text-sm text-gray-600">Regional</p>
+                <p className="font-semibold">{selectedCase.regional || "-"}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Classificação</p>
-                <p className="font-semibold">{selectedCase.classificacaoCaso || "Não informada"}</p>
+                <p className="text-sm text-gray-600">Responsável</p>
+                <p className="font-semibold">{selectedCase.advisorName || selectedCase.responsavel || "Não informado"}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Situação</p>
+                <Badge className={getSituacaoBadge(selectedCase.situacao)}>{selectedCase.situacao}</Badge>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Status</p>
+                <Badge className={getStatusBadge(selectedCase.status)}>{selectedCase.status}</Badge>
               </div>
             </div>
-            {selectedCase.observacaoGeral && (
-              <div>
-                <p className="text-sm text-gray-600">Observação Geral</p>
-                <p className="text-sm">{selectedCase.observacaoGeral}</p>
-              </div>
-            )}
-            {selectedCase.history && selectedCase.history.length > 0 && (
-              <div>
-                <p className="text-sm font-semibold mb-2">Histórico</p>
-                <div className="space-y-1">
-                  {selectedCase.history.map((h) => (
-                    <p key={h.id} className="text-xs text-gray-600">
-                      {h.actionType} - {h.createdByName}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            )}
-            <Button
-              variant="outline"
-              onClick={() => setSelectedCaseId(null)}
-            >
+            <div>
+              <p className="text-sm text-gray-600">Observação Geral</p>
+              <p>{selectedCase.observacaoGeral || "-"}</p>
+            </div>
+            <Button variant="outline" onClick={() => setSelectedCaseId(null)}>
               Fechar
             </Button>
           </CardContent>
