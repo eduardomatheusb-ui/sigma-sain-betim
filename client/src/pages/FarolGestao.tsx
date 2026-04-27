@@ -151,7 +151,7 @@ export default function FarolGestao() {
 
     // Filtro por responsável
     if (responsavel !== "todos") {
-      filtered = filtered.filter(c => c.advisorId === parseInt(responsavel));
+      filtered = filtered.filter(c => c.responsavel === responsavel);
     }
 
     // Filtro por período
@@ -212,8 +212,7 @@ export default function FarolGestao() {
       classificacaoCaso: formData.get("classificacao") as string,
       tipoDemanda: formData.get("tipoDemanda") as string,
       origem: formData.get("origem") as string,
-      advisorId: formData.get("advisorId") ? parseInt(formData.get("advisorId") as string) : undefined,
-      advisorName: formData.get("advisorName") as string | undefined,
+
       observacaoGeral: (formData.get("observacaoGeral") as string) || undefined,
       encaminhamentos: (formData.get("encaminhamentos") as string) || undefined,
     };
@@ -508,7 +507,7 @@ export default function FarolGestao() {
                         <Badge className={getStatusBadge(c.status)}>{c.status}</Badge>
                       </td>
                       <td className="py-3 px-2 text-xs">
-                        {c.advisorName || c.responsavel || "Não informado"}
+                        {c.responsavel || "Não informado"}
                       </td>
                       <td className="py-3 px-2 text-xs">
                         {new Date(c.updatedAt).toLocaleDateString("pt-BR")}
@@ -706,7 +705,7 @@ export default function FarolGestao() {
                   </div>
                   <div>
                     <label className="text-sm font-medium">Assessor Responsável</label>
-                    <select name="advisorId" className="w-full p-2 border rounded mt-1">
+                    <select name="responsavel" className="w-full p-2 border rounded mt-1">
                       <option value="">Selecione um assessor</option>
                       {advisors.map((adv: any) => (
                         <option key={adv.id} value={adv.id}>{adv.nome}</option>
@@ -776,7 +775,7 @@ export default function FarolGestao() {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Responsável</p>
-                <p className="font-semibold">{selectedCase.advisorName || selectedCase.responsavel || "Não informado"}</p>
+                <p className="font-semibold">{selectedCase.responsavel || "Não informado"}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Situação</p>

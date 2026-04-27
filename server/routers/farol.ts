@@ -63,9 +63,6 @@ export const farolRouter = router({
         if (input?.classificacao && input.classificacao !== "todos") {
           conditions.push(eq(farolCases.classificacaoCaso, input.classificacao));
         }
-        if (input?.advisorId && input.advisorId > 0) {
-          conditions.push(eq(farolCases.advisorId, input.advisorId));
-        }
         if (input?.dataInicio) {
           const startDate = new Date(input.dataInicio);
           conditions.push(sql`${farolCases.dataEntrada} >= ${startDate}`);
@@ -148,8 +145,6 @@ export const farolRouter = router({
       setorCraei: z.string().optional(),
       profissionalResponsavelId: z.number().optional(),
       coordenadorResponsavelId: z.number().optional(),
-      advisorId: z.number().optional(),
-      advisorName: z.string().optional(),
       situacao: z.enum(["Ativo", "Inativo", "Arquivado", "Suspenso"]).default("Ativo"),
       status: z.enum(["Novo", "Em acompanhamento", "Aguardando retorno", "Encaminhado", "Resolvido", "Encerrado"]).default("Novo"),
       classificacaoCaso: z.string().optional(),
@@ -198,8 +193,6 @@ export const farolRouter = router({
           setorCraei: input.setorCraei,
           profissionalResponsavelId: input.profissionalResponsavelId,
           coordenadorResponsavelId: input.coordenadorResponsavelId,
-          advisorId: input.advisorId,
-          advisorName: input.advisorName,
           classificacaoCaso: input.classificacaoCaso,
           alerta: input.alerta,
           observacaoGeral: input.observacaoGeral,
