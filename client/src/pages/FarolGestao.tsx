@@ -53,11 +53,6 @@ export default function FarolGestao() {
     onSuccess: () => {
       refetch();
       setShowForm(false);
-      alert("Caso criado com sucesso!");
-    },
-    onError: (error) => {
-      alert("Erro ao criar caso: " + (error.message || "Erro desconhecido"));
-      console.error("Create case error:", error);
     },
   });
 
@@ -65,11 +60,6 @@ export default function FarolGestao() {
     onSuccess: () => {
       refetch();
       setEditingCaseId(null);
-      alert("Caso atualizado com sucesso!");
-    },
-    onError: (error) => {
-      alert("Erro ao atualizar caso: " + (error.message || "Erro desconhecido"));
-      console.error("Update case error:", error);
     },
   });
 
@@ -77,16 +67,8 @@ export default function FarolGestao() {
     onSuccess: () => {
       refetch();
       setSelectedCaseId(null);
-      alert("Caso deletado com sucesso!");
-    },
-    onError: (error) => {
-      alert("Erro ao deletar caso: " + (error.message || "Erro desconhecido"));
-      console.error("Delete case error:", error);
     },
   });
-
-  // Adicionar estado para mensagens de erro
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Verificar permissão
   if (user?.role !== "admin") {
@@ -167,7 +149,10 @@ export default function FarolGestao() {
       filtered = filtered.filter(c => c.classificacaoCaso === classificacao);
     }
 
-    // Filtro por responsável (comentado - campo não existe no banco)
+    // Filtro por responsável
+    if (responsavel !== "todos") {
+      filtered = filtered.filter(c => c.advisorId === parseInt(responsavel));
+    }
 
     // Filtro por período
     if (dataInicio) {
@@ -217,6 +202,7 @@ export default function FarolGestao() {
     const payload = {
       dataEntrada: formData.get("dataEntrada") as string,
       nomeEstudante: formData.get("nomeEstudante") as string,
+      idade: formData.get("idade") ? parseInt(formData.get("idade") as string) : undefined,
       escola: formData.get("escola") as string,
       schoolId: formData.get("schoolId") ? parseInt(formData.get("schoolId") as string) : undefined,
       regional: formData.get("regional") as string,
@@ -226,13 +212,11 @@ export default function FarolGestao() {
       classificacaoCaso: formData.get("classificacao") as string,
       tipoDemanda: formData.get("tipoDemanda") as string,
       origem: formData.get("origem") as string,
+      advisorId: formData.get("advisorId") ? parseInt(formData.get("advisorId") as string) : undefined,
+      advisorName: formData.get("advisorName") as string | undefined,
       observacaoGeral: (formData.get("observacaoGeral") as string) || undefined,
+      encaminhamentos: (formData.get("encaminhamentos") as string) || undefined,
     };
-
-    if (!payload.nomeEstudante || !payload.dataEntrada) {
-      alert("Nome do estudante e data de entrada são obrigatórios");
-      return;
-    }
 
     if (isEditing && editingCaseId) {
       updateMutation.mutate({ id: editingCaseId, ...payload });
@@ -524,7 +508,7 @@ export default function FarolGestao() {
                         <Badge className={getStatusBadge(c.status)}>{c.status}</Badge>
                       </td>
                       <td className="py-3 px-2 text-xs">
-                        {c.responsavel || "Não informado"}
+                        {c.advisorName || c.responsavel || "Não informado"}
                       </td>
                       <td className="py-3 px-2 text-xs">
                         {new Date(c.updatedAt).toLocaleDateString("pt-BR")}
@@ -722,7 +706,7 @@ export default function FarolGestao() {
                   </div>
                   <div>
                     <label className="text-sm font-medium">Assessor Responsável</label>
-                    <select name="responsavel" className="w-full p-2 border rounded mt-1">
+                    <select name="advisorId" className="w-full p-2 border rounded mt-1">
                       <option value="">Selecione um assessor</option>
                       {advisors.map((adv: any) => (
                         <option key={adv.id} value={adv.id}>{adv.nome}</option>
@@ -792,7 +776,7 @@ export default function FarolGestao() {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Responsável</p>
-                <p className="font-semibold">{selectedCase.responsavel || "Não informado"}</p>
+                <p className="font-semibold">{selectedCase.advisorName || selectedCase.responsavel || "Não informado"}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Situação</p>
