@@ -151,7 +151,8 @@ export default function FarolGestao() {
 
     // Filtro por responsável
     if (responsavel !== "todos") {
-      filtered = filtered.filter(c => c.advisorId === parseInt(responsavel));
+      // TODO: Implementar filtro por responsável quando a coluna advisorId for adicionada ao banco
+      // filtered = filtered.filter(c => c.advisorId === parseInt(responsavel));
     }
 
     // Filtro por período
@@ -776,7 +777,7 @@ export default function FarolGestao() {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Responsável</p>
-                <p className="font-semibold">{selectedCase.advisorName || selectedCase.responsavel || "Não informado"}</p>
+                <p className="font-semibold">{selectedCase.responsavel || "Não informado"}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Situação</p>
