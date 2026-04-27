@@ -27,6 +27,7 @@ interface FarolCase {
   schoolId?: number;
   idade?: number;
   advisorId?: number;
+  advisorName?: string;
   encaminhamentos?: string;
   createdAt: string;
   updatedAt: string;
@@ -202,7 +203,7 @@ export function exportCasesToExcel(cases: FarolCase[]): void {
     "Classificação": c.classificacaoCaso || "-",
     "Situação": c.situacao,
     "Status": c.status,
-    "Responsável": c.responsavel || "Não informado",
+    "Responsável": c.advisorName || c.responsavel || "Não informado",
     "Telefone": c.telefone || "Não informado",
     "Diagnóstico": c.diagnostico || "Não informado",
     "Análise Conjunta": c.analiseConjunta || "Não informado",

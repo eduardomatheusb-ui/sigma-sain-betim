@@ -5,6 +5,8 @@ import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { farolAdvisors } from "../../drizzle/schema";
 
+let db: any;
+
 export const farolAdvisorsRouter = router({
   listAdvisors: protectedProcedure
     .input(z.object({
@@ -15,8 +17,6 @@ export const farolAdvisorsRouter = router({
     }).optional())
     .query(async ({ ctx, input }) => {
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       try {
         const conditions: any[] = [eq(farolAdvisors.isDeleted, false)];
         if (input?.search) {
@@ -31,9 +31,10 @@ export const farolAdvisorsRouter = router({
         if (input?.ativo !== undefined) {
           conditions.push(eq(farolAdvisors.active, input.ativo));
         }
-        return await db.select().from(farolAdvisors)
-          .where(and(...conditions))
-          .orderBy(asc(farolAdvisors.nome));
+        return db.query.farolAdvisors.findMany({
+          where: conditions.length > 0 ? and(...conditions) : undefined,
+          orderBy: [asc(farolAdvisors.nome)],
+        });
       } catch (error) {
         console.error("[Farol] Error listing advisors:", error);
         return [];
@@ -44,12 +45,10 @@ export const farolAdvisorsRouter = router({
     .input(z.object({ id: z.number() }))
     .query(async ({ ctx, input }) => {
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       try {
-        const [advisor] = await db.select().from(farolAdvisors)
-          .where(and(eq(farolAdvisors.id, input.id), eq(farolAdvisors.isDeleted, false)));
-        return advisor || null;
+        return db.query.farolAdvisors.findFirst({
+          where: and(eq(farolAdvisors.id, input.id), eq(farolAdvisors.isDeleted, false)),
+        });
       } catch (error) {
         console.error("[Farol] Error getting advisor:", error);
         return null;
@@ -68,10 +67,8 @@ export const farolAdvisorsRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       try {
-        await db.insert(farolAdvisors).values({
+        const [advisor] = await db.insert(farolAdvisors).values({
           nome: input.nome.trim(),
           email: input.email.trim(),
           telefone: input.telefone.trim(),
@@ -83,15 +80,8 @@ export const farolAdvisorsRouter = router({
           createdByName: ctx.user.name,
           active: true,
           isDeleted: false,
-        });
-        
-        // Fetch the created advisor (get the last one created)
-        const advisors = await db.select().from(farolAdvisors)
-          .where(eq(farolAdvisors.email, input.email.trim()))
-          .orderBy(asc(farolAdvisors.id))
-          .limit(1);
-        
-        return advisors[0] || null;
+        }).returning();
+        return advisor;
       } catch (error) {
         console.error("[Farol] Error creating advisor:", error);
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao criar assessor" });
@@ -112,31 +102,23 @@ export const farolAdvisorsRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       try {
-        const updateData: any = {
-          updatedBy: ctx.user.id,
-          updatedByName: ctx.user.name,
-          updatedAt: new Date(),
-        };
-        
-        if (input.nome !== undefined) updateData.nome = input.nome.trim();
-        if (input.email !== undefined) updateData.email = input.email.trim();
-        if (input.telefone !== undefined) updateData.telefone = input.telefone.trim();
-        if (input.cargo !== undefined) updateData.cargo = input.cargo.trim();
-        if (input.areaAtuacao !== undefined) updateData.areaAtuacao = input.areaAtuacao.trim();
-        if (input.regional !== undefined) updateData.regional = input.regional.trim();
-        if (input.schools !== undefined) updateData.schools = JSON.stringify(input.schools);
-        if (input.active !== undefined) updateData.active = input.active;
-        
-        await db.update(farolAdvisors)
-          .set(updateData)
-          .where(and(eq(farolAdvisors.id, input.id), eq(farolAdvisors.isDeleted, false)));
-        
-        const [advisor] = await db.select().from(farolAdvisors)
-          .where(eq(farolAdvisors.id, input.id));
-        
+        const [advisor] = await db.update(farolAdvisors)
+          .set({
+            nome: input.nome?.trim(),
+            email: input.email?.trim(),
+            telefone: input.telefone?.trim(),
+            cargo: input.cargo?.trim(),
+            areaAtuacao: input.areaAtuacao?.trim(),
+            regional: input.regional?.trim(),
+            schools: input.schools ? JSON.stringify(input.schools) : undefined,
+            active: input.active,
+            updatedBy: ctx.user.id,
+            updatedByName: ctx.user.name,
+            updatedAt: new Date(),
+          })
+          .where(and(eq(farolAdvisors.id, input.id), eq(farolAdvisors.isDeleted, false)))
+          .returning();
         return advisor;
       } catch (error) {
         console.error("[Farol] Error updating advisor:", error);
@@ -148,8 +130,6 @@ export const farolAdvisorsRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       try {
         await db.update(farolAdvisors)
           .set({
