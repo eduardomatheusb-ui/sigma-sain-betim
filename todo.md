@@ -755,3 +755,82 @@
 - [ ] Resultado do pnpm test
 - [ ] Resultado do pnpm build
 - [ ] Salvar checkpoint
+
+
+## Fase 35 — Tela de Detalhes do Caso (Refatoração)
+
+### 1. Layout Geral da Tela
+- [ ] Criar página de detalhes do caso (CaseDetail.tsx)
+- [ ] Exibir nome do aluno/pessoa no topo em destaque
+- [ ] Adicionar botões de ação no canto superior direito: Voltar, Exportar Caso, Editar, Excluir Caso
+- [ ] Implementar hierarquia visual: Voltar/Exportar (secundários), Editar (primário azul), Excluir (destrutivo vermelho)
+- [ ] Criar layout de duas colunas no desktop (esquerda maior, direita menor)
+- [ ] Implementar responsividade: empilhar cards em mobile/tablet
+
+### 2. Card "Informações do Caso"
+- [ ] Criar card com título "Informações do Caso"
+- [ ] Exibir dados em tabela com duas colunas (Campo, Valor)
+- [ ] Incluir campos: Nº do Caso, Nome, Idade, Escola, Segmento, Regional, Situação, Status, Classificação, Tipo de demanda, Origem, Responsável, Criado por, Criado em, Atualizado em
+- [ ] Exibir número do caso como badge/pílula (ex: CRAEIRV-2024-0001)
+- [ ] Exibir Situação, Status e Classificação como badges coloridos
+- [ ] Definir cores de badges: Arquivado (cinza), Resolvido (verde), Média (amarelo/laranja), Alta (vermelho claro), Urgente (vermelho intenso), Baixa (azul/cinza claro)
+- [ ] Adicionar separadores discretos entre linhas
+- [ ] Garantir boa leitura e espaçamento
+
+### 3. Card "Observação"
+- [ ] Criar card com título "Observação"
+- [ ] Exibir texto de observação do caso
+- [ ] Fallback: "Nenhuma observação registrada para este caso."
+- [ ] Texto simples e legível
+
+### 4. Card "Histórico"
+- [ ] Criar card com título "Histórico" (coluna direita)
+- [ ] Exibir evolução do caso em linha do tempo vertical
+- [ ] Cada item contém: Título, Data/Horário, Responsável, Descrição
+- [ ] Adicionar marcador visual na linha do tempo
+- [ ] Incluir botão "Adicionar" no topo do card
+- [ ] Botão "Adicionar" abre modal/fluxo existente ou fica preparado para futura implementação
+- [ ] Fallback: "Nenhuma movimentação registrada"
+
+### 5. Card "Auditoria de Movimentações"
+- [ ] Criar card com título "Auditoria de Movimentações"
+- [ ] Exibir logs de auditoria em linha do tempo vertical
+- [ ] Cada item contém: Título da ação, Data/Horário, Usuário/Sistema, Protocolo, Campos alterados, Origem técnica
+- [ ] Incluir botão "Exportar Auditoria do Caso" no topo
+- [ ] Implementar paginação se houver muitos registros (Anterior, Página X de Y, Próxima)
+- [ ] Fallback: "Nenhum registro de auditoria encontrado"
+
+### 6. Integração com Backend
+- [ ] Criar procedure backend para buscar detalhes completos do caso
+- [ ] Criar procedure para buscar histórico/evolução do caso
+- [ ] Criar procedure para buscar auditoria específica do caso
+- [ ] Implementar tRPC procedures: cases.getDetail, cases.getHistory, cases.getAudit
+
+### 7. Responsividade
+- [ ] Testar layout em desktop (duas colunas)
+- [ ] Testar layout em tablet (empilhado)
+- [ ] Testar layout em mobile (empilhado)
+- [ ] Garantir botões com tamanho adequado
+- [ ] Garantir bom contraste e alinhamento
+- [ ] Verificar títulos sempre visíveis
+
+### 8. Padrão Visual
+- [ ] Manter cards brancos com bordas suaves
+- [ ] Aplicar sombras discretas
+- [ ] Usar espaçamento confortável
+- [ ] Manter tipografia legível
+- [ ] Usar badges coloridos
+- [ ] Implementar hierarquia clara de botões
+- [ ] Evitar poluição visual
+
+### 9. Testes Manuais
+- [ ] Abrir caso existente
+- [ ] Verificar exibição de todas as informações
+- [ ] Testar botão "Voltar"
+- [ ] Testar botão "Exportar Caso"
+- [ ] Testar botão "Editar"
+- [ ] Testar botão "Excluir Caso"
+- [ ] Testar botão "Adicionar" no histórico
+- [ ] Testar botão "Exportar Auditoria"
+- [ ] Verificar responsividade em diferentes tamanhos
+- [ ] Verificar fallbacks quando dados faltam
