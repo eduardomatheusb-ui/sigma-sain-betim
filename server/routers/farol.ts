@@ -177,7 +177,6 @@ export const farolRouter = router({
            const insertData = {
           numeroCaso,
           dataEntrada: input.dataEntrada,
-          nome: input.nomeEstudante,
           nomeEstudante: input.nomeEstudante,
           tipoDemanda: input.tipoDemanda,
           origem: input.origem,

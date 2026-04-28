@@ -239,6 +239,24 @@ export default function FarolGestao() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
+    // Validar campos obrigatórios
+    const nomeEstudante = formData.get("nomeEstudante") as string;
+    const tipoDemanda = formData.get("tipoDemanda") as string;
+    const origem = formData.get("origem") as string;
+    
+    if (!nomeEstudante || !nomeEstudante.trim()) {
+      alert("Por favor, preencha o nome do estudante");
+      return;
+    }
+    if (!tipoDemanda) {
+      alert("Por favor, selecione o tipo de demanda");
+      return;
+    }
+    if (!origem) {
+      alert("Por favor, selecione a origem");
+      return;
+    }
+    
     const payload = {
       dataEntrada: formData.get("dataEntrada") as string,
       nomeEstudante: formData.get("nomeEstudante") as string,
