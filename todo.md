@@ -536,14 +536,14 @@
 - [x] Últimas movimentações
 - [x] Visibilidade por perfil (admin/coordinator: sim, advisor/childhood_coordination/viewer: não)
 
-### 5. Exportação Word Institucional
-- [ ] Implementar geração de Word com biblioteca docx
-- [ ] Cabeçalho com logo e timbrado institucional
-- [ ] Fonte Arial, corpo 12, espaçamento 1,5
-- [ ] Margens: superior 3cm, esquerda 3cm, inferior 2cm, direita 2cm
-- [ ] Rodapé com protocolo, data e paginação
-- [ ] Campos vazios como "não informado"
-- [ ] Nome do arquivo: caso-[numeroCaso].docx
+### 5. Exportação Word
+- [x] Implementar geração de Word com biblioteca docx
+- [x] Cabeçalho com logo e timbrado institucional
+- [x] Fonte Arial, corpo 12, espaçamento 1,5
+- [x] Margens: superior 3cm, esquerda 3cm, inferior 2cm, direita 2cm
+- [x] Rodapé com protocolo, data e paginação
+- [x] Campos vazios como "não informado"
+- [x] Nome do arquivo: caso-[numeroCaso].docx
 
 ### 6. Auditoria Completa
 - [x] Registrar criação, edição, exclusão, reatribuição, mudança de vínculo
@@ -552,28 +552,28 @@
 - [x] Mostrar: usuário, perfil, ação, data/hora, diff resumido
 
 ### 7. Padronização de Texto
-- [ ] Corrigir acentuação integralmente no Farol
-- [ ] Padronizar regionais: Alterosas, Centro, Citrolândia, Icaivera, Imbiruçu, Norte, Petrovale, PTB, Terezópolis, Vianópolis
-- [ ] Padronizar unidades: Escola Municipal, CIM, Rede Parceira
-- [ ] Usar "CIM" sempre em maiúsculas
-- [ ] Corrigir títulos, subtítulos, botões, mensagens
+- [x] Corrigir acentuação integralmente no Farol
+- [x] Padronizar regionais: Alterosas, Centro, Citrolândia, Icaivera, Imbiruçu, Norte, Petrovale, PTB, Terezópolis, Vianópolis
+- [x] Padronizar unidades: Escola Municipal, CIM, Rede Parceira
+- [x] Usar "CIM" sempre em maiúsculas
+- [x] Corrigir títulos, subtítulos, botões, mensagens
 
 ### 8. Manual/Documentação
-- [ ] Criar documento com capa, sumário, seções organizadas
-- [ ] Explicar cada módulo e atribuições por perfil
-- [ ] Passo a passo de uso
-- [ ] Linguagem institucional
-- [ ] Revisão completa de acentuação
+- [x] Criar documento com capa, sumário, seções organizadas
+- [x] Explicar cada módulo e atribuições por perfil
+- [x] Passo a passo de uso
+- [x] Linguagem institucional
+- [x] Revisão completa de acentuação
 
 ### 9. Testes e Validação
-- [ ] Testar permissões por perfil
-- [ ] Testar exclusão lógica de casos
-- [ ] Testar auditoria
-- [ ] Testar exportação Word
-- [ ] Testar exportação Excel
-- [ ] Verificar nenhuma regressão no resto do sistema
-- [ ] Rodar pnpm test
-- [ ] Salvar checkpoint
+- [x] Testar permissões por perfil
+- [x] Testar exclusão lógica de casos
+- [x] Testar auditoria
+- [x] Testar exportação Word
+- [x] Testar exportação Excel
+- [x] Verificar nenhuma regressão no resto do sistema
+- [x] Rodar pnpm test
+- [x] Salvar checkpoint
 
 
 ## Fase 33 — Módulo de Assessores do Farol da Gestão (PARCIALMENTE COMPLETO)
@@ -630,13 +630,13 @@
 - [x] Verificar testes: 46+ passando
 
 ### 8. Relatório Final
-- [ ] Listar arquivos alterados
-- [ ] Listar tabelas criadas/alteradas
-- [ ] Listar procedures criadas
-- [ ] Listar rotas criadas
-- [ ] Resultado do pnpm check
-- [ ] Resultado do pnpm test
-- [ ] Resultado do pnpm build
+- [x] Listar arquivos alterados
+- [x] Listar tabelas criadas/alteradas
+- [x] Listar procedures criadas
+- [x] Listar rotas criadas
+- [x] Resultado do pnpm check
+- [x] Resultado do pnpm test
+- [x] Resultado do pnpm build
 
 
 ## Fase 34 — Paridade Funcional da Tela de Casos do Farol (Sistema Antigo)
