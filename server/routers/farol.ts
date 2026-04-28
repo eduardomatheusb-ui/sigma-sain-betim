@@ -602,4 +602,35 @@ export const farolRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao deletar assessor" });
       }
     }),
+
+  exportCaseToWord: protectedProcedure
+    .input(z.object({ caseId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Permissao negada" });
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database error" });
+
+      try {
+        // Fetch case data
+        const caseData = await db.select().from(farolCases).where(eq(farolCases.id, input.caseId)).limit(1);
+        if (!caseData || caseData.length === 0) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Caso nao encontrado" });
+        }
+
+        // Import and use export function
+        const { farolExportRouter } = await import("./farol-export");
+        const buffer = await farolExportRouter.exportCaseToWord(caseData[0]);
+        
+        return {
+          buffer: buffer.toString("base64"),
+          filename: `caso-${caseData[0].numeroCaso || "desconhecido"}.docx`,
+        };
+      } catch (error) {
+        console.error("[Farol] Error exporting case to Word:", error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao exportar caso" });
+      }
+    }),
 });

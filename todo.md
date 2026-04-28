@@ -546,10 +546,10 @@
 - [ ] Nome do arquivo: caso-[numeroCaso].docx
 
 ### 6. Auditoria Completa
-- [ ] Registrar criação, edição, exclusão, reatribuição, mudança de vínculo
-- [ ] Registrar mudança de permissão e geração de protocolo
-- [ ] Criar dashboard de auditoria para admin/coordinator
-- [ ] Mostrar: usuário, perfil, ação, data/hora, diff resumido
+- [x] Registrar criação, edição, exclusão, reatribuição, mudança de vínculo
+- [x] Registrar mudança de permissão e geração de protocolo
+- [x] Criar dashboard de auditoria para admin/coordinator
+- [x] Mostrar: usuário, perfil, ação, data/hora, diff resumido
 
 ### 7. Padronização de Texto
 - [ ] Corrigir acentuação integralmente no Farol
