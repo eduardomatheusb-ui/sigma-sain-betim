@@ -642,66 +642,66 @@
 ## Fase 34 — Paridade Funcional da Tela de Casos do Farol (Sistema Antigo)
 
 ### 1. Exibir Assessor Responsável na Tabela
-- [ ] Adicionar coluna "Responsável" na tabela de casos
-- [ ] Exibir advisorName quando existir
-- [ ] Fallback para responsibleName ou campo legado equivalente
-- [ ] Exibir "Não informado" quando não houver responsável
-- [ ] Garantir compatibilidade com casos antigos sem advisorId
+- [x] Adicionar coluna "Responsável" na tabela de casos
+- [x] Exibir advisorName quando existir
+- [x] Fallback para responsibleName ou campo legado equivalente
+- [x] Exibir "Não informado" quando não houver responsável
+- [x] Garantir compatibilidade com casos antigos sem advisorId
 
 ### 2. Ajustar Coluna de Ações
-- [ ] Adicionar coluna "Ações" com botões claros
-- [ ] Botão "Ver detalhes" com ícone e texto
-- [ ] Botão "Editar" com ícone e texto
-- [ ] Botão "Registrar movimentação" com ícone e texto
-- [ ] Botão "Exportar caso" (se exportação individual existir)
-- [ ] Botão "Arquivar/Excluir" apenas para admin
-- [ ] Adicionar tooltips em todos os botões
-- [ ] Evitar ícones sem texto
+- [x] Adicionar coluna "Ações" com botões claros
+- [x] Botão "Ver detalhes" com ícone e texto
+- [x] Botão "Editar" com ícone e texto
+- [x] Botão "Registrar movimentação" com ícone e texto
+- [x] Botão "Exportar caso" (se exportação individual existir)
+- [x] Botão "Arquivar/Excluir" apenas para admin
+- [x] Adicionar tooltips em todos os botões
+- [x] Evitar ícones sem texto
 
 ### 3. Filtros Avançados Completos
-- [ ] Implementar busca geral por nome, escola ou protocolo
-- [ ] Filtro por número do caso/protocolo
-- [ ] Filtro por regional (com opção "Todas as regionais")
-- [ ] Filtro por escola (com opção "Todas as escolas")
-- [ ] Filtro por situação (com opção "Todas as situações")
-- [ ] Filtro por status (com opção "Todos os status")
-- [ ] Filtro por classificação (com opção "Todas as classificações")
-- [ ] Filtro por profissional/responsável (com opção "Todos os profissionais")
-- [ ] Filtro por período inicial (data)
-- [ ] Filtro por período final (data)
-- [ ] Ordenação por: atualizado em, criado em, nome, nº do caso, classificação, status
-- [ ] Ordem crescente/decrescente
-- [ ] Botão "Limpar filtros"
-- [ ] Usar valores reais em SelectItem (todos, todas, nenhum, nao_informado) — nunca value=""
-- [ ] Padronizar placeholders em português
+- [x] Implementar busca geral por nome, escola ou protocolo
+- [x] Filtro por número do caso/protocolo
+- [x] Filtro por regional (com opção "Todas as regionais")
+- [x] Filtro por escola (com opção "Todas as escolas")
+- [x] Filtro por situação (com opção "Todas as situações")
+- [x] Filtro por status (com opção "Todos os status")
+- [x] Filtro por classificação (com opção "Todas as classificações")
+- [x] Filtro por profissional/responsável (com opção "Todos os profissionais")
+- [x] Filtro por período inicial (data)
+- [x] Filtro por período final (data)
+- [x] Ordenação por: atualizado em, criado em, nome, nº do caso, classificação, status
+- [x] Ordem crescente/decrescente
+- [x] Botão "Limpar filtros"
+- [x] Usar valores reais em SelectItem (todos, todas, nenhum, nao_informado) — nunca value=""
+- [x] Padronizar placeholders em português
 
 ### 4. Revisar Formulário de Casos
-- [ ] Campo "Nº do Caso" bloqueado com texto "Gerado automaticamente ao salvar"
-- [ ] Campo "Nome" obrigatório
-- [ ] Campo "Idade" numérico
-- [ ] Campo "Escola" como select/autocomplete (com dados reais do SIGMA)
-- [ ] Campo "Regional" preenchido automaticamente ao selecionar escola
-- [ ] Campo "Segmento" (enum: creche, pré-escolar, fundamental, médio)
-- [ ] Campo "Situação" (enum: aberto, em andamento, resolvido, arquivado)
-- [ ] Campo "Status" (enum: novo, em análise, aguardando, urgente, resolvido)
-- [ ] Campo "Classificação" (enum: baixa, média, alta, crítica)
-- [ ] Campo "Tipo de demanda" (enum: educacional, social, saúde, outro)
-- [ ] Campo "Origem" (enum: escola, família, comunidade, encaminhamento)
-- [ ] Campo "Assessor responsável" (select de assessores ativos)
-- [ ] Campo "Observação geral" (textarea)
-- [ ] Campo "Encaminhamentos" (textarea)
-- [ ] Organizar em blocos: Identificação, Dados do Estudante, Escola/Território, Classificação, Responsável, Observações
+- [x] Campo "Nº do Caso" bloqueado com texto "Gerado automaticamente ao salvar"
+- [x] Campo "Nome" obrigatório
+- [x] Campo "Idade" numérico
+- [x] Campo "Escola" como select/autocomplete (com dados reais do SIGMA)
+- [x] Campo "Regional" preenchido automaticamente ao selecionar escola
+- [x] Campo "Segmento" (enum: creche, pré-escolar, fundamental, médio)
+- [x] Campo "Situação" (enum: aberto, em andamento, resolvido, arquivado)
+- [x] Campo "Status" (enum: novo, em análise, aguardando, urgente, resolvido)
+- [x] Campo "Classificação" (enum: baixa, média, alta, crítica)
+- [x] Campo "Tipo de demanda" (enum: educacional, social, saúde, outro)
+- [x] Campo "Origem" (enum: escola, família, comunidade, encaminhamento)
+- [x] Campo "Assessor responsável" (select de assessores ativos)
+- [x] Campo "Observação geral" (textarea)
+- [x] Campo "Encaminhamentos" (textarea)
+- [x] Organizar em blocos: Identificação, Dados do Estudante, Escola/Território, Classificação, Responsável, Observações
 - [ ] Salvar advisorId e advisorName ao selecionar assessor
-- [ ] Garantir compatibilidade com casos antigos sem advisorId
+- [x] Garantir compatibilidade com casos antigos sem advisorId
 
 ### 5. Exportação Excel com Filtros e Histórico
-- [ ] Botão "Exportar Excel" na tabela de casos
-- [ ] Checkbox "Incluir histórico consolidado"
-- [ ] Exportar listagem conforme filtros aplicados
-- [ ] Se histórico marcado: incluir movimentações/histórico no arquivo
-- [ ] Se histórico não marcado: exportar apenas dados principais
-- [ ] Manter arquivo organizado e legível
-- [ ] Testar com e sem histórico
+- [x] Botão "Exportar Excel" na tabela de casos
+- [x] Checkbox "Incluir histórico consolidado"
+- [x] Exportar listagem conforme filtros aplicados
+- [x] Se histórico marcado: incluir movimentações/histórico no arquivo
+- [x] Se histórico não marcado: exportar apenas dados principais
+- [x] Manter arquivo organizado e legível
+- [x] Testar com e sem histórico
 
 ### 6. Histórico e Movimentações
 - [ ] Garantir que tela permite registrar movimentação
@@ -716,33 +716,33 @@
 - [ ] Informar no relatório final
 
 ### 8. Validação Manual Obrigatória
-- [ ] Abrir tela de Casos
-- [ ] Criar novo caso
-- [ ] Editar caso existente
-- [ ] Listar casos
-- [ ] Filtrar por nome
-- [ ] Filtrar por protocolo
-- [ ] Filtrar por regional
-- [ ] Filtrar por escola
-- [ ] Filtrar por situação
-- [ ] Filtrar por status
-- [ ] Filtrar por classificação
-- [ ] Filtrar por profissional/responsável
-- [ ] Filtrar por período
-- [ ] Ordenar resultados
-- [ ] Limpar filtros
+- [x] Abrir tela de Casos
+- [x] Criar novo caso
+- [x] Editar caso existente
+- [x] Listar casos
+- [x] Filtrar por nome
+- [x] Filtrar por protocolo
+- [x] Filtrar por regional
+- [x] Filtrar por escola
+- [x] Filtrar por situação
+- [x] Filtrar por status
+- [x] Filtrar por classificação
+- [x] Filtrar por profissional/responsável
+- [x] Filtrar por período
+- [x] Ordenar resultados
+- [x] Limpar filtros
 - [ ] Registrar movimentação
 - [ ] Visualizar histórico
-- [ ] Exportar Excel sem histórico
-- [ ] Exportar Excel com histórico consolidado
-- [ ] Confirmar assessor responsável na tabela
-- [ ] Confirmar compatibilidade com casos antigos sem advisorId
-- [ ] Testar responsividade
+- [x] Exportar Excel sem histórico
+- [x] Exportar Excel com histórico consolidado
+- [x] Confirmar assessor responsável na tabela
+- [x] Confirmar compatibilidade com casos antigos sem advisorId
+- [x] Testar responsividade
 
 ### 9. Testes Automatizados
-- [ ] Rodar pnpm check
-- [ ] Rodar pnpm test
-- [ ] Rodar pnpm build
+- [x] Rodar pnpm check
+- [x] Rodar pnpm test
+- [x] Rodar pnpm build
 
 ### 10. Relatório Final
 - [ ] Listar funcionalidades adaptadas do sistema antigo
