@@ -18,6 +18,7 @@ import FarolGestao from "@/pages/FarolGestao";
 import FarolDashboard from "@/pages/FarolDashboard";
 import FarolAssessores from "@/pages/FarolAssessores";
 import CaseDetail from "@/pages/CaseDetail";
+import FarolAuditDashboard from "@/pages/FarolAuditDashboard";
 import Cadastros from "./pages/Cadastros";
 import DashboardGerencial from "./pages/DashboardGerencial";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -51,6 +52,7 @@ function Router() {
       <Route path="/farol/assessores">{() => <AdminRoute component={FarolAssessores} />}</Route>
       <Route path="/farol/dashboard">{() => <AdminRoute component={FarolDashboard} />}</Route>
       <Route path="/farol/caso/:caseId">{() => <AdminRoute component={CaseDetail} />}</Route>
+      <Route path="/farol/auditoria">{() => <AdminRoute component={FarolAuditDashboard} />}</Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

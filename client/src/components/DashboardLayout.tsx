@@ -36,6 +36,7 @@ import {
   FileText,
   Home,
   Briefcase,
+  Eye,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -57,6 +58,7 @@ const adminMenuItems = [
   { icon: Briefcase, label: "Farol da Gestão", path: "/farol" },
   { icon: BarChart3, label: "Dashboard Farol", path: "/farol/dashboard" },
   { icon: Users, label: "Assessores do Farol", path: "/farol/assessores" },
+  { icon: Eye, label: "Auditoria do Farol", path: "/farol/auditoria" },
 ];
 
 const schoolMenuItems = [
