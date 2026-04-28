@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Plus, Eye, Trash2, FileText, Edit, FileDown, ChevronDown } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useEffect } from "react";
 
 export default function FarolGestao() {
   const user = trpc.auth.me.useQuery().data;
@@ -40,13 +41,52 @@ export default function FarolGestao() {
   });
 
   const { data: selectedCase } = trpc.farol.getCase.useQuery(
-    { id: selectedCaseId! },
-    { enabled: !!selectedCaseId }
+    { id: editingCaseId! },
+    { enabled: !!editingCaseId }
   );
 
   const { data: advisors = [] } = trpc.farol.listAdvisors.useQuery({ ativo: true });
   const { data: metrics } = trpc.farol.metrics.useQuery();
   const { data: schools = [] } = trpc.schools.list.useQuery();
+
+  // Preencher formulário ao editar
+  useEffect(() => {
+    if (selectedCase && editingCaseId) {
+      const form = document.querySelector('form');
+      if (form) {
+        const dataInput = form.querySelector('input[name="dataEntrada"]') as HTMLInputElement;
+        if (dataInput && selectedCase.dataEntrada) {
+          dataInput.value = new Date(selectedCase.dataEntrada).toISOString().split('T')[0];
+        }
+        const nomeInput = form.querySelector('input[name="nomeEstudante"]') as HTMLInputElement;
+        if (nomeInput) nomeInput.value = selectedCase.nomeEstudante || '';
+        const idadeInput = form.querySelector('input[name="idade"]') as HTMLInputElement;
+        if (idadeInput) idadeInput.value = (selectedCase as any).idade?.toString() || '';
+        const segmentoSelect = form.querySelector('select[name="segmento"]') as HTMLSelectElement;
+        if (segmentoSelect) segmentoSelect.value = selectedCase.segmento || '';
+        const schoolSelect = form.querySelector('select[name="schoolId"]') as HTMLSelectElement;
+        if (schoolSelect) schoolSelect.value = (selectedCase as any).schoolId?.toString() || '';
+        const escolaInput = form.querySelector('input[name="escola"]') as HTMLInputElement;
+        if (escolaInput) escolaInput.value = selectedCase.escola || '';
+        const regionalInput = form.querySelector('input[name="regional"]') as HTMLInputElement;
+        if (regionalInput) regionalInput.value = selectedCase.regional || '';
+        const tipoSelect = form.querySelector('select[name="tipoDemanda"]') as HTMLSelectElement;
+        if (tipoSelect) tipoSelect.value = selectedCase.tipoDemanda || '';
+        const origemSelect = form.querySelector('select[name="origem"]') as HTMLSelectElement;
+        if (origemSelect) origemSelect.value = selectedCase.origem || '';
+        const classSelect = form.querySelector('select[name="classificacao"]') as HTMLSelectElement;
+        if (classSelect) classSelect.value = selectedCase.classificacaoCaso || '';
+        const situacaoSelect = form.querySelector('select[name="situacao"]') as HTMLSelectElement;
+        if (situacaoSelect) situacaoSelect.value = selectedCase.situacao || '';
+        const statusSelect = form.querySelector('select[name="status"]') as HTMLSelectElement;
+        if (statusSelect) statusSelect.value = selectedCase.status || '';
+        const obsTextarea = form.querySelector('textarea[name="observacaoGeral"]') as HTMLTextAreaElement;
+        if (obsTextarea) obsTextarea.value = selectedCase.observacaoGeral || '';
+        const encTextarea = form.querySelector('textarea[name="encaminhamentos"]') as HTMLTextAreaElement;
+        if (encTextarea) encTextarea.value = selectedCase.analiseConjunta || '';
+      }
+    }
+  }, [selectedCase, editingCaseId]);
 
   // Mutations
   const createMutation = trpc.farol.createCase.useMutation({
@@ -526,7 +566,10 @@ export default function FarolGestao() {
                             size="sm"
                             variant="ghost"
                             title="Editar"
-                            onClick={() => setEditingCaseId(c.id)}
+                            onClick={() => {
+                              setEditingCaseId(c.id);
+                              setShowForm(true);
+                            }}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -571,11 +614,11 @@ export default function FarolGestao() {
       {showForm && (
         <Card>
           <CardHeader>
-            <CardTitle>Novo Caso</CardTitle>
-            <CardDescription>Preencha os dados do novo caso. O protocolo será gerado automaticamente.</CardDescription>
+            <CardTitle>{editingCaseId ? "Editar Caso" : "Novo Caso"}</CardTitle>
+            <CardDescription>{editingCaseId ? "Atualize os dados do caso." : "Preencha os dados do novo caso. O protocolo será gerado automaticamente."}</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={(e) => handleSubmitCase(e, false)} className="space-y-6">
+            <form onSubmit={(e) => handleSubmitCase(e, !!editingCaseId)} className="space-y-6">
               {/* Identificação do Caso */}
               <div>
                 <h3 className="font-semibold mb-3">Identificação do Caso</h3>
