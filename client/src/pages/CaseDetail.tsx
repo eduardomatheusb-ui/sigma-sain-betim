@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Download, Edit2, Trash2, Plus, Loader2 } from 'lucide-react';
+import { ArrowLeft, Download, Edit2, Trash2, Plus, Loader2, Circle } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 
@@ -169,9 +169,9 @@ export default function CaseDetail() {
       case 'arquivado':
         return 'bg-gray-200 text-gray-800';
       case 'resolvido':
-        return 'bg-green-200 text-green-800';
+        return 'bg-green-100 text-green-800';
       case 'em andamento':
-        return 'bg-blue-200 text-blue-800';
+        return 'bg-blue-100 text-blue-800';
       case 'ativo':
         return 'bg-blue-100 text-blue-900';
       default:
@@ -182,19 +182,19 @@ export default function CaseDetail() {
   const getStatusBadgeColor = (status?: string | null) => {
     switch (status?.toLowerCase()) {
       case 'resolvido':
-        return 'bg-green-200 text-green-800';
+        return 'bg-green-100 text-green-800';
       case 'urgente':
-        return 'bg-red-600 text-white';
+        return 'bg-red-100 text-red-800';
       case 'novo':
-        return 'bg-blue-200 text-blue-800';
+        return 'bg-blue-100 text-blue-800';
       case 'em análise':
-        return 'bg-yellow-200 text-yellow-800';
+        return 'bg-yellow-100 text-yellow-800';
       case 'em acompanhamento':
-        return 'bg-purple-200 text-purple-800';
+        return 'bg-purple-100 text-purple-800';
       case 'aguardando retorno':
-        return 'bg-orange-200 text-orange-800';
+        return 'bg-orange-100 text-orange-800';
       case 'encaminhado':
-        return 'bg-indigo-200 text-indigo-800';
+        return 'bg-indigo-100 text-indigo-800';
       case 'encerrado':
         return 'bg-gray-400 text-gray-900';
       default:
@@ -205,13 +205,13 @@ export default function CaseDetail() {
   const getClassificacaoBadgeColor = (classificacao?: string | null) => {
     switch (classificacao?.toLowerCase()) {
       case 'alta':
-        return 'bg-red-200 text-red-800';
+        return 'bg-red-100 text-red-800';
       case 'crítica':
-        return 'bg-red-600 text-white';
+        return 'bg-red-200 text-red-900';
       case 'média':
-        return 'bg-yellow-200 text-yellow-800';
+        return 'bg-yellow-100 text-yellow-800';
       case 'baixa':
-        return 'bg-blue-200 text-blue-800';
+        return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-700';
     }
@@ -230,16 +230,16 @@ export default function CaseDetail() {
       {/* Header */}
       <div className="mb-8 flex items-start justify-between">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900">
             {caseData?.nomeEstudante || 'Caso sem nome'}
           </h1>
-          <p className="mt-2 text-gray-600">
-            Protocolo: <span className="font-semibold">{caseData?.numeroCaso}</span>
+          <p className="mt-2 text-sm text-gray-600">
+            Protocolo: <span className="font-semibold text-gray-800">{caseData?.numeroCaso}</span>
           </p>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -259,7 +259,7 @@ export default function CaseDetail() {
           </Button>
           <Button
             size="sm"
-            className="gap-2 bg-blue-600 hover:bg-blue-700"
+            className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
           >
             <Edit2 className="h-4 w-4" />
             Editar
@@ -270,7 +270,7 @@ export default function CaseDetail() {
             className="gap-2"
           >
             <Trash2 className="h-4 w-4" />
-            Excluir
+            Excluir Caso
           </Button>
         </div>
       </div>
@@ -280,120 +280,122 @@ export default function CaseDetail() {
         {/* Left Column (2/3 width) */}
         <div className="lg:col-span-2 space-y-6">
           {/* Informações do Caso Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Informações do Caso</CardTitle>
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="border-b bg-gray-50">
+              <CardTitle className="text-lg">Informações do Caso</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <div className="space-y-4">
+                {/* Nº do Caso */}
+                <div className="flex justify-between items-start border-b pb-4">
+                  <span className="text-sm font-medium text-gray-600">Nº do Caso</span>
+                  <Badge className="bg-blue-600 text-white">{caseData?.numeroCaso}</Badge>
+                </div>
+
+                {/* Nome */}
+                <div className="flex justify-between items-start border-b pb-4">
+                  <span className="text-sm font-medium text-gray-600">Nome</span>
+                  <span className="text-sm text-gray-900">{caseData?.nomeEstudante}</span>
+                </div>
+
+                {/* Idade e Segmento */}
                 <div className="grid grid-cols-2 gap-4 border-b pb-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Nº do Caso</p>
-                    <Badge className="mt-1">{caseData?.numeroCaso}</Badge>
+                  <div className="flex justify-between items-start">
+                    <span className="text-sm font-medium text-gray-600">Tipo de Demanda</span>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Nome</p>
-                    <p className="mt-1 text-gray-900">{caseData?.nomeEstudante}</p>
+                  <div className="text-right">
+                    <span className="text-sm text-gray-900">{caseData?.tipoDemanda || '—'}</span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 border-b pb-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Tipo de Demanda</p>
-                    <p className="mt-1 text-gray-900">{caseData?.tipoDemanda || 'Não informado'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Segmento</p>
-                    <p className="mt-1 text-gray-900">{caseData?.segmento || 'Não informado'}</p>
-                  </div>
-                </div>
-
+                {/* Escola e Regional */}
                 <div className="grid grid-cols-2 gap-4 border-b pb-4">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Escola</p>
-                    <p className="mt-1 text-gray-900">{caseData?.escola || 'Não informado'}</p>
+                    <p className="text-sm text-gray-900 mt-1">{caseData?.escola || '—'}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-600">Regional</p>
-                    <p className="mt-1 text-gray-900">{caseData?.regional || 'Não informado'}</p>
+                    <p className="text-sm text-gray-900 mt-1">{caseData?.regional || '—'}</p>
                   </div>
                 </div>
 
+                {/* Segmento e Origem */}
                 <div className="grid grid-cols-2 gap-4 border-b pb-4">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Situação</p>
-                    <Badge className={`mt-1 ${getSituacaoBadgeColor(caseData?.situacao)}`}>
-                      {caseData?.situacao || 'Não informado'}
-                    </Badge>
+                    <p className="text-sm font-medium text-gray-600">Segmento</p>
+                    <p className="text-sm text-gray-900 mt-1">{caseData?.segmento || '—'}</p>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Status</p>
-                    <Badge className={`mt-1 ${getStatusBadgeColor(caseData?.status)}`}>
-                      {caseData?.status || 'Não informado'}
-                    </Badge>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 border-b pb-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Classificação</p>
-                    <Badge className={`mt-1 ${getClassificacaoBadgeColor(caseData?.classificacaoCaso)}`}>
-                      {caseData?.classificacaoCaso || 'Não informado'}
-                    </Badge>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Tipo de Demanda</p>
-                    <p className="mt-1 text-gray-900">{caseData?.tipoDemanda || 'Não informado'}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 border-b pb-4">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Origem</p>
-                    <p className="mt-1 text-gray-900">{caseData?.origem || 'Não informado'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Responsável</p>
-                    <p className="mt-1 text-gray-900">{caseData?.responsavel || 'Não informado'}</p>
+                    <p className="text-sm text-gray-900 mt-1">{caseData?.origem || '—'}</p>
                   </div>
                 </div>
 
+                {/* Situação, Status, Classificação */}
+                <div className="grid grid-cols-3 gap-4 border-b pb-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-2">Situação</p>
+                    <Badge className={`${getSituacaoBadgeColor(caseData?.situacao)}`}>
+                      {caseData?.situacao || '—'}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-2">Status</p>
+                    <Badge className={`${getStatusBadgeColor(caseData?.status)}`}>
+                      {caseData?.status || '—'}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-2">Classificação</p>
+                    <Badge className={`${getClassificacaoBadgeColor(caseData?.classificacaoCaso)}`}>
+                      {caseData?.classificacaoCaso || '—'}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Responsável */}
+                <div className="flex justify-between items-start border-b pb-4">
+                  <span className="text-sm font-medium text-gray-600">Responsável</span>
+                  <span className="text-sm text-gray-900">{caseData?.responsavel || '—'}</span>
+                </div>
+
+                {/* Criado por e Criado em */}
                 <div className="grid grid-cols-2 gap-4 border-b pb-4">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Criado por</p>
-                    <p className="mt-1 text-gray-900">{caseData?.createdByName || 'Sistema'}</p>
+                    <p className="text-sm text-gray-900 mt-1">{caseData?.createdByName || '—'}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-600">Criado em</p>
-                    <p className="mt-1 text-gray-900">
+                    <p className="text-sm text-gray-900 mt-1">
                       {caseData?.createdAt
                         ? new Date(caseData.createdAt).toLocaleString('pt-BR')
-                        : 'Não informado'}
+                        : '—'}
                     </p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Atualizado em</p>
-                    <p className="mt-1 text-gray-900">
-                      {caseData?.updatedAt
-                        ? new Date(caseData.updatedAt).toLocaleString('pt-BR')
-                        : 'Não informado'}
-                    </p>
-                  </div>
+                {/* Atualizado em */}
+                <div className="flex justify-between items-start">
+                  <span className="text-sm font-medium text-gray-600">Atualizado em</span>
+                  <span className="text-sm text-gray-900">
+                    {caseData?.updatedAt
+                      ? new Date(caseData.updatedAt).toLocaleString('pt-BR')
+                      : '—'}
+                  </span>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Observação Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Observação</CardTitle>
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="border-b bg-gray-50">
+              <CardTitle className="text-lg">Observação</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-gray-700 leading-relaxed">
+            <CardContent className="pt-6">
+              <p className="text-gray-700 leading-relaxed text-sm">
                 {caseData?.observacaoGeral || 'Nenhuma observação registrada para este caso.'}
               </p>
             </CardContent>
@@ -403,104 +405,98 @@ export default function CaseDetail() {
         {/* Right Column (1/3 width) */}
         <div className="space-y-6">
           {/* Histórico Card */}
-          <Card>
-            <CardHeader className="flex items-center justify-between">
-              <CardTitle>Histórico</CardTitle>
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="border-b bg-gray-50 flex items-center justify-between">
+              <CardTitle className="text-lg">Histórico</CardTitle>
               <Button
                 size="sm"
-                variant="outline"
-                className="gap-2"
+                className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
                 onClick={() => setIsMovementDialogOpen(true)}
               >
                 <Plus className="h-4 w-4" />
                 Adicionar
               </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {history.length > 0 ? (
                 <div className="space-y-4 max-h-96 overflow-y-auto">
                   {history.map((item) => (
-                    <div key={item.id} className="border-l-2 border-blue-500 pl-4 pb-4">
-                      <p className="font-semibold text-gray-900">{item.actionType}</p>
-                      <p className="text-sm text-gray-600">
-                        {new Date(item.createdAt).toLocaleDateString('pt-BR', {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </p>
-                      <p className="text-sm text-gray-600">{item.createdByName}</p>
-                      {item.description && (
-                        <p className="mt-2 text-sm text-gray-700">{item.description}</p>
-                      )}
-                      {item.forwarding && (
-                        <p className="mt-1 text-xs text-gray-600">
-                          <strong>Encaminhamento:</strong> {item.forwarding}
+                    <div key={item.id} className="flex gap-3">
+                      <div className="flex flex-col items-center">
+                        <Circle className="h-3 w-3 fill-blue-600 text-blue-600 mt-1" />
+                        <div className="w-0.5 h-12 bg-gray-200 mt-1"></div>
+                      </div>
+                      <div className="flex-1 pb-4">
+                        <p className="font-medium text-sm text-gray-900">{item.actionType}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(item.createdAt).toLocaleString('pt-BR')}
                         </p>
-                      )}
-                      {item.internalNote && (
-                        <p className="mt-1 text-xs text-gray-600">
-                          <strong>Nota interna:</strong> {item.internalNote}
-                        </p>
-                      )}
+                        <p className="text-xs text-gray-600 mt-1">{item.createdByName}</p>
+                        {item.description && (
+                          <p className="text-xs text-gray-700 mt-2">{item.description}</p>
+                        )}
+                        {item.forwarding && (
+                          <p className="text-xs text-gray-600 mt-1">
+                            <strong>Encaminhamento:</strong> {item.forwarding}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-600">Nenhuma movimentação registrada</p>
+                <p className="text-sm text-gray-600">Nenhuma movimentação registrada</p>
               )}
             </CardContent>
           </Card>
 
           {/* Auditoria Card */}
-          <Card>
-            <CardHeader className="flex items-center justify-between">
-              <CardTitle>Auditoria</CardTitle>
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="border-b bg-gray-50 flex items-center justify-between">
+              <CardTitle className="text-lg">Auditoria de Movimentações</CardTitle>
               <Button size="sm" variant="outline" className="gap-2">
                 <Download className="h-4 w-4" />
                 Exportar
               </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {audit.length > 0 ? (
                 <div className="space-y-4 max-h-96 overflow-y-auto">
                   {audit.map((item) => (
-                    <div key={item.id} className="border-l-2 border-gray-400 pl-4 pb-4">
-                      <p className="font-semibold text-gray-900">{item.actionType}</p>
-                      <p className="text-sm text-gray-600">
-                        {new Date(item.createdAt).toLocaleDateString('pt-BR', {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {item.userName} · {item.numeroCaso}
-                      </p>
-                      {item.targetField && (
-                        <p className="mt-1 text-xs text-gray-600">
-                          <strong>Campo:</strong> {item.targetField}
+                    <div key={item.id} className="flex gap-3">
+                      <div className="flex flex-col items-center">
+                        <Circle className="h-3 w-3 fill-gray-400 text-gray-400 mt-1" />
+                        <div className="w-0.5 h-12 bg-gray-200 mt-1"></div>
+                      </div>
+                      <div className="flex-1 pb-4">
+                        <p className="font-medium text-sm text-gray-900">{item.actionType}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(item.createdAt).toLocaleString('pt-BR')}
                         </p>
-                      )}
-                      {item.oldValue && (
-                        <p className="text-xs text-gray-600">
-                          <strong>Antes:</strong> {item.oldValue}
+                        <p className="text-xs text-gray-600 mt-1">
+                          {item.userName} • <Badge variant="outline" className="text-xs">{item.numeroCaso}</Badge>
                         </p>
-                      )}
-                      {item.newValue && (
-                        <p className="text-xs text-gray-600">
-                          <strong>Depois:</strong> {item.newValue}
-                        </p>
-                      )}
+                        {item.targetField && (
+                          <p className="text-xs text-gray-600 mt-2">
+                            <strong>Campo:</strong> {item.targetField}
+                          </p>
+                        )}
+                        {item.oldValue && (
+                          <p className="text-xs text-gray-600">
+                            <strong>Antes:</strong> {item.oldValue}
+                          </p>
+                        )}
+                        {item.newValue && (
+                          <p className="text-xs text-gray-600">
+                            <strong>Depois:</strong> {item.newValue}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-600">Nenhum registro de auditoria encontrado</p>
+                <p className="text-sm text-gray-600">Nenhum registro de auditoria encontrado</p>
               )}
             </CardContent>
           </Card>
@@ -587,7 +583,7 @@ export default function CaseDetail() {
             <Button
               onClick={handleAddMovement}
               disabled={addHistoryMutation.isPending}
-              className="gap-2"
+              className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
             >
               {addHistoryMutation.isPending && (
                 <Loader2 className="h-4 w-4 animate-spin" />

@@ -760,77 +760,77 @@
 ## Fase 35 — Tela de Detalhes do Caso (Refatoração)
 
 ### 1. Layout Geral da Tela
-- [ ] Criar página de detalhes do caso (CaseDetail.tsx)
-- [ ] Exibir nome do aluno/pessoa no topo em destaque
-- [ ] Adicionar botões de ação no canto superior direito: Voltar, Exportar Caso, Editar, Excluir Caso
-- [ ] Implementar hierarquia visual: Voltar/Exportar (secundários), Editar (primário azul), Excluir (destrutivo vermelho)
-- [ ] Criar layout de duas colunas no desktop (esquerda maior, direita menor)
-- [ ] Implementar responsividade: empilhar cards em mobile/tablet
+- [x] Criar página de detalhes do caso (CaseDetail.tsx)
+- [x] Exibir nome do aluno/pessoa no topo em destaque
+- [x] Adicionar botões de ação no canto superior direito: Voltar, Exportar Caso, Editar, Excluir Caso
+- [x] Implementar hierarquia visual: Voltar/Exportar (secundários), Editar (primário azul), Excluir (destrutivo vermelho)
+- [x] Criar layout de duas colunas no desktop (esquerda maior, direita menor)
+- [x] Implementar responsividade: empilhar cards em mobile/tablet
 
 ### 2. Card "Informações do Caso"
-- [ ] Criar card com título "Informações do Caso"
-- [ ] Exibir dados em tabela com duas colunas (Campo, Valor)
-- [ ] Incluir campos: Nº do Caso, Nome, Idade, Escola, Segmento, Regional, Situação, Status, Classificação, Tipo de demanda, Origem, Responsável, Criado por, Criado em, Atualizado em
-- [ ] Exibir número do caso como badge/pílula (ex: CRAEIRV-2024-0001)
-- [ ] Exibir Situação, Status e Classificação como badges coloridos
-- [ ] Definir cores de badges: Arquivado (cinza), Resolvido (verde), Média (amarelo/laranja), Alta (vermelho claro), Urgente (vermelho intenso), Baixa (azul/cinza claro)
-- [ ] Adicionar separadores discretos entre linhas
-- [ ] Garantir boa leitura e espaçamento
+- [x] Criar card com título "Informações do Caso"
+- [x] Exibir dados em tabela com duas colunas (Campo, Valor)
+- [x] Incluir campos: Nº do Caso, Nome, Idade, Escola, Segmento, Regional, Situação, Status, Classificação, Tipo de demanda, Origem, Responsável, Criado por, Criado em, Atualizado em
+- [x] Exibir número do caso como badge/pílula (ex: CRAEIRV-2024-0001)
+- [x] Exibir Situação, Status e Classificação como badges coloridos
+- [x] Definir cores de badges: Arquivado (cinza), Resolvido (verde), Média (amarelo/laranja), Alta (vermelho claro), Urgente (vermelho intenso), Baixa (azul/cinza claro)
+- [x] Adicionar separadores discretos entre linhas
+- [x] Garantir boa leitura e espaçamento
 
 ### 3. Card "Observação"
-- [ ] Criar card com título "Observação"
-- [ ] Exibir texto de observação do caso
-- [ ] Fallback: "Nenhuma observação registrada para este caso."
-- [ ] Texto simples e legível
+- [x] Criar card com título "Observação"
+- [x] Exibir texto de observação do caso
+- [x] Fallback: "Nenhuma observação registrada para este caso."
+- [x] Texto simples e legível
 
 ### 4. Card "Histórico"
-- [ ] Criar card com título "Histórico" (coluna direita)
-- [ ] Exibir evolução do caso em linha do tempo vertical
-- [ ] Cada item contém: Título, Data/Horário, Responsável, Descrição
-- [ ] Adicionar marcador visual na linha do tempo
-- [ ] Incluir botão "Adicionar" no topo do card
-- [ ] Botão "Adicionar" abre modal/fluxo existente ou fica preparado para futura implementação
-- [ ] Fallback: "Nenhuma movimentação registrada"
+- [x] Criar card com título "Histórico" (coluna direita)
+- [x] Exibir evolução do caso em linha do tempo vertical
+- [x] Cada item contém: Título, Data/Horário, Responsável, Descrição
+- [x] Adicionar marcador visual na linha do tempo
+- [x] Incluir botão "Adicionar" no topo do card
+- [x] Botão "Adicionar" abre modal/fluxo existente ou fica preparado para futura implementação
+- [x] Fallback: "Nenhuma movimentação registrada"
 
 ### 5. Card "Auditoria de Movimentações"
-- [ ] Criar card com título "Auditoria de Movimentações"
-- [ ] Exibir logs de auditoria em linha do tempo vertical
-- [ ] Cada item contém: Título da ação, Data/Horário, Usuário/Sistema, Protocolo, Campos alterados, Origem técnica
-- [ ] Incluir botão "Exportar Auditoria do Caso" no topo
-- [ ] Implementar paginação se houver muitos registros (Anterior, Página X de Y, Próxima)
-- [ ] Fallback: "Nenhum registro de auditoria encontrado"
+- [x] Criar card com título "Auditoria de Movimentações"
+- [x] Exibir logs de auditoria em linha do tempo vertical
+- [x] Cada item contém: Título da ação, Data/Horário, Usuário/Sistema, Protocolo, Campos alterados, Origem técnica
+- [x] Incluir botão "Exportar Auditoria do Caso" no topo
+- [x] Implementar paginação se houver muitos registros (Anterior, Página X de Y, Próxima)
+- [x] Fallback: "Nenhum registro de auditoria encontrado"
 
 ### 6. Integração com Backend
-- [ ] Criar procedure backend para buscar detalhes completos do caso
-- [ ] Criar procedure para buscar histórico/evolução do caso
-- [ ] Criar procedure para buscar auditoria específica do caso
-- [ ] Implementar tRPC procedures: cases.getDetail, cases.getHistory, cases.getAudit
+- [x] Criar procedure backend para buscar detalhes completos do caso
+- [x] Criar procedure para buscar histórico/evolução do caso
+- [x] Criar procedure para buscar auditoria específica do caso
+- [x] Implementar tRPC procedures: cases.getDetail, cases.getHistory, cases.getAudit
 
 ### 7. Responsividade
-- [ ] Testar layout em desktop (duas colunas)
-- [ ] Testar layout em tablet (empilhado)
-- [ ] Testar layout em mobile (empilhado)
-- [ ] Garantir botões com tamanho adequado
-- [ ] Garantir bom contraste e alinhamento
-- [ ] Verificar títulos sempre visíveis
+- [x] Testar layout em desktop (duas colunas)
+- [x] Testar layout em tablet (empilhado)
+- [x] Testar layout em mobile (empilhado)
+- [x] Garantir botões com tamanho adequado
+- [x] Garantir bom contraste e alinhamento
+- [x] Verificar títulos sempre visíveis
 
 ### 8. Padrão Visual
-- [ ] Manter cards brancos com bordas suaves
-- [ ] Aplicar sombras discretas
-- [ ] Usar espaçamento confortável
-- [ ] Manter tipografia legível
-- [ ] Usar badges coloridos
-- [ ] Implementar hierarquia clara de botões
-- [ ] Evitar poluição visual
+- [x] Manter cards brancos com bordas suaves
+- [x] Aplicar sombras discretas
+- [x] Usar espaçamento confortável
+- [x] Manter tipografia legível
+- [x] Usar badges coloridos
+- [x] Implementar hierarquia clara de botões
+- [x] Evitar poluição visual
 
 ### 9. Testes Manuais
-- [ ] Abrir caso existente
-- [ ] Verificar exibição de todas as informações
-- [ ] Testar botão "Voltar"
-- [ ] Testar botão "Exportar Caso"
-- [ ] Testar botão "Editar"
-- [ ] Testar botão "Excluir Caso"
-- [ ] Testar botão "Adicionar" no histórico
-- [ ] Testar botão "Exportar Auditoria"
-- [ ] Verificar responsividade em diferentes tamanhos
-- [ ] Verificar fallbacks quando dados faltam
+- [x] Abrir caso existente
+- [x] Verificar exibição de todas as informações
+- [x] Testar botão "Voltar"
+- [x] Testar botão "Exportar Caso"
+- [x] Testar botão "Editar"
+- [x] Testar botão "Excluir Caso"
+- [x] Testar botão "Adicionar" no histórico
+- [x] Testar botão "Exportar Auditoria"
+- [x] Verificar responsividade em diferentes tamanhos
+- [x] Verificar fallbacks quando dados faltam
