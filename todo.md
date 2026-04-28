@@ -517,7 +517,7 @@
 - [x] createCase com auditoria
 - [x] updateCase com auditoria e histórico
 - [x] deleteCase apenas para admin/coordinator (exclusão lógica)
-- [ ] listAdvisors, createAdvisor, updateAdvisor, deleteAdvisor
+- [x] listAdvisors, createAdvisor, updateAdvisor, deleteAdvisor
 - [x] getAuditTrail para admin/coordinator
 - [x] exportCaseToWord
 - [x] exportCasesToExcel
@@ -530,8 +530,8 @@
 - [x] Tempo médio de resolução
 - [x] Gráfico por tipo de demanda
 - [x] Gráfico por origem
-- [ ] Assessores com mais casos
-- [ ] Tempo de resposta
+- [x] Assessores com mais casos
+- [x] Tempo de resposta
 - [x] Casos sem movimentação recente
 - [x] Últimas movimentações
 - [x] Visibilidade por perfil (admin/coordinator: sim, advisor/childhood_coordination/viewer: não)
@@ -607,7 +607,7 @@
 - [x] Adicionar campo advisorId no formulário de edição de caso
 - [x] Select de assessores (apenas ativos)
 - [x] Salvar advisorId e advisorName no banco
-- [ ] Exibir assessor responsável na tabela de casos
+- [x] Exibir assessor responsável na tabela de casos
 
 ### 5. Auditoria
 - [x] Registrar criação de assessor em farol_audit
@@ -691,7 +691,7 @@
 - [x] Campo "Observação geral" (textarea)
 - [x] Campo "Encaminhamentos" (textarea)
 - [x] Organizar em blocos: Identificação, Dados do Estudante, Escola/Território, Classificação, Responsável, Observações
-- [ ] Salvar advisorId e advisorName ao selecionar assessor
+- [x] Salvar advisorId e advisorName ao selecionar assessor
 - [x] Garantir compatibilidade com casos antigos sem advisorId
 
 ### 5. Exportação Excel com Filtros e Histórico
@@ -704,16 +704,16 @@
 - [x] Testar com e sem histórico
 
 ### 6. Histórico e Movimentações
-- [ ] Garantir que tela permite registrar movimentação
-- [ ] Garantir que tela permite visualizar histórico
-- [ ] Salvar usuário, data, hora e descrição da movimentação
-- [ ] Registrar alteração de assessor responsável no histórico/auditoria
+- [x] Garantir que tela permite registrar movimentação
+- [x] Garantir que tela permite visualizar histórico
+- [x] Salvar usuário, data, hora e descrição da movimentação
+- [x] Registrar alteração de assessor responsável no histórico/auditoria
 
 ### 7. Dados do Sistema Antigo
-- [ ] Verificar se registros são dados reais, mockados, seed ou persistidos
-- [ ] Não migrar dados fictícios para produção
-- [ ] Manter dados de exemplo apenas em seed/teste
-- [ ] Informar no relatório final
+- [x] Verificar se registros são dados reais, mockados, seed ou persistidos
+- [x] Não migrar dados fictícios para produção
+- [x] Manter dados de exemplo apenas em seed/teste
+- [x] Informar no relatório final
 
 ### 8. Validação Manual Obrigatória
 - [x] Abrir tela de Casos
@@ -731,8 +731,8 @@
 - [x] Filtrar por período
 - [x] Ordenar resultados
 - [x] Limpar filtros
-- [ ] Registrar movimentação
-- [ ] Visualizar histórico
+- [x] Registrar movimentação
+- [x] Visualizar histórico
 - [x] Exportar Excel sem histórico
 - [x] Exportar Excel com histórico consolidado
 - [x] Confirmar assessor responsável na tabela
@@ -745,16 +745,16 @@
 - [x] Rodar pnpm build
 
 ### 10. Relatório Final
-- [ ] Listar funcionalidades adaptadas do sistema antigo
-- [ ] Listar arquivos alterados
-- [ ] Listar rotas alteradas ou criadas
-- [ ] Listar procedures tRPC ajustadas
-- [ ] Listar campos de banco alterados
-- [ ] Resultado dos testes manuais
-- [ ] Resultado do pnpm check
-- [ ] Resultado do pnpm test
-- [ ] Resultado do pnpm build
-- [ ] Salvar checkpoint
+- [x] Listar funcionalidades adaptadas do sistema antigo
+- [x] Listar arquivos alterados
+- [x] Listar rotas alteradas ou criadas
+- [x] Listar procedures tRPC ajustadas
+- [x] Listar campos de banco alterados
+- [x] Resultado dos testes manuais
+- [x] Resultado do pnpm check
+- [x] Resultado do pnpm test
+- [x] Resultado do pnpm build
+- [x] Salvar checkpoint
 
 
 ## Fase 35 — Tela de Detalhes do Caso (Refatoração)
