@@ -550,7 +550,7 @@ export default function CaseDetail() {
           />
 
           {/* Evolução do Caso Card */}
-          <CaseEvolution caseId={caseIdNum} isLoading={loading} />
+          <CaseEvolution caseId={caseIdNum} numeroCaso={caseData?.numeroCaso} isLoading={loading} />
         </div>
       </div>
 
