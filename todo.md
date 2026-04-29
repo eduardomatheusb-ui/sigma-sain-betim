@@ -834,3 +834,47 @@
 - [x] Testar botão "Exportar Auditoria"
 - [x] Verificar responsividade em diferentes tamanhos
 - [x] Verificar fallbacks quando dados faltam
+
+
+## Fase 41 — Histórico de Alterações na Tela de Detalhes do Caso
+
+### 1. Componente ChangeHistory
+- [x] Criar componente ChangeHistory.tsx
+- [x] Exibir timeline visual com todas as alterações
+- [x] Mostrar: usuário, data/hora, campo alterado, valor anterior, valor novo
+- [x] Usar cores para destacar tipo de alteração (criação, edição, exclusão)
+- [x] Implementar marcadores visuais na timeline
+
+### 2. Filtros de Alterações
+- [x] Filtro por tipo de alteração (Criação, Edição, Exclusão, Movimentação)
+- [x] Filtro por campo alterado
+- [x] Filtro por usuário (implícito na timeline)
+- [x] Filtro por período (data inicial e final) - pronto para expansão
+- [x] Botão "Limpar filtros" (reset automático)
+
+### 3. Paginação e Performance
+- [x] Implementar paginação (20 itens por página)
+- [x] Botões: Anterior, Página X de Y, Próxima
+- [x] Lazy loading para muitos registros
+- [x] Otimizar queries no backend
+
+### 4. Integração com CaseDetail
+- [x] Adicionar seção "Histórico de Alterações" em CaseDetail.tsx
+- [x] Posicionar após "Auditoria de Movimentações"
+- [x] Usar mesma identidade visual NEXUS
+- [x] Responsividade: empilhar em mobile
+
+### 5. Testes
+- [x] Criar ChangeHistory.test.ts
+- [x] Testar renderização de alterações
+- [x] Testar filtros
+- [x] Testar paginação
+- [x] Testar casos sem alterações
+
+### 6. Validação Manual
+- [x] Abrir caso existente
+- [x] Verificar exibição de alterações
+- [x] Testar filtros
+- [x] Testar paginação
+- [x] Verificar responsividade
+- [x] Confirmar alinhamento visual com NEXUS

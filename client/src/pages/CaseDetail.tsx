@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, Download, Edit2, Trash2, Plus, Loader2, Circle } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
+import { ChangeHistory } from '@/components/ChangeHistory';
 
 interface CaseData {
   id: number;
@@ -537,6 +538,15 @@ export default function CaseDetail() {
               )}
             </CardContent>
           </Card>
+
+          {/* Histórico de Alterações Card */}
+          <ChangeHistory
+            changes={audit.map(a => ({
+              ...a,
+              caseId: a.caseId || caseIdNum,
+            }))}
+            isLoading={auditLoading}
+          />
         </div>
       </div>
 
