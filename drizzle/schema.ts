@@ -437,3 +437,24 @@ export const farolAdvisors = mysqlTable("farol_advisors", {
 
 export type FarolAdvisor = typeof farolAdvisors.$inferSelect;
 export type InsertFarolAdvisor = typeof farolAdvisors.$inferInsert;
+
+
+/**
+ * CaseEvolutions - Histórico de evolução dos casos (Progresso, Estável, Regressão, Encerrado)
+ */
+export const caseEvolutions = mysqlTable("case_evolutions", {
+  id: int("id").autoincrement().primaryKey(),
+  caseId: int("caseId").notNull(),
+  numeroCaso: varchar("numeroCaso", { length: 50 }).notNull(),
+  date: date("date").notNull(),
+  status: mysqlEnum("status", ["Progresso", "Estável", "Regressão", "Encerrado"]).notNull(),
+  description: text("description").notNull(),
+  createdBy: int("createdBy").notNull(),
+  createdByName: varchar("createdByName", { length: 255 }).notNull(),
+  createdByRole: varchar("createdByRole", { length: 50 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CaseEvolution = typeof caseEvolutions.$inferSelect;
+export type InsertCaseEvolution = typeof caseEvolutions.$inferInsert;
