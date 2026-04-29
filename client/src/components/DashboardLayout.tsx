@@ -18,6 +18,9 @@ import {
   SidebarProvider,
   SidebarTrigger,
   useSidebar,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
@@ -37,28 +40,59 @@ import {
   Home,
   Briefcase,
   Eye,
+  ChevronDown,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
-const adminMenuItems = [
+interface MenuGroup {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  items: Array<{ icon: React.ComponentType<{ className?: string }>; label: string; path: string }>;
+}
+
+interface MenuItem {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  path: string;
+}
+
+const adminMenuItems: (MenuItem | MenuGroup)[] = [
   { icon: Home, label: "Página Inicial", path: "/" },
   { icon: LayoutDashboard, label: "Dashboard Estratégico", path: "/dashboard" },
   { icon: BarChart3, label: "Dashboard Gerencial", path: "/dashboard-gerencial" },
-  { icon: FileText, label: "Quadro de Mediadores", path: "/cadastros" },
   { icon: School, label: "Escolas", path: "/escolas" },
   { icon: GraduationCap, label: "Alunos", path: "/alunos" },
-  { icon: UserCheck, label: "Mediadores", path: "/mediadores" },
-  { icon: ClipboardList, label: "Atendimentos", path: "/atendimentos" },
   { icon: AlertCircle, label: "Demandas Externas", path: "/demandas" },
   { icon: BarChart3, label: "Relatórios", path: "/relatorios" },
-  { icon: Shield, label: "Usuários", path: "/usuarios" },
-  { icon: Briefcase, label: "Farol da Gestão", path: "/farol" },
-  { icon: BarChart3, label: "Dashboard Farol", path: "/farol/dashboard" },
-  { icon: Users, label: "Assessores do Farol", path: "/farol/assessores" },
-  { icon: Eye, label: "Auditoria do Farol", path: "/farol/auditoria" },
+  {
+    label: "Mediadores",
+    icon: UserCheck,
+    items: [
+      { icon: FileText, label: "Quadro de Mediadores", path: "/cadastros" },
+      { icon: UserCheck, label: "Mediadores", path: "/mediadores" },
+      { icon: ClipboardList, label: "Atendimentos", path: "/atendimentos" },
+    ],
+  },
+  {
+    label: "Acompanhamento de Casos",
+    icon: Briefcase,
+    items: [
+      { icon: Briefcase, label: "Farol da Gestão", path: "/farol" },
+      { icon: BarChart3, label: "Dashboard Farol", path: "/farol/dashboard" },
+      { icon: Eye, label: "Auditoria do Farol", path: "/farol/auditoria" },
+    ],
+  },
+  {
+    label: "Configurações",
+    icon: Shield,
+    items: [
+      { icon: Shield, label: "Usuários", path: "/usuarios" },
+      { icon: Users, label: "Assessores do Farol", path: "/farol/assessores" },
+    ],
+  },
 ];
 
 const schoolMenuItems = [
@@ -153,7 +187,7 @@ function DashboardLayoutContent({
   const isMobile = useIsMobile();
 
   const menuItems = user?.role === "admin" ? adminMenuItems : schoolMenuItems;
-  const activeMenuItem = menuItems.find(item => item.path === location);
+  const isItemActive = (path: string) => location === path || (path !== "/" && location.startsWith(path));
 
   useEffect(() => {
     if (isCollapsed) setIsResizing(false);
@@ -214,23 +248,64 @@ function DashboardLayoutContent({
           {/* Itens de Navegação */}
           <SidebarContent className="gap-0 py-2">
             <SidebarMenu className="px-2">
-              {menuItems.map(item => {
-                const isActive = location === item.path || (item.path !== "/" && location.startsWith(item.path));
-                return (
-                  <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton
-                      isActive={isActive}
-                      onClick={() => setLocation(item.path)}
-                      tooltip={item.label}
-                      className={`h-10 transition-all font-normal text-white/80 hover:text-white hover:bg-white/10 ${
-                        isActive ? "bg-white/20 text-white font-medium" : ""
-                      }`}
-                    >
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
+              {menuItems.map((item, idx) => {
+                const isGroup = 'items' in item;
+                if (isGroup) {
+                  const groupItem = item as MenuGroup;
+                  const isGroupActive = groupItem.items.some(subItem => isItemActive(subItem.path));
+                  const [isOpen, setIsOpen] = useState(isGroupActive);
+                  return (
+                    <SidebarMenuItem key={groupItem.label}>
+                      <SidebarMenuButton
+                        onClick={() => setIsOpen(!isOpen)}
+                        className="h-10 transition-all font-normal text-white/80 hover:text-white hover:bg-white/10"
+                      >
+                        <groupItem.icon className="h-4 w-4 shrink-0" />
+                        <span>{groupItem.label}</span>
+                        <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${ isOpen ? "rotate-180" : "" }`} />
+                      </SidebarMenuButton>
+                      {isOpen && (
+                        <SidebarMenuSub>
+                          {groupItem.items.map(subItem => {
+                            const isActive = isItemActive(subItem.path);
+                            return (
+                              <SidebarMenuSubItem key={subItem.path}>
+                                <SidebarMenuSubButton
+                                  isActive={isActive}
+                                  onClick={() => setLocation(subItem.path)}
+                                  className={`h-9 transition-all font-normal text-white/70 hover:text-white hover:bg-white/10 ${
+                                    isActive ? "bg-white/20 text-white font-medium" : ""
+                                  }`}
+                                >
+                                  <subItem.icon className="h-4 w-4 shrink-0" />
+                                  <span>{subItem.label}</span>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            );
+                          })}
+                        </SidebarMenuSub>
+                      )}
+                    </SidebarMenuItem>
+                  );
+                } else {
+                  const menuItem = item as MenuItem;
+                  const isActive = isItemActive(menuItem.path);
+                  return (
+                    <SidebarMenuItem key={menuItem.path}>
+                      <SidebarMenuButton
+                        isActive={isActive}
+                        onClick={() => setLocation(menuItem.path)}
+                        tooltip={menuItem.label}
+                        className={`h-10 transition-all font-normal text-white/80 hover:text-white hover:bg-white/10 ${
+                          isActive ? "bg-white/20 text-white font-medium" : ""
+                        }`}
+                      >
+                        <menuItem.icon className="h-4 w-4 shrink-0" />
+                        <span>{menuItem.label}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                }
               })}
             </SidebarMenu>
           </SidebarContent>
@@ -285,7 +360,17 @@ function DashboardLayoutContent({
             <div className="flex items-center gap-2">
               <SidebarTrigger className="h-9 w-9 rounded-lg text-white hover:bg-white/10" />
               <span className="font-medium text-white text-sm">
-                {activeMenuItem?.label ?? "NEXUS"}
+                {(() => {
+                  for (const item of menuItems) {
+                    if ('items' in item) {
+                      const found = (item as MenuGroup).items.find(sub => isItemActive(sub.path));
+                      if (found) return found.label;
+                    } else if (isItemActive((item as MenuItem).path)) {
+                      return (item as MenuItem).label;
+                    }
+                  }
+                  return "NEXUS";
+                })()}
               </span>
             </div>
           </div>

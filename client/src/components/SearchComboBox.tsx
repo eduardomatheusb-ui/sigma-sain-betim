@@ -1,8 +1,6 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Loader2, X } from 'lucide-react';
-import { debounce } from 'lodash-es';
 
 interface SearchOption {
   id: number;
@@ -20,6 +18,22 @@ interface SearchComboBoxProps {
   label?: string;
 }
 
+// Simple debounce implementation
+function debounce(
+  func: (query: string) => Promise<void>,
+  wait: number
+): (query: string) => void {
+  let timeout: NodeJS.Timeout | null = null;
+  return function executedFunction(query: string) {
+    const later = () => {
+      timeout = null;
+      func(query);
+    };
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
 export function SearchComboBox({
   placeholder = 'Buscar...',
   onSearch,
@@ -34,10 +48,10 @@ export function SearchComboBox({
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const debouncedSearchRef = useRef<((query: string) => void) | undefined>();
 
-  // Debounced search function
-  const debouncedSearch = useCallback(
-    debounce(async (query: string) => {
+  useEffect(() => {
+    debouncedSearchRef.current = debounce(async (query: string): Promise<void> => {
       if (!query.trim()) {
         setSuggestions([]);
         setIsLoading(false);
@@ -55,15 +69,16 @@ export function SearchComboBox({
       } finally {
         setIsLoading(false);
       }
-    }, 300),
-    [onSearch]
-  );
+    }, 300);
+  }, [onSearch]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setInputValue(newValue);
     setIsOpen(true);
-    debouncedSearch(newValue);
+    if (debouncedSearchRef.current) {
+      debouncedSearchRef.current(newValue);
+    }
   };
 
   const handleSelect = (option: SearchOption) => {
