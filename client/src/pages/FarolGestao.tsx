@@ -675,8 +675,36 @@ export default function FarolGestao() {
                 <h3 className="font-semibold mb-3">Dados do Estudante</h3>
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="text-sm font-medium">Nome *</label>
-                    <Input name="nomeEstudante" placeholder="Nome completo" required className="mt-1" />
+                    <label className="text-sm font-medium">Nome do Aluno *</label>
+                    <SearchComboBox
+                      placeholder="Buscar aluno..."
+                      onSearch={async (query) => {
+                        if (!query || query.length < 2) return [];
+                        try {
+                          const response = await fetch(`/api/trpc/farol.searchStudents?input=${JSON.stringify({query, limit: 10})}`)
+                          const result = await response.json();
+                          return result.result?.data?.students?.map((s: any) => ({
+                            id: s.id,
+                            name: s.name,
+                            grade: s.grade,
+                            enrollmentNumber: s.enrollmentNumber,
+                          })) || [];
+                        } catch (err) {
+                          console.error('Erro ao buscar alunos:', err);
+                          return [];
+                        }
+                      }}
+                      onSelect={(option) => {
+                        const studentIdInput = document.querySelector('input[name="studentId"]') as HTMLInputElement;
+                        if (studentIdInput) studentIdInput.value = option.id.toString();
+                        const nomeInput = document.querySelector('input[name="nomeEstudante"]') as HTMLInputElement;
+                        if (nomeInput) nomeInput.value = option.name;
+                        const gradeInput = document.querySelector('select[name="segmento"]') as HTMLSelectElement;
+                        if (gradeInput && option.grade) gradeInput.value = option.grade;
+                      }}
+                    />
+                    <Input name="studentId" type="hidden" />
+                    <Input name="nomeEstudante" type="hidden" />
                   </div>
                   <div>
                     <label className="text-sm font-medium">Idade</label>

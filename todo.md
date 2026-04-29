@@ -883,40 +883,40 @@
 ## Fase 42 — Busca Automática de Escolas e Alunos no Farol
 
 ### 1. Procedures tRPC para Busca
-- [ ] Criar procedure `searchSchools` para buscar escolas por nome
-- [ ] Criar procedure `searchStudents` para buscar alunos por nome
-- [ ] Retornar id, nome, e dados relevantes
-- [ ] Implementar paginação (10 resultados por busca)
-- [ ] Case-insensitive search
+- [x] Criar procedure `searchSchools` para buscar escolas por nome
+- [x] Criar procedure `searchStudents` para buscar alunos por nome
+- [x] Retornar id, nome, e dados relevantes
+- [x] Implementar paginação (10 resultados por busca)
+- [x] Case-insensitive search
 
 ### 2. Componente SearchComboBox
-- [ ] Criar componente reutilizável SearchComboBox.tsx
-- [ ] Input com placeholder customizável
-- [ ] Dropdown com sugestões
-- [ ] Debounce de 300ms para não sobrecarregar backend
-- [ ] Mostrar "Carregando..." enquanto busca
-- [ ] Mostrar "Nenhum resultado" quando vazio
-- [ ] Seleção com Enter ou clique
+- [x] Criar componente reutilizável SearchComboBox.tsx
+- [x] Input com placeholder customizável
+- [x] Dropdown com sugestões
+- [x] Debounce de 300ms para não sobrecarregar backend
+- [x] Mostrar "Carregando..." enquanto busca
+- [x] Mostrar "Nenhum resultado" quando vazio
+- [x] Seleção com Enter ou clique
 
 ### 3. Integração em FarolGestao.tsx
-- [ ] Substituir campo "Escola" por SearchComboBox para escolas
-- [ ] Substituir campo "Nome do Aluno" por SearchComboBox para alunos
-- [ ] Auto-preencher dados da escola (regional, segmento) ao selecionar
-- [ ] Auto-preencher dados do aluno ao selecionar
-- [ ] Validar seleção antes de salvar
+- [x] Substituir campo "Escola" por SearchComboBox para escolas
+- [x] Substituir campo "Nome do Aluno" por SearchComboBox para alunos
+- [x] Auto-preencher dados da escola (regional, segmento) ao selecionar
+- [x] Auto-preencher dados do aluno ao selecionar
+- [x] Validar seleção antes de salvar
 
 ### 4. Testes
-- [ ] Criar SearchComboBox.test.ts
-- [ ] Testar busca de escolas
-- [ ] Testar busca de alunos
-- [ ] Testar debounce
-- [ ] Testar seleção
-- [ ] Testar casos vazios
+- [x] Criar SearchComboBox.test.ts
+- [x] Testar busca de escolas
+- [x] Testar busca de alunos
+- [x] Testar debounce
+- [x] Testar seleção
+- [x] Testar casos vazios
 
 ### 5. Validação Manual
-- [ ] Abrir formulário de criar caso
-- [ ] Digitar nome de escola e verificar sugestões
-- [ ] Digitar nome de aluno e verificar sugestões
-- [ ] Selecionar escola e verificar auto-preenchimento
-- [ ] Selecionar aluno e verificar auto-preenchimento
-- [ ] Testar responsividade do dropdown
+- [x] Abrir formulário de criar caso
+- [x] Digitar nome de escola e verificar sugestões
+- [x] Digitar nome de aluno e verificar sugestões
+- [x] Selecionar escola e verificar auto-preenchimento
+- [x] Selecionar aluno e verificar auto-preenchimento
+- [x] Testar responsividade do dropdown
