@@ -920,3 +920,33 @@
 - [x] Selecionar escola e verificar auto-preenchimento
 - [x] Selecionar aluno e verificar auto-preenchimento
 - [x] Testar responsividade do dropdown
+
+
+## Fase 43 — Correções Críticas de Busca e Responsividade
+
+### 1. Corrigir Campo de Escolas para Lista Suspensa
+- [ ] Remover SearchComboBox do campo de escolas
+- [ ] Restaurar select nativo com todas as escolas carregadas
+- [ ] Carregar escolas do banco de dados ao abrir formulário
+- [ ] Manter auto-preenchimento de regional ao selecionar
+
+### 2. Carregamento Automático de Aluno
+- [ ] Remover SearchComboBox do campo de aluno
+- [ ] Criar campo de busca simples (input com debounce)
+- [ ] Buscar aluno no banco de dados conforme digita
+- [ ] Auto-preencher: nome, idade, segmento, escola, regional
+- [ ] Mostrar referência do aluno (matrícula, ID)
+
+### 3. Responsividade do Formulário
+- [ ] Adicionar scroll automático ao clicar em "Novo Caso"
+- [ ] Posicionar formulário acima da tabela de casos
+- [ ] Implementar modal responsivo em mobile
+- [ ] Adicionar botão "Fechar" no topo do formulário
+- [ ] Melhorar espaçamento em telas pequenas
+
+### 4. Testes e Validação
+- [ ] Testar lista suspensa de escolas
+- [ ] Testar busca e auto-preenchimento de aluno
+- [ ] Testar scroll automático
+- [ ] Testar responsividade em mobile/tablet
+- [ ] Verificar se dados estão sendo salvos corretamente
