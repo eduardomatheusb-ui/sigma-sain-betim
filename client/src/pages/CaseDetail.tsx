@@ -11,6 +11,7 @@ import { ArrowLeft, Download, Edit2, Trash2, Plus, Loader2, Circle } from 'lucid
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import { ChangeHistory } from '@/components/ChangeHistory';
+import { CaseEvolution } from '@/components/CaseEvolution';
 
 interface CaseData {
   id: number;
@@ -547,6 +548,9 @@ export default function CaseDetail() {
             }))}
             isLoading={auditLoading}
           />
+
+          {/* Evolução do Caso Card */}
+          <CaseEvolution caseId={caseIdNum} isLoading={loading} />
         </div>
       </div>
 

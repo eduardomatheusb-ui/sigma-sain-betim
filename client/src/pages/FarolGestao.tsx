@@ -1,4 +1,3 @@
-import React, { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { exportCaseToWord, exportCasesToExcel } from "@/lib/farol-export";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Plus, Eye, Trash2, FileText, Edit, FileDown, ChevronDown } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useEffect } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { useLocation } from "wouter";
+import { toast } from "sonner";
 
 export default function FarolGestao() {
   const user = trpc.auth.me.useQuery().data;
@@ -91,22 +92,36 @@ export default function FarolGestao() {
   // Mutations
   const createMutation = trpc.farol.createCase.useMutation({
     onSuccess: () => {
+      toast.success("Caso criado com sucesso");
       refetch();
       setShowForm(false);
+      setEditingCaseId(null);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Erro ao criar caso");
     },
   });
 
   const updateMutation = trpc.farol.updateCase.useMutation({
     onSuccess: () => {
+      toast.success("Caso atualizado com sucesso");
       refetch();
+      setShowForm(false);
       setEditingCaseId(null);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Erro ao atualizar caso");
     },
   });
 
   const deleteMutation = trpc.farol.deleteCase.useMutation({
     onSuccess: () => {
+      toast.success("Caso excluído com sucesso");
       refetch();
       setSelectedCaseId(null);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Erro ao excluir caso");
     },
   });
 
@@ -234,6 +249,8 @@ export default function FarolGestao() {
     setOrdenacao("updatedAt");
     setOrdem("desc");
   };
+
+  const [, navigate] = useLocation();
 
   const handleSubmitCase = (e: React.FormEvent<HTMLFormElement>, isEditing: boolean) => {
     e.preventDefault();
@@ -576,7 +593,7 @@ export default function FarolGestao() {
                             size="sm"
                             variant="ghost"
                             title="Ver detalhes"
-                            onClick={() => setSelectedCaseId(c.id)}
+                            onClick={() => navigate(`/farol/casos/${c.id}`)}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
