@@ -51,7 +51,7 @@ function Router() {
       <Route path="/farol">{() => <AdminRoute component={FarolGestao} />}</Route>
       <Route path="/farol/assessores">{() => <AdminRoute component={FarolAssessores} />}</Route>
       <Route path="/farol/dashboard">{() => <AdminRoute component={FarolDashboard} />}</Route>
-      <Route path="/farol/caso/:caseId">{() => <AdminRoute component={CaseDetail} />}</Route>
+      <Route path="/farol/casos/:caseId">{() => <AdminRoute component={CaseDetail} />}</Route>
       <Route path="/farol/auditoria">{() => <AdminRoute component={FarolAuditDashboard} />}</Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
