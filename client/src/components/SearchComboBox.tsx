@@ -48,7 +48,7 @@ export function SearchComboBox({
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const debouncedSearchRef = useRef<((query: string) => void) | undefined>();
+  const debouncedSearchRef = useRef<((query: string) => void) | undefined>(undefined);
 
   useEffect(() => {
     debouncedSearchRef.current = debounce(async (query: string): Promise<void> => {

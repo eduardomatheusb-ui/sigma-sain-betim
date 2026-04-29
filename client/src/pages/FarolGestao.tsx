@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useEffect, useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
+import { SearchComboBox } from "@/components/SearchComboBox";
 
 export default function FarolGestao() {
   const user = trpc.auth.me.useQuery().data;
@@ -697,28 +698,34 @@ export default function FarolGestao() {
               <div>
                 <h3 className="font-semibold mb-3">Escola e Território</h3>
                 <div className="grid grid-cols-3 gap-4">
-                  <div>
+                  <div className="col-span-2">
                     <label className="text-sm font-medium">Escola *</label>
-                    <select 
-                      name="schoolId" 
-                      onChange={(e) => {
-                        const schoolId = parseInt(e.target.value);
-                        const selectedSchool = schools.find(s => s.id === schoolId);
-                        if (selectedSchool) {
-                          (document.querySelector('input[name="escola"]') as HTMLInputElement).value = selectedSchool.name;
+                    <SearchComboBox
+                      placeholder="Buscar escola..."
+                      onSearch={async (query) => {
+                        if (!query || query.length < 2) return [];
+                        try {
+                          const response = await fetch(`/api/trpc/farol.searchSchools?input=${JSON.stringify({query, limit: 10})}`)
+                          const result = await response.json();
+                          return result.result?.data?.schools?.map((s: any) => ({
+                            id: s.id,
+                            name: s.name,
+                            code: s.code,
+                          })) || [];
+                        } catch (err) {
+                          console.error('Erro ao buscar escolas:', err);
+                          return [];
                         }
                       }}
-                      className="w-full p-2 border rounded mt-1"
-                    >
-                      <option value="">Selecione uma escola</option>
-                      {schools.map(s => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Nome da Escola</label>
-                    <Input name="escola" placeholder="Preenchido automaticamente" readOnly className="mt-1 bg-gray-100" />
+                      onSelect={(option) => {
+                        const schoolIdInput = document.querySelector('input[name="schoolId"]') as HTMLInputElement;
+                        if (schoolIdInput) schoolIdInput.value = option.id.toString();
+                        const escolaInput = document.querySelector('input[name="escola"]') as HTMLInputElement;
+                        if (escolaInput) escolaInput.value = option.name;
+                      }}
+                    />
+                    <Input name="schoolId" type="hidden" />
+                    <Input name="escola" type="hidden" />
                   </div>
                   <div>
                     <label className="text-sm font-medium">Regional</label>

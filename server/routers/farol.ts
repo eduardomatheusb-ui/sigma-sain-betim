@@ -2,7 +2,7 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
-import { farolCases, farolCaseHistory, farolAudit, farolAdvisors, caseEvolutions } from "../../drizzle/schema";
+import { farolCases, farolCaseHistory, farolAudit, farolAdvisors, caseEvolutions, schools, students } from "../../drizzle/schema";
 import { eq, like, desc, and, sql, asc } from "drizzle-orm";
 
 /**
@@ -10,7 +10,16 @@ import { eq, like, desc, and, sql, asc } from "drizzle-orm";
  * Modulo de gerenciamento de casos intersetoriais
  * Com suporte a multiplos perfis: admin, coordinator, advisor, childhood_coordination, viewer
  */
+// Import search procedures
+import { searchSchools, searchStudents, getSchoolById, getStudentById } from "./farol-search";
+
 export const farolRouter = router({
+  // Search procedures
+  searchSchools,
+  searchStudents,
+  getSchoolById,
+  getStudentById,
+
   listCases: protectedProcedure
     .input(z.object({
       search: z.string().optional(),
