@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { notifyOwner } from "./notification";
 import { adminProcedure, publicProcedure, router } from "./trpc";
+import { applyForeignKeysMigration } from "../migrations";
 
 export const systemRouter = router({
   health: publicProcedure
@@ -25,5 +26,12 @@ export const systemRouter = router({
       return {
         success: delivered,
       } as const;
+    }),
+
+  // Fase 2: Aplicar Foreign Keys
+  applyForeignKeysMigration: adminProcedure
+    .mutation(async () => {
+      const result = await applyForeignKeysMigration();
+      return result;
     }),
 });

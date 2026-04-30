@@ -997,3 +997,90 @@
 - [x] Preparar para produção
 
 **Status:** ✅ COMPLETO - Pronto para Deploy
+
+
+## Fase 2 — Integridade Referencial (Foreign Keys)
+
+### 1. Análise de Schema
+- [x] Identificar todas as tabelas e relacionamentos
+- [x] Mapear Foreign Key dependencies (41 constraints)
+- [x] Definir estratégia ON DELETE (RESTRICT vs SET NULL)
+
+### 2. Implementação de Foreign Keys
+- [x] Criar migration SQL com 41 Foreign Keys
+- [x] Adicionar FKs para Users (createdBy, updatedBy, changedBy)
+- [x] Adicionar FKs para Schools (schoolId, otherSchoolId)
+- [x] Adicionar FKs para Students (studentId)
+- [x] Adicionar FKs para Mediators (mediatorId)
+- [x] Adicionar FKs para Attendances (attendanceId)
+- [x] Adicionar FKs para FarolCases (caseId)
+- [x] Adicionar FKs para Demands (demandId)
+- [x] Adicionar FKs para External Demands (assignedTo)
+- [x] Adicionar FKs para Weekly Snapshots (submittedBy)
+- [x] Adicionar FKs para FarolAdvisors (profissionais responsáveis)
+
+### 3. Integração com tRPC
+- [x] Criar server/migrations.ts com applyForeignKeysMigration()
+- [x] Adicionar system.applyForeignKeysMigration procedure
+- [x] Implementar tratamento de erros (idempotent)
+- [x] Adicionar logging detalhado
+
+### 4. Validação
+- [x] Verificar que todas as 41 constraints foram criadas
+- [x] Testar que migration é idempotent
+- [x] Validar que ON DELETE policies funcionam
+
+
+## Fase 3 — Segurança e LGPD (CPF Encryption, Masking, Rate Limiting)
+
+### 1. CPF Encryption (AES-256-GCM)
+- [x] Criar server/_core/cpf-crypto.ts
+- [x] Implementar criptografia com salt + IV + authTag
+- [x] Adicionar validação de CPF (checksum)
+- [x] Implementar formatação (XXX.XXX.XXX-XX)
+- [x] Implementar masking (***.***.***-XX)
+- [x] Adicionar batch operations
+- [x] Criar migration helpers
+
+### 2. Rate Limiting
+- [x] Criar server/_core/rate-limiter.ts
+- [x] Implementar in-memory store com cleanup
+- [x] Criar 5 limiters pré-configurados:
+  - Search: 100 requests/min
+  - Sensitive Data: 30 requests/min
+  - Auth: 5 requests/15min
+  - Export: 10 requests/hora
+  - Write: 100 requests/min
+- [x] Adicionar middleware factory
+- [x] Implementar helper functions (getRateLimitKey, getClientIP)
+
+### 3. Rate Limited Procedures
+- [x] Criar server/routers/rate-limited.ts
+- [x] Implementar search procedures (CPF, student, mediator)
+- [x] Implementar sensitive data procedures
+- [x] Implementar export procedures
+- [x] Implementar write procedures
+- [x] Integrar withRateLimit middleware
+
+### 4. Environment Variables
+- [x] Adicionar CPF_ENCRYPTION_KEY em server/_core/env.ts
+- [x] Documentar formato (base64 encoded)
+
+### 5. Testes Abrangentes
+- [x] Criar server/security.test.ts (37 testes)
+- [x] Testar CPF normalization
+- [x] Testar CPF validation (checksum)
+- [x] Testar CPF formatting
+- [x] Testar CPF masking
+- [x] Testar encryption/decryption
+- [x] Testar rate limiter (allow, reject, reset)
+- [x] Testar helper functions
+- [x] Testar integration workflows
+- [x] Todos os 119 testes passando
+
+### 6. Validação Final
+- [x] 0 erros TypeScript
+- [x] Dev server rodando normalmente
+- [x] Build sem erros
+- [x] Dependências OK
+- [x] Screenshot do dashboard capturado
