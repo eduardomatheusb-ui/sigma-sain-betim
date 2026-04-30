@@ -5,16 +5,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Plus, Eye, Trash2, FileText, Edit, FileDown, ChevronDown } from "lucide-react";
+import { AlertCircle, Plus, Eye, Trash2, FileText, Edit, FileDown, ChevronDown, X, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useEffect, useState, useMemo } from "react";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
-import { SearchComboBox } from "@/components/SearchComboBox";
+import { useIsMobile } from "@/hooks/useMobile";
 
 export default function FarolGestao() {
   const user = trpc.auth.me.useQuery().data;
+  const [, navigate] = useLocation();
+  const isMobile = useIsMobile();
   
   // Filtros
   const [search, setSearch] = useState("");
@@ -36,6 +39,9 @@ export default function FarolGestao() {
   const [selectedCaseId, setSelectedCaseId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingCaseId, setEditingCaseId] = useState<number | null>(null);
+  const [studentSearch, setStudentSearch] = useState("");
+  const [showStudentDropdown, setShowStudentDropdown] = useState(false);
+  const formRef = useRef<HTMLDivElement>(null);
 
   // Queries
   const { data: cases, isLoading, refetch } = trpc.farol.listCases.useQuery({
@@ -49,7 +55,27 @@ export default function FarolGestao() {
 
   const { data: advisors = [] } = trpc.farol.listAdvisors.useQuery({ ativo: true });
   const { data: metrics } = trpc.farol.metrics.useQuery();
-  const { data: schools = [] } = trpc.schools.list.useQuery();
+  const schoolsQuery = (trpc.schools.list.useQuery() as any);
+  const schoolsList = (schoolsQuery?.data || []) as any[];
+  const studentsQuery = (trpc.students.listBySchool.useQuery() as any);
+  const studentsList = (studentsQuery?.data || []) as any[];
+
+  // Student search
+  const filteredStudents = useMemo(() => {
+    if (!studentSearch || studentSearch.length < 2) return [];
+    return (studentsList as any[])?.filter?.((s: any) => 
+      s.name.toLowerCase().includes(studentSearch.toLowerCase())
+    ) || [];
+  }, [studentSearch, studentsList]);
+
+  // Auto-scroll ao abrir formulário
+  useEffect(() => {
+    if (showForm && formRef.current && !isMobile) {
+      setTimeout(() => {
+        formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  }, [showForm, isMobile]);
 
   // Preencher formulário ao editar
   useEffect(() => {
@@ -66,10 +92,8 @@ export default function FarolGestao() {
         if (idadeInput) idadeInput.value = (selectedCase as any).idade?.toString() || '';
         const segmentoSelect = form.querySelector('select[name="segmento"]') as HTMLSelectElement;
         if (segmentoSelect) segmentoSelect.value = selectedCase.segmento || '';
-        const schoolSelect = form.querySelector('select[name="schoolId"]') as HTMLSelectElement;
-        if (schoolSelect) schoolSelect.value = (selectedCase as any).schoolId?.toString() || '';
-        const escolaInput = form.querySelector('input[name="escola"]') as HTMLInputElement;
-        if (escolaInput) escolaInput.value = selectedCase.escola || '';
+        const escolaSelect = form.querySelector('select[name="escola"]') as HTMLSelectElement;
+        if (escolaSelect) escolaSelect.value = selectedCase.escola || '';
         const regionalInput = form.querySelector('input[name="regional"]') as HTMLInputElement;
         if (regionalInput) regionalInput.value = selectedCase.regional || '';
         const tipoSelect = form.querySelector('select[name="tipoDemanda"]') as HTMLSelectElement;
@@ -98,7 +122,7 @@ export default function FarolGestao() {
       setShowForm(false);
       setEditingCaseId(null);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(error.message || "Erro ao criar caso");
     },
   });
@@ -110,7 +134,7 @@ export default function FarolGestao() {
       setShowForm(false);
       setEditingCaseId(null);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(error.message || "Erro ao atualizar caso");
     },
   });
@@ -121,7 +145,7 @@ export default function FarolGestao() {
       refetch();
       setSelectedCaseId(null);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(error.message || "Erro ao excluir caso");
     },
   });
@@ -175,42 +199,34 @@ export default function FarolGestao() {
     
     let filtered = [...cases];
 
-    // Filtro por protocolo
     if (protocolo) {
       filtered = filtered.filter(c => c.numeroCaso.includes(protocolo));
     }
 
-    // Filtro por regional
     if (regional !== "todos") {
       filtered = filtered.filter(c => c.regional === regional);
     }
 
-    // Filtro por escola
     if (escola !== "todos") {
-      filtered = filtered.filter(c => c.schoolId === parseInt(escola));
+      filtered = filtered.filter(c => c.escola === escola);
     }
 
-    // Filtro por situação
     if (situacao !== "todos") {
       filtered = filtered.filter(c => c.situacao === situacao);
     }
 
-    // Filtro por status
     if (status !== "todos") {
       filtered = filtered.filter(c => c.status === status);
     }
 
-    // Filtro por classificação
     if (classificacao !== "todos") {
       filtered = filtered.filter(c => c.classificacaoCaso === classificacao);
     }
 
-    // Filtro por responsável
     if (responsavel !== "todos") {
       filtered = filtered.filter(c => c.responsavel === responsavel);
     }
 
-    // Filtro por período
     if (dataInicio) {
       filtered = filtered.filter(c => new Date(c.dataEntrada) >= new Date(dataInicio));
     }
@@ -218,7 +234,6 @@ export default function FarolGestao() {
       filtered = filtered.filter(c => new Date(c.dataEntrada) <= new Date(dataFim));
     }
 
-    // Ordenação
     filtered.sort((a, b) => {
       let aVal: any = a[ordenacao as keyof typeof a];
       let bVal: any = b[ordenacao as keyof typeof b];
@@ -251,64 +266,251 @@ export default function FarolGestao() {
     setOrdem("desc");
   };
 
-  const [, navigate] = useLocation();
-
   const handleSubmitCase = (e: React.FormEvent<HTMLFormElement>, isEditing: boolean) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
-    // Validar campos obrigatórios
     const nomeEstudante = formData.get("nomeEstudante") as string;
-    const tipoDemanda = formData.get("tipoDemanda") as string;
-    const origem = formData.get("origem") as string;
-    
-    if (!nomeEstudante || !nomeEstudante.trim()) {
-      alert("Por favor, preencha o nome do estudante");
+    const escola = formData.get("escola") as string;
+    const dataEntrada = formData.get("dataEntrada") as string;
+
+    if (!nomeEstudante?.trim()) {
+      toast.error("Nome do aluno é obrigatório");
       return;
     }
-    if (!tipoDemanda) {
-      alert("Por favor, selecione o tipo de demanda");
+
+    if (!escola?.trim()) {
+      toast.error("Escola é obrigatória");
       return;
     }
-    if (!origem) {
-      alert("Por favor, selecione a origem");
+
+    if (!dataEntrada?.trim()) {
+      toast.error("Data de entrada é obrigatória");
       return;
     }
-    
-    const payload = {
-      dataEntrada: formData.get("dataEntrada") as string,
-      nomeEstudante: formData.get("nomeEstudante") as string,
-      idade: formData.get("idade") ? parseInt(formData.get("idade") as string) : undefined,
-      escola: formData.get("escola") as string,
-      schoolId: formData.get("schoolId") ? parseInt(formData.get("schoolId") as string) : undefined,
-      regional: formData.get("regional") as string,
+
+    const caseData = {
+      nomeEstudante,
+      idade: parseInt(formData.get("idade") as string) || 0,
+      escola,
       segmento: formData.get("segmento") as string,
-      situacao: (formData.get("situacao") as any) || "Ativo",
-      status: (formData.get("status") as any) || "Novo",
-      classificacaoCaso: formData.get("classificacao") as string,
+      regional: formData.get("regional") as string,
       tipoDemanda: formData.get("tipoDemanda") as string,
       origem: formData.get("origem") as string,
-
-      observacaoGeral: (formData.get("observacaoGeral") as string) || undefined,
-      encaminhamentos: (formData.get("encaminhamentos") as string) || undefined,
+      classificacaoCaso: formData.get("classificacao") as string,
+      situacao: formData.get("situacao") as string,
+      status: formData.get("status") as string,
+      observacaoGeral: formData.get("observacaoGeral") as string,
+      analiseConjunta: formData.get("encaminhamentos") as string,
+      dataEntrada,
     };
 
     if (isEditing && editingCaseId) {
-      updateMutation.mutate({ id: editingCaseId, ...payload });
+      updateMutation.mutate({ id: editingCaseId, ...caseData } as any);
     } else {
-      createMutation.mutate(payload);
+      createMutation.mutate(caseData as any);
     }
   };
 
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setEditingCaseId(null);
+    setStudentSearch("");
+  };
+
+  // Renderizar formulário
+  const FormContent = () => (
+    <form onSubmit={(e) => handleSubmitCase(e, !!editingCaseId)} className="space-y-6">
+      {/* Identificação do Caso */}
+      <div>
+        <h3 className="font-semibold mb-3">Identificação do Caso</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="text-sm font-medium">Nº do Caso</label>
+            <Input disabled value="Gerado automaticamente ao salvar" className="mt-1 bg-gray-100" />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Data de Entrada *</label>
+            <Input type="date" name="dataEntrada" required className="mt-1" />
+          </div>
+        </div>
+      </div>
+
+      {/* Dados do Estudante */}
+      <div>
+        <h3 className="font-semibold mb-3">Dados do Estudante</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="relative">
+            <label className="text-sm font-medium">Nome do Aluno *</label>
+            <Input
+              name="nomeEstudante"
+              placeholder="Digite o nome do aluno"
+              required
+              className="mt-1"
+              onChange={(e) => setStudentSearch(e.target.value)}
+              onFocus={() => setShowStudentDropdown(true)}
+              autoComplete="off"
+            />
+            {showStudentDropdown && studentSearch.length >= 2 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded shadow-lg z-10 max-h-48 overflow-y-auto">
+                {filteredStudents.length > 0 ? (
+                  filteredStudents.map((s: any) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      className="w-full text-left px-3 py-2 hover:bg-gray-100 border-b last:border-b-0"
+                      onClick={() => {
+                        const nomeInput = document.querySelector('input[name="nomeEstudante"]') as HTMLInputElement;
+                        if (nomeInput) nomeInput.value = s.name;
+                        const segmentoSelect = document.querySelector('select[name="segmento"]') as HTMLSelectElement;
+                        if (segmentoSelect && s.grade) segmentoSelect.value = s.grade;
+                        setShowStudentDropdown(false);
+                        setStudentSearch("");
+                      }}
+                    >
+                      <div className="font-medium">{s.name}</div>
+                      <div className="text-xs text-gray-500">{s.grade || "Série não informada"}</div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-3 py-2 text-sm text-gray-500">Nenhum aluno encontrado</div>
+                )}
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="text-sm font-medium">Idade</label>
+            <Input type="number" name="idade" placeholder="Idade" className="mt-1" />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Segmento</label>
+            <select name="segmento" className="w-full p-2 border rounded mt-1">
+              <option value="">Selecione</option>
+              {segmentoOptions.map((opt: string) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Escola e Território */}
+      <div>
+        <h3 className="font-semibold mb-3">Escola e Território</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-2">
+            <label className="text-sm font-medium">Escola *</label>
+            <select name="escola" required className="w-full p-2 border rounded mt-1">
+              <option value="">Selecione uma escola</option>
+              {(schoolsList)?.map?.((s: any) => (
+                <option key={s.id} value={s.name}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Regional</label>
+            <Input name="regional" placeholder="Regional" className="mt-1" />
+          </div>
+        </div>
+      </div>
+
+      {/* Classificação da Demanda */}
+      <div>
+        <h3 className="font-semibold mb-3">Classificação da Demanda</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="text-sm font-medium">Tipo de Demanda *</label>
+            <select name="tipoDemanda" required className="w-full p-2 border rounded mt-1">
+              <option value="">Selecione</option>
+              {tipoDemandasOptions.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Origem *</label>
+            <select name="origem" required className="w-full p-2 border rounded mt-1">
+              <option value="">Selecione</option>
+              {origemOptions.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Classificação *</label>
+            <select name="classificacao" required className="w-full p-2 border rounded mt-1">
+              <option value="">Selecione</option>
+              {classificacaoOptions.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Status e Situação */}
+      <div>
+        <h3 className="font-semibold mb-3">Status e Situação</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="text-sm font-medium">Status *</label>
+            <select name="status" required className="w-full p-2 border rounded mt-1">
+              <option value="">Selecione</option>
+              {statusOptions.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Situação *</label>
+            <select name="situacao" required className="w-full p-2 border rounded mt-1">
+              <option value="">Selecione</option>
+              {situacaoOptions.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Observações */}
+      <div>
+        <h3 className="font-semibold mb-3">Observações</h3>
+        <div>
+          <label className="text-sm font-medium">Observação Geral</label>
+          <textarea name="observacaoGeral" placeholder="Observações sobre o caso" className="w-full p-2 border rounded mt-1 min-h-20" />
+        </div>
+        <div className="mt-4">
+          <label className="text-sm font-medium">Encaminhamentos</label>
+          <textarea name="encaminhamentos" placeholder="Encaminhamentos e ações" className="w-full p-2 border rounded mt-1 min-h-20" />
+        </div>
+      </div>
+
+      {/* Botões */}
+      <div className="flex gap-4 justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleCloseForm}
+        >
+          Cancelar
+        </Button>
+        <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+          {editingCaseId ? "Atualizar" : "Criar"} Caso
+        </Button>
+      </div>
+    </form>
+  );
+
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-4 md:p-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold">Farol da Gestão</h1>
-          <p className="text-gray-600 mt-1">Gerenciamento de casos intersetoriais</p>
+          <p className="text-gray-600 mt-1">Gestão de casos e acompanhamento de alunos</p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)} className="gap-2">
+        <Button onClick={() => setShowForm(true)} className="gap-2 bg-blue-600 hover:bg-blue-700">
           <Plus className="h-4 w-4" />
           Novo Caso
         </Button>
@@ -316,92 +518,80 @@ export default function FarolGestao() {
 
       {/* Métricas */}
       {metrics && (
-        <div className="grid grid-cols-5 gap-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Total de Casos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{metrics.total}</div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-600">{metrics.total}</div>
+                <div className="text-sm text-gray-600">Total de Casos</div>
+              </div>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Ativos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{metrics.ativo}</div>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-green-600">{metrics.ativo}</div>
+                <div className="text-sm text-gray-600">Casos Ativos</div>
+              </div>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Urgentes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">{metrics.urgentes}</div>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-orange-600">{metrics.urgentes}</div>
+                <div className="text-sm text-gray-600">Urgentes</div>
+              </div>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600">{metrics.aguardando}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Resolvidos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{metrics.resolvidos}</div>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-purple-600">{metrics.resolvidos}</div>
+                <div className="text-sm text-gray-600">Resolvidos</div>
+              </div>
             </CardContent>
           </Card>
         </div>
       )}
 
-      {/* Busca e Filtros */}
+      {/* Filtros */}
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Busca e Filtros</CardTitle>
-            <Button 
-              variant="ghost" 
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+              Filtros
+            </CardTitle>
+            <Button
+              variant="ghost"
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
-              className="gap-2"
             >
-              <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? "rotate-180" : ""}`} />
-              {showFilters ? "Ocultar" : "Mostrar"} Filtros Avançados
+              {showFilters ? "Ocultar" : "Mostrar"}
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Busca Principal */}
-          <div className="grid grid-cols-3 gap-4">
-            <Input
-              placeholder="Buscar por nome, escola ou protocolo"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <Input
-              placeholder="Filtrar por protocolo"
-              value={protocolo}
-              onChange={(e) => setProtocolo(e.target.value)}
-            />
-          </div>
-
-          {/* Filtros Avançados */}
-          {showFilters && (
+        {showFilters && (
+          <CardContent>
             <>
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                <Input
+                  placeholder="Buscar por protocolo ou aluno"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                <Input
+                  placeholder="Protocolo"
+                  value={protocolo}
+                  onChange={(e) => setProtocolo(e.target.value)}
+                />
                 <Select value={regional} onValueChange={setRegional}>
                   <SelectTrigger>
                     <SelectValue placeholder="Todas as regionais" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todas as regionais</SelectItem>
-                    {Array.from(new Set(cases?.map(c => c.regional).filter(Boolean))).map(r => (
+                    {Array.from(new Set(cases?.map((c: any) => c.regional).filter(Boolean))).map((r: any) => (
                       <SelectItem key={r} value={r || ""}>{r}</SelectItem>
                     ))}
                   </SelectContent>
@@ -413,12 +603,14 @@ export default function FarolGestao() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todas as escolas</SelectItem>
-                    {schools.map(s => (
-                      <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                    {(schoolsList)?.map?.((s: any) => (
+                      <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                 <Select value={situacao} onValueChange={setSituacao}>
                   <SelectTrigger>
                     <SelectValue placeholder="Todas as situações" />
@@ -442,9 +634,7 @@ export default function FarolGestao() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
 
-              <div className="grid grid-cols-4 gap-4">
                 <Select value={classificacao} onValueChange={setClassificacao}>
                   <SelectTrigger>
                     <SelectValue placeholder="Todas as classificações" />
@@ -463,12 +653,14 @@ export default function FarolGestao() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos os profissionais</SelectItem>
-                    {advisors.map(adv => (
+                    {advisors.map((adv: any) => (
                       <SelectItem key={adv.id} value={adv.id.toString()}>{adv.nome}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Input
                   type="date"
                   placeholder="Período inicial"
@@ -482,9 +674,7 @@ export default function FarolGestao() {
                   value={dataFim}
                   onChange={(e) => setDataFim(e.target.value)}
                 />
-              </div>
 
-              <div className="grid grid-cols-4 gap-4">
                 <Select value={ordenacao} onValueChange={setOrdenacao}>
                   <SelectTrigger>
                     <SelectValue placeholder="Ordenar por" />
@@ -494,8 +684,6 @@ export default function FarolGestao() {
                     <SelectItem value="createdAt">Criado em</SelectItem>
                     <SelectItem value="nomeEstudante">Nome</SelectItem>
                     <SelectItem value="numeroCaso">Nº do caso</SelectItem>
-                    <SelectItem value="classificacaoCaso">Classificação</SelectItem>
-                    <SelectItem value="status">Status</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -504,22 +692,24 @@ export default function FarolGestao() {
                     <SelectValue placeholder="Ordem" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="desc">Decrescente</SelectItem>
                     <SelectItem value="asc">Crescente</SelectItem>
+                    <SelectItem value="desc">Decrescente</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
 
-                <Button variant="outline" onClick={limparFiltros} className="col-span-2">
+              <div className="mt-4">
+                <Button variant="outline" onClick={limparFiltros} className="w-full md:w-auto">
                   Limpar Filtros
                 </Button>
               </div>
             </>
-          )}
-        </CardContent>
+          </CardContent>
+        )}
       </Card>
 
       {/* Exportação */}
-      <div className="flex gap-2 items-center">
+      <div className="flex flex-col md:flex-row gap-2 items-start md:items-center">
         <Button
           onClick={() => {
             if (filteredCases && filteredCases.length > 0) {
@@ -547,13 +737,64 @@ export default function FarolGestao() {
         </span>
       </div>
 
+      {/* Formulário - Desktop (inline) */}
+      {showForm && !isMobile && (
+        <div ref={formRef} className="scroll-mt-4">
+          <Card>
+            <CardHeader className="flex flex-row justify-between items-center">
+              <div>
+                <CardTitle>{editingCaseId ? "Editar Caso" : "Novo Caso"}</CardTitle>
+                <CardDescription>{editingCaseId ? "Atualize os dados do caso." : "Preencha os dados do novo caso."}</CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCloseForm}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <FormContent />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Formulário - Mobile (drawer) */}
+      {showForm && isMobile && (
+        <Drawer open={showForm} onOpenChange={(open) => {
+          if (!open) handleCloseForm();
+        }}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>{editingCaseId ? "Editar Caso" : "Novo Caso"}</DrawerTitle>
+              <DrawerClose />
+            </DrawerHeader>
+            <div className="px-4 pb-6 overflow-y-auto max-h-[70vh]">
+              <FormContent />
+            </div>
+          </DrawerContent>
+        </Drawer>
+      )}
+
       {/* Tabela de Casos */}
       <Card>
         <CardHeader>
-          <CardTitle>Casos</CardTitle>
+          <CardTitle>Casos Cadastrados ({filteredCases.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {filteredCases && filteredCases.length > 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+            </div>
+          ) : filteredCases.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">
+              {cases && cases.length === 0 
+                ? "Nenhum caso cadastrado" 
+                : "Nenhum caso encontrado com os filtros selecionados"}
+            </p>
+          ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -636,279 +877,9 @@ export default function FarolGestao() {
                 </tbody>
               </table>
             </div>
-          ) : (
-            <p className="text-gray-500 text-center py-8">
-              {cases && cases.length === 0 
-                ? "Nenhum caso cadastrado" 
-                : "Nenhum caso encontrado com os filtros selecionados"}
-            </p>
           )}
         </CardContent>
       </Card>
-
-      {/* Formulário de Novo Caso */}
-      {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{editingCaseId ? "Editar Caso" : "Novo Caso"}</CardTitle>
-            <CardDescription>{editingCaseId ? "Atualize os dados do caso." : "Preencha os dados do novo caso. O protocolo será gerado automaticamente."}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={(e) => handleSubmitCase(e, !!editingCaseId)} className="space-y-6">
-              {/* Identificação do Caso */}
-              <div>
-                <h3 className="font-semibold mb-3">Identificação do Caso</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Nº do Caso</label>
-                    <Input disabled value="Gerado automaticamente ao salvar" className="mt-1 bg-gray-100" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Data de Entrada *</label>
-                    <Input type="date" name="dataEntrada" required className="mt-1" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Dados do Estudante */}
-              <div>
-                <h3 className="font-semibold mb-3">Dados do Estudante</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Nome do Aluno *</label>
-                    <SearchComboBox
-                      placeholder="Buscar aluno..."
-                      onSearch={async (query) => {
-                        if (!query || query.length < 2) return [];
-                        try {
-                          const response = await fetch(`/api/trpc/farol.searchStudents?input=${JSON.stringify({query, limit: 10})}`)
-                          const result = await response.json();
-                          return result.result?.data?.students?.map((s: any) => ({
-                            id: s.id,
-                            name: s.name,
-                            grade: s.grade,
-                            enrollmentNumber: s.enrollmentNumber,
-                          })) || [];
-                        } catch (err) {
-                          console.error('Erro ao buscar alunos:', err);
-                          return [];
-                        }
-                      }}
-                      onSelect={(option) => {
-                        const studentIdInput = document.querySelector('input[name="studentId"]') as HTMLInputElement;
-                        if (studentIdInput) studentIdInput.value = option.id.toString();
-                        const nomeInput = document.querySelector('input[name="nomeEstudante"]') as HTMLInputElement;
-                        if (nomeInput) nomeInput.value = option.name;
-                        const gradeInput = document.querySelector('select[name="segmento"]') as HTMLSelectElement;
-                        if (gradeInput && option.grade) gradeInput.value = option.grade;
-                      }}
-                    />
-                    <Input name="studentId" type="hidden" />
-                    <Input name="nomeEstudante" type="hidden" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Idade</label>
-                    <Input type="number" name="idade" placeholder="Idade" className="mt-1" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Segmento</label>
-                    <select name="segmento" className="w-full p-2 border rounded mt-1">
-                      <option value="">Selecione</option>
-                      {segmentoOptions.map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Escola e Território */}
-              <div>
-                <h3 className="font-semibold mb-3">Escola e Território</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="col-span-2">
-                    <label className="text-sm font-medium">Escola *</label>
-                    <SearchComboBox
-                      placeholder="Buscar escola..."
-                      onSearch={async (query) => {
-                        if (!query || query.length < 2) return [];
-                        try {
-                          const response = await fetch(`/api/trpc/farol.searchSchools?input=${JSON.stringify({query, limit: 10})}`)
-                          const result = await response.json();
-                          return result.result?.data?.schools?.map((s: any) => ({
-                            id: s.id,
-                            name: s.name,
-                            code: s.code,
-                          })) || [];
-                        } catch (err) {
-                          console.error('Erro ao buscar escolas:', err);
-                          return [];
-                        }
-                      }}
-                      onSelect={(option) => {
-                        const schoolIdInput = document.querySelector('input[name="schoolId"]') as HTMLInputElement;
-                        if (schoolIdInput) schoolIdInput.value = option.id.toString();
-                        const escolaInput = document.querySelector('input[name="escola"]') as HTMLInputElement;
-                        if (escolaInput) escolaInput.value = option.name;
-                      }}
-                    />
-                    <Input name="schoolId" type="hidden" />
-                    <Input name="escola" type="hidden" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Regional</label>
-                    <Input name="regional" placeholder="Regional" className="mt-1" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Classificação da Demanda */}
-              <div>
-                <h3 className="font-semibold mb-3">Classificação da Demanda</h3>
-                <div className="grid grid-cols-4 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Tipo de Demanda *</label>
-                    <select name="tipoDemanda" required className="w-full p-2 border rounded mt-1">
-                      <option value="">Selecione</option>
-                      {tipoDemandasOptions.map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Origem *</label>
-                    <select name="origem" required className="w-full p-2 border rounded mt-1">
-                      <option value="">Selecione</option>
-                      {origemOptions.map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Classificação</label>
-                    <select name="classificacao" className="w-full p-2 border rounded mt-1">
-                      <option value="">Selecione</option>
-                      {classificacaoOptions.map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Situação</label>
-                    <select name="situacao" defaultValue="Ativo" className="w-full p-2 border rounded mt-1">
-                      {situacaoOptions.map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Status e Responsável */}
-              <div>
-                <h3 className="font-semibold mb-3">Status e Responsável</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Status</label>
-                    <select name="status" defaultValue="Novo" className="w-full p-2 border rounded mt-1">
-                      {statusOptions.map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Assessor Responsável</label>
-                    <select name="responsavel" className="w-full p-2 border rounded mt-1">
-                      <option value="">Selecione um assessor</option>
-                      {advisors.map((adv: any) => (
-                        <option key={adv.id} value={adv.id}>{adv.nome}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Observações e Encaminhamentos */}
-              <div>
-                <h3 className="font-semibold mb-3">Observações e Encaminhamentos</h3>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium">Observação Geral</label>
-                    <textarea
-                      name="observacaoGeral"
-                      placeholder="Observações gerais sobre o caso"
-                      className="w-full p-2 border rounded mt-1"
-                      rows={3}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Encaminhamentos</label>
-                    <textarea
-                      name="encaminhamentos"
-                      placeholder="Encaminhamentos recomendados"
-                      className="w-full p-2 border rounded mt-1"
-                      rows={3}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <Button type="submit" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? "Criando..." : "Criar Caso"}
-                </Button>
-                <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
-                  Cancelar
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Detalhes do Caso */}
-      {selectedCaseId && selectedCase && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Detalhes do Caso {selectedCase.numeroCaso}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-600">Estudante</p>
-                <p className="font-semibold">{selectedCase.nomeEstudante}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Escola</p>
-                <p className="font-semibold">{selectedCase.escola}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Regional</p>
-                <p className="font-semibold">{selectedCase.regional || "-"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Responsável</p>
-                <p className="font-semibold">{selectedCase.responsavel || "Não informado"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Situação</p>
-                <Badge className={getSituacaoBadge(selectedCase.situacao)}>{selectedCase.situacao}</Badge>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Status</p>
-                <Badge className={getStatusBadge(selectedCase.status)}>{selectedCase.status}</Badge>
-              </div>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Observação Geral</p>
-              <p>{selectedCase.observacaoGeral || "-"}</p>
-            </div>
-            <Button variant="outline" onClick={() => setSelectedCaseId(null)}>
-              Fechar
-            </Button>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
