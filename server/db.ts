@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, schools, students, mediators, attendances, externalDemands, mediatorStudents, statusHistory, weeklySnapshots } from "../drizzle/schema";
+import { InsertUser, users, schools, students, mediators, attendances, externalDemands, mediatorStudents, statusHistory, weeklySnapshots, demands, userSchools } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -141,4 +141,42 @@ export async function getExternalDemandsBySchool(schoolId: number) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(externalDemands).where(eq(externalDemands.schoolId, schoolId));
+}
+
+/**
+ * Retorna a lista de schoolIds vinculados ao usuário via tabela user_schools.
+ * Para school_user com schoolId legado, inclui também o campo schoolId direto.
+ * Esta é a fonte de verdade para filtros de escopo por usuário.
+ */
+export async function getUserSchoolIds(userId: number, legacySchoolId?: number | null): Promise<number[]> {
+  const db = await getDb();
+  if (!db) return legacySchoolId ? [legacySchoolId] : [];
+  try {
+    const rows = await db.select({ schoolId: userSchools.schoolId })
+      .from(userSchools)
+      .where(eq(userSchools.userId, userId));
+    const ids = rows.map(r => r.schoolId);
+    // Incluir schoolId legado se ainda não estiver na lista
+    if (legacySchoolId && !ids.includes(legacySchoolId)) ids.push(legacySchoolId);
+    return ids;
+  } catch {
+    return legacySchoolId ? [legacySchoolId] : [];
+  }
+}
+
+/**
+ * Fonte oficial de contagem de alunos: tabela demands.
+ * Usar em dashboards, relatórios e exports para evitar divergência.
+ */
+export async function getStudentCount(schoolId?: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  try {
+    const rows = schoolId
+      ? await db.select({ id: demands.id }).from(demands).where(eq(demands.schoolId, schoolId))
+      : await db.select({ id: demands.id }).from(demands);
+    return rows.length;
+  } catch {
+    return 0;
+  }
 }

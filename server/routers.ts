@@ -5,7 +5,18 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { farolRouter } from "./routers/farol";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { getSchools, getStudentsBySchool, getMediatorsBySchool, getAttendancesBySchool, getExternalDemandsBySchool } from "./db";
+import { getSchools, getStudentsBySchool, getMediatorsBySchool, getAttendancesBySchool, getExternalDemandsBySchool, getUserSchoolIds } from "./db";
+import { searchRateLimiter, sensitiveDataRateLimiter, exportRateLimiter, writeRateLimiter, getRateLimitKey } from "./_core/rate-limiter";
+
+// Helper de rate limit para procedures tRPC
+function withRateLimit(limiter: typeof searchRateLimiter) {
+  return async (opts: any) => {
+    const userId = opts.ctx.user?.id;
+    const key = getRateLimitKey(userId);
+    limiter.checkOrThrow(key);
+    return opts.next();
+  };
+}
 import { notifyOwner } from "./_core/notification";
 import { getDb } from "./db";
 import { students, mediators, attendances, externalDemands, schools, users, demands, mediatorStudents, statusHistory, weeklySnapshots, studentEditHistory, mediatorStatusChangeHistory, farolCases, farolCaseHistory, farolCaseMovements, userSchools, farolAdvisors } from "../drizzle/schema";
@@ -270,14 +281,18 @@ export const appRouter = router({
         }
       }),
 
-    // Dashboard resumido para perfil escola
+    // Dashboard resumido para perfil escola/coordenador
+    // FONTE OFICIAL DE ALUNOS: tabela demands (não usar students para contagens)
     schoolStats: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return null;
-      const schoolId = ctx.user.schoolId;
+      // Usar user_schools como fonte de verdade para escopo multi-escola
+      const schoolIds = await getUserSchoolIds(ctx.user.id, ctx.user.schoolId);
+      const schoolId = schoolIds[0] ?? ctx.user.schoolId;
       if (!schoolId) return null;
       try {
         const [school] = await db.select().from(schools).where(eq(schools.id, schoolId));
+        // FONTE OFICIAL: demands (não students) para contagem de alunos
         const studentList = await db.select().from(demands).where(eq(demands.schoolId, schoolId));
         const mediatorList = await db.select().from(mediators).where(eq(mediators.schoolId, schoolId));
         const attendanceList = await db.select().from(attendances).where(eq(attendances.schoolId, schoolId));
@@ -767,11 +782,16 @@ export const appRouter = router({
       const db = await getDb();
       if (!db) return [];
       try {
-        const studentRows = ctx.user.role === "admin"
-          ? await db.select().from(students)
-          : ctx.user.schoolId
-            ? await db.select().from(students).where(eq(students.schoolId, ctx.user.schoolId))
+        let studentRows;
+        if (ctx.user.role === "admin") {
+          studentRows = await db.select().from(students);
+        } else {
+          // Usar user_schools como fonte de verdade para escopo multi-escola
+          const schoolIds = await getUserSchoolIds(ctx.user.id, ctx.user.schoolId);
+          studentRows = schoolIds.length > 0
+            ? await db.select().from(students).where(inArray(students.schoolId, schoolIds))
             : [];
+        }
 
         // Enriquecer com nome do mediador vinculado
         if (studentRows.length === 0) return [];
@@ -999,19 +1019,20 @@ export const appRouter = router({
           additionalStudents: mediators.additionalStudents,
         };
 
-        if (ctx.user.role === "admin") {
+         if (ctx.user.role === "admin") {
           return await db.select(baseSelect).from(mediators).leftJoin(schools, eq(mediators.schoolId, schools.id));
         }
-        if (!ctx.user.schoolId) return [];
+        // Usar user_schools como fonte de verdade para escopo multi-escola
+        const schoolIds = await getUserSchoolIds(ctx.user.id, ctx.user.schoolId);
+        if (schoolIds.length === 0) return [];
         return await db.select(baseSelect).from(mediators)
           .leftJoin(schools, eq(mediators.schoolId, schools.id))
-          .where(eq(mediators.schoolId, ctx.user.schoolId));
+          .where(inArray(mediators.schoolId, schoolIds));
       } catch (error) {
         console.error("[Mediators] Error listing by school:", error);
         return [];
       }
     }),
-
     // Lista mediadores por schoolId explícito (para admin selecionar escola no formulário de alunos)
     listBySchoolId: protectedProcedure
       .input(z.object({ schoolId: z.number() }))
@@ -1121,12 +1142,15 @@ export const appRouter = router({
         const [current] = await db.select({ status: mediators.status, schoolId: mediators.schoolId }).from(mediators).where(eq(mediators.id, id));
         if (!current) throw new TRPCError({ code: "NOT_FOUND", message: "Mediador não encontrado" });
         
-        // RESTRIÇÃO: school_user só pode editar mediadores da própria escola
-        if (ctx.user.role === "school_user" && ctx.user.schoolId !== current.schoolId) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Você só pode editar mediadores vinculados à sua escola.",
-          });
+        // RESTRIÇÃO: school_user/coordinator só pode editar mediadores das escolas vinculadas
+        if (ctx.user.role === "school_user" || ctx.user.role === "coordinator") {
+          const allowedSchoolIds = await getUserSchoolIds(ctx.user.id, ctx.user.schoolId);
+          if (!allowedSchoolIds.includes(current.schoolId)) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Você só pode editar mediadores vinculados às suas escolas.",
+            });
+          }
         }
         
         // RESTRIÇÃO: school_user não pode alterar schoolId (movimentação entre escolas)
@@ -1147,15 +1171,27 @@ export const appRouter = router({
           }
         }
 
-        // Log de mudança de status
+        // Log de mudança de status — registra em AMBAS as tabelas para auditoria completa
         if (newStatus && newStatus !== current.status) {
           try {
+            // Tabela statusHistory (compatível com getHistory)
             await db.insert(statusHistory).values({
               mediatorId: id,
               previousStatus: current.status,
               newStatus,
               reason: input.inactivityReason || input.changeType || undefined,
               changedBy: ctx.user.id,
+            });
+            // Tabela mediatorStatusChangeHistory (auditoria detalhada)
+            await db.insert(mediatorStatusChangeHistory).values({
+              mediatorId: id,
+              previousStatus: current.status,
+              newStatus,
+              reason: input.inactivityReason || input.changeType || undefined,
+              inactivityReason: input.inactivityReason || undefined,
+              returnDate: input.returnDate ? new Date(input.returnDate) : undefined,
+              changedBy: ctx.user.id,
+              changedByName: ctx.user.name || undefined,
             });
           } catch (e) {
             console.error("[StatusHistory] Error logging:", e);
@@ -1215,26 +1251,63 @@ export const appRouter = router({
       }),
 
     // Histórico de mudanças de situação de um mediador
-    getHistory: protectedProcedure
+     getHistory: protectedProcedure
       .input(z.object({ mediatorId: z.number() }))
       .query(async ({ input }) => {
         const db = await getDb();
         if (!db) return [];
         try {
-          // Buscar na tabela status_history existente
-          const history = await db
+          // Buscar na tabela mediatorStatusChangeHistory (auditoria detalhada, preferência)
+          const detailedHistory = await db
+            .select()
+            .from(mediatorStatusChangeHistory)
+            .where(eq(mediatorStatusChangeHistory.mediatorId, input.mediatorId))
+            .orderBy(desc(mediatorStatusChangeHistory.changedAt));
+          // Fallback: statusHistory (registros mais antigos)
+          const legacyHistory = await db
             .select()
             .from(statusHistory)
             .where(eq(statusHistory.mediatorId, input.mediatorId))
             .orderBy(desc(statusHistory.changedAt));
-          return history;
+          // Combinar: detalhadoHistory tem prioridade; legado só para registros sem entrada detalhada
+          const detailedIds = new Set(detailedHistory.map(h => h.changedAt?.getTime()));
+          const legacyOnly = legacyHistory.filter(h => !detailedIds.has(h.changedAt?.getTime()));
+          // Normalizar formato para o frontend
+          const normalized = [
+            ...detailedHistory.map(h => ({
+              id: h.id,
+              mediatorId: h.mediatorId,
+              previousStatus: h.previousStatus,
+              newStatus: h.newStatus,
+              reason: h.reason,
+              inactivityReason: h.inactivityReason,
+              returnDate: h.returnDate,
+              changedBy: h.changedBy,
+              changedByName: h.changedByName,
+              changedAt: h.changedAt,
+              source: 'detailed' as const,
+            })),
+            ...legacyOnly.map(h => ({
+              id: h.id,
+              mediatorId: h.mediatorId,
+              previousStatus: h.previousStatus,
+              newStatus: h.newStatus,
+              reason: h.reason,
+              inactivityReason: null,
+              returnDate: null,
+              changedBy: h.changedBy,
+              changedByName: null,
+              changedAt: h.changedAt,
+              source: 'legacy' as const,
+            })),
+          ].sort((a, b) => (b.changedAt?.getTime() ?? 0) - (a.changedAt?.getTime() ?? 0));
+          return normalized;
         } catch (error) {
           console.error("[Mediators] Error fetching history:", error);
           return [];
         }
       }),
   }),
-
   /**
    * Attendances - Gestão de atendimentos (com nomes resolvidos)
    */
@@ -1266,8 +1339,10 @@ export const appRouter = router({
             .leftJoin(students, eq(attendances.studentId, students.id))
             .leftJoin(mediators, eq(attendances.mediatorId, mediators.id))
             .leftJoin(schools, eq(attendances.schoolId, schools.id))
-          : ctx.user.schoolId
-            ? await db.select({
+          : await (async () => {
+              const schoolIds = await getUserSchoolIds(ctx.user.id, ctx.user.schoolId);
+              if (schoolIds.length === 0) return [];
+              return db.select({
                 id: attendances.id,
                 studentId: attendances.studentId,
                 mediatorId: attendances.mediatorId,
@@ -1289,8 +1364,8 @@ export const appRouter = router({
               .leftJoin(students, eq(attendances.studentId, students.id))
               .leftJoin(mediators, eq(attendances.mediatorId, mediators.id))
               .leftJoin(schools, eq(attendances.schoolId, schools.id))
-              .where(eq(attendances.schoolId, ctx.user.schoolId))
-            : [];
+              .where(inArray(attendances.schoolId, schoolIds));
+            })();
         return rows;
       } catch (error) {
         console.error("[Attendances] Error listing:", error);
@@ -1389,6 +1464,7 @@ export const appRouter = router({
         dateFrom: z.string().optional(),
         dateTo: z.string().optional(),
       }))
+      .use(withRateLimit(exportRateLimiter))
       .query(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) return { rows: [], total: 0 };
@@ -1627,8 +1703,12 @@ export const appRouter = router({
         if (ctx.user.role === "admin") {
           return await db.select().from(demands).orderBy(demands.updatedAt);
         }
-        if (!ctx.user.schoolId) return [];
-        return await db.select().from(demands).where(eq(demands.schoolId, ctx.user.schoolId)).orderBy(demands.updatedAt);
+        // Usar user_schools como fonte de verdade para escopo multi-escola
+        const schoolIds = await getUserSchoolIds(ctx.user.id, ctx.user.schoolId);
+        if (schoolIds.length === 0) return [];
+        return await db.select().from(demands)
+          .where(inArray(demands.schoolId, schoolIds))
+          .orderBy(demands.updatedAt);
       } catch (error) {
         console.error("[Demands] Error listing:", error);
         return [];
@@ -1838,6 +1918,7 @@ export const appRouter = router({
 
     searchStudents: protectedProcedure
       .input(z.object({ query: z.string().min(1) }))
+      .use(withRateLimit(searchRateLimiter))
       .query(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) return [];
@@ -1864,8 +1945,13 @@ export const appRouter = router({
         if (!db) return null;
         try {
           let allDemands = await db.select().from(demands);
-          if (ctx.user.role !== "admin" && ctx.user.schoolId) {
-            allDemands = allDemands.filter(d => d.schoolId === ctx.user.schoolId);
+          if (ctx.user.role !== "admin") {
+            const schoolIds = await getUserSchoolIds(ctx.user.id, ctx.user.schoolId);
+            if (schoolIds.length > 0) {
+              allDemands = allDemands.filter(d => d.schoolId !== null && schoolIds.includes(d.schoolId));
+            } else {
+              allDemands = [];
+            }
           }
           if (input?.schoolId) allDemands = allDemands.filter(d => d.schoolId === input.schoolId);
           if (input?.shift && input.shift !== "all") allDemands = allDemands.filter(d => d.shift === input.shift);
@@ -1964,10 +2050,12 @@ export const appRouter = router({
       if (ctx.user.role === "admin") {
         return await getDb().then(db => db ? db.select().from(externalDemands) : []);
       }
-      if (!ctx.user.schoolId) return [];
-      return await getExternalDemandsBySchool(ctx.user.schoolId);
+      const schoolIds = await getUserSchoolIds(ctx.user.id, ctx.user.schoolId);
+      if (schoolIds.length === 0) return [];
+      const db = await getDb();
+      if (!db) return [];
+      return await db.select().from(externalDemands).where(inArray(externalDemands.schoolId, schoolIds));
     }),
-
     create: protectedProcedure
       .input(z.object({
         demandType: z.string().min(1),
@@ -2005,6 +2093,7 @@ export const appRouter = router({
   quadroAAP: router({
     generate: protectedProcedure
       .input(z.object({ schoolId: z.number() }))
+      .use(withRateLimit(exportRateLimiter))
       .query(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) return { school: null, rows: [], responsible: "", date: "" };

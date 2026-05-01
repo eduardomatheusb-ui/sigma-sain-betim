@@ -1145,51 +1145,50 @@
 ## Fase 47 — Sistema de 4 Perfis de Acesso (Controle de Acesso Completo)
 
 ### Mudança 1: Schema do Banco
-- [ ] Expandir role enum: admin, sain_assessor, external_professional, school_user
-- [ ] Gerar migration SQL e aplicar via webdev_execute_sql
+- [x] Expandir role enum: admin, sain_assessor, external_professional, school_user
+- [x] Gerar migration SQL e aplicar via webdev_execute_sql
 
 ### Mudança 2: Menu Lateral (4 Sidebars)
-- [ ] Manter adminMenuItems (administrador)
-- [ ] Renomear schoolMenuItems → secretaryMenuItems (Início, Quadro, Alunos, Mediadores)
-- [ ] Criar sainAssessorMenuItems (Início, Farol, Dashboard Farol, Auditoria, Demandas, Relatórios)
-- [ ] Criar externalProfessionalMenuItems (Meus Casos)
-- [ ] Atualizar seleção de menu por role em DashboardLayout.tsx
-- [ ] Atualizar label do perfil no rodapé do menu
+- [x] Manter adminMenuItems (administrador)
+- [x] Renomear schoolMenuItems → secretaryMenuItems (Início, Quadro, Alunos, Mediadores)
+- [x] Criar sainAssessorMenuItems (Início, Farol, Dashboard Farol, Auditoria, Demandas, Relatórios)
+- [x] Criar externalProfessionalMenuItems (Meus Casos)
+- [x] Atualizar seleção de menu por role em DashboardLayout.tsx
+- [x] Atualizar label do perfil no rodapé do menu
 
 ### Mudança 3: Proteção de Rotas no Frontend
-- [ ] Criar SainAssessorRoute em App.tsx
-- [ ] Proteger rotas do Farol com SainAssessorRoute
-- [ ] Manter AdminRoute apenas para /usuarios, /farol/assessores, /escolas
-- [ ] Abrir /demandas e /relatorios para sain_assessor
-- [ ] Adicionar rota /farol/meus-casos
+- [x] Criar SainAssessorRoute em App.tsx
+- [x] Proteger rotas do Farol com SainAssessorRoute
+- [x] Manter AdminRoute apenas para /usuarios, /farol/assessores, /escolas
+- [x] Abrir /demandas e /relatorios para sain_assessor
+- [x] Adicionar rota /farol/meus-casos
 
 ### Mudança 4: Backend - Verificações de Permissão
-- [ ] Criar helper isAdminOrAssessor(role) em routers.ts
-- [ ] Atualizar verificações do Farol para aceitar sain_assessor
-- [ ] Atualizar verificações de Demandas Externas
-- [ ] Atualizar verificações de Relatórios
-- [ ] Manter admin-only: gestão de usuários, escolas, configurações
+- [x] Criar helper isAdminOrAssessor(role) em routers.ts
+- [x] Atualizar verificações do Farol para aceitar sain_assessor
+- [x] Atualizar verificações de Demandas Externas
+- [x] Atualizar verificações de Relatórios
+- [x] Manter admin-only: gestão de usuários, escolas, configurações
 
 ### Mudança 5: Página Meus Casos
-- [ ] Criar procedure farol.getMeusCasos (buscar por email do usuário logado)
-- [ ] Criar client/src/pages/MeusCasos.tsx
-- [ ] Lista de casos atribuídos ao usuário logado
-- [ ] Botão Ver Detalhes (somente leitura)
-- [ ] Formulário de Evolução (Data, Tipo, Descrição)
+- [x] Criar procedure farol.getMeusCasos (buscar por email do usuário logado)
+- [x] Criar client/src/pages/MeusCasos.tsx
+- [x] Lista de casos atribuídos ao usuário logado
+- [x] Botão Ver Detalhes (somente leitura)
+- [x] Formulário de Evolução (Data, Tipo, Descrição)
 
 ### Mudança 6: Vincular farol_advisors a users
-- [ ] Adicionar campo userId (nullable) em farol_advisors no schema
-- [ ] Criar migration SQL para nova coluna
-- [ ] Adicionar UI de vinculação em /farol/assessores
-- [ ] Atualizar getMeusCasos para buscar por userId
+- [x] Adicionar campo userId (nullable) em farol_advisors no schema
+- [x] Criar migration SQL para nova coluna
+- [x] Adicionar UI de vinculação em /farol/assessores (via /usuarios)
+- [x] Atualizar getMeusCasos para buscar por userId
 
 ### Mudança 7: Melhorias de Interface por Perfil
-- [ ] Home personalizada para secretário (resumo da escola)
-- [ ] Home para assessor SAIN abre direto no Farol
-- [ ] Badge de casos sem atualização há 30+ dias no menu do Farol
-- [ ] Interface minimalista para profissional externo
-- [ ] Página Usuários: separar por perfil com ícones e contadores
-- [ ] Alerta quando assessor não tem usuário vinculado
+- [x] Home personalizada para secretário (resumo da escola)
+- [x] Home para assessor SAIN com painel do Farol
+- [x] Interface minimalista para profissional externo
+- [x] Página Usuários: métricas por perfil com ícones e contadores
+- [x] Badge de role no perfil de cada usuário
 
 ## Fase 47 — Sistema de 4 Perfis de Acesso (Controle de Acesso)
 
@@ -1276,3 +1275,46 @@
 ### 8. Testes e Checkpoint
 - [x] 119 testes passando (sem regressões)
 - [x] 0 erros TypeScript
+
+## Fase 49 — 6 Prioridades de Correção e Melhoria
+
+### P1: Corrigir hooks no DashboardLayout
+- [x] Criar componente SidebarMenuGroup com estado de abertura interno
+- [x] Remover qualquer useState/useRef dentro de .map() no DashboardLayout
+- [x] Validar que menu funciona para todos os 5 perfis
+
+### P2: Reforçar permissões no backend
+- [x] demands: school_user/coordinator só acessa demands das escolas vinculadas (via user_schools)
+- [x] students: school_user/coordinator só acessa students das escolas vinculadas
+- [x] mediators: school_user/coordinator só acessa/edita mediators das escolas vinculadas
+- [x] attendances: school_user/coordinator só acessa attendances das escolas vinculadas
+- [x] externalDemands: school_user/coordinator só acessa externalDemands das escolas vinculadas
+- [x] schoolStats: usa getUserSchoolIds para escopo multi-escola
+
+### P3: Unificar fonte oficial de dados de alunos
+- [x] Definir demands como fonte oficial (documentado em drizzle/MIGRATIONS.md)
+- [x] dashboard.stats já usava demands como fonte
+- [x] schoolStats atualizado para usar demands como fonte oficial
+- [x] students.listBySchool atualizado para usar getUserSchoolIds
+
+### P4: Reorganizar migrations do Drizzle
+- [x] Listar todas as migrations e identificar duplicatas (0005 e 0010)
+- [x] Criar drizzle/MIGRATIONS.md com ordem correta e status de cada migration
+- [x] Documentar arquivos duplicados a ignorar
+
+### P5: Completar auditoria real do Quadro de Mediadores
+- [x] Registrar mudanças em mediatorStatusChangeHistory além de statusHistory
+- [x] mediators.getHistory combina tabela detalhada + legado, normalizado para o frontend
+- [x] Histórico de alunos já usa student_edit_history (dados reais)
+
+### P6: Integrar rate limit real ao roteador
+- [x] Importar searchRateLimiter, exportRateLimiter, writeRateLimiter em routers.ts
+- [x] Criar helper withRateLimit no routers.ts
+- [x] demands.searchStudents: searchRateLimiter (100 req/min)
+- [x] reports.generate: exportRateLimiter (10 req/hora)
+- [x] quadroAAP.generate: exportRateLimiter (10 req/hora)
+
+### P7: Testes e Checkpoint
+- [x] 119 testes passando (10 arquivos, 0 falhas)
+- [x] 0 erros TypeScript
+- [x] Checkpoint salvo

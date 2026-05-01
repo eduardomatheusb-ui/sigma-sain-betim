@@ -133,6 +133,56 @@ const coordinatorMenuItems: (MenuItem | MenuGroup)[] = [
   { icon: BarChart3, label: "Relatórios", path: "/relatorios" },
 ];
 
+// ─── Componente separado para grupos expansíveis do menu ────────────────────
+// IMPORTANTE: useState NUNCA pode ficar dentro de .map() — por isso este
+// componente existe: cada grupo tem seu próprio estado de abertura.
+function SidebarMenuGroup({
+  group,
+  isItemActive,
+  setLocation,
+}: {
+  group: MenuGroup;
+  isItemActive: (path: string) => boolean;
+  setLocation: (path: string) => void;
+}) {
+  const isGroupActive = group.items.some(sub => isItemActive(sub.path));
+  const [isOpen, setIsOpen] = useState(isGroupActive);
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        onClick={() => setIsOpen(prev => !prev)}
+        className="h-10 transition-all font-normal text-white/80 hover:text-white hover:bg-white/10"
+      >
+        <group.icon className="h-4 w-4 shrink-0" />
+        <span>{group.label}</span>
+        <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+      </SidebarMenuButton>
+      {isOpen && (
+        <SidebarMenuSub>
+          {group.items.map(subItem => {
+            const isActive = isItemActive(subItem.path);
+            return (
+              <SidebarMenuSubItem key={subItem.path}>
+                <SidebarMenuSubButton
+                  isActive={isActive}
+                  onClick={() => setLocation(subItem.path)}
+                  className={`h-9 transition-all font-normal text-white/70 hover:text-white hover:bg-white/10 ${
+                    isActive ? "bg-white/20 text-white font-medium" : ""
+                  }`}
+                >
+                  <subItem.icon className="h-4 w-4 shrink-0" />
+                  <span>{subItem.label}</span>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            );
+          })}
+        </SidebarMenuSub>
+      )}
+    </SidebarMenuItem>
+  );
+}
+
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 260;
 const MIN_WIDTH = 200;
@@ -283,64 +333,34 @@ function DashboardLayoutContent({
           {/* Itens de Navegação */}
           <SidebarContent className="gap-0 py-2">
             <SidebarMenu className="px-2">
-              {menuItems.map((item, idx) => {
-                const isGroup = 'items' in item;
-                if (isGroup) {
-                  const groupItem = item as MenuGroup;
-                  const isGroupActive = groupItem.items.some(subItem => isItemActive(subItem.path));
-                  const [isOpen, setIsOpen] = useState(isGroupActive);
+              {menuItems.map((item) => {
+                if ('items' in item) {
                   return (
-                    <SidebarMenuItem key={groupItem.label}>
-                      <SidebarMenuButton
-                        onClick={() => setIsOpen(!isOpen)}
-                        className="h-10 transition-all font-normal text-white/80 hover:text-white hover:bg-white/10"
-                      >
-                        <groupItem.icon className="h-4 w-4 shrink-0" />
-                        <span>{groupItem.label}</span>
-                        <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${ isOpen ? "rotate-180" : "" }`} />
-                      </SidebarMenuButton>
-                      {isOpen && (
-                        <SidebarMenuSub>
-                          {groupItem.items.map(subItem => {
-                            const isActive = isItemActive(subItem.path);
-                            return (
-                              <SidebarMenuSubItem key={subItem.path}>
-                                <SidebarMenuSubButton
-                                  isActive={isActive}
-                                  onClick={() => setLocation(subItem.path)}
-                                  className={`h-9 transition-all font-normal text-white/70 hover:text-white hover:bg-white/10 ${
-                                    isActive ? "bg-white/20 text-white font-medium" : ""
-                                  }`}
-                                >
-                                  <subItem.icon className="h-4 w-4 shrink-0" />
-                                  <span>{subItem.label}</span>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            );
-                          })}
-                        </SidebarMenuSub>
-                      )}
-                    </SidebarMenuItem>
-                  );
-                } else {
-                  const menuItem = item as MenuItem;
-                  const isActive = isItemActive(menuItem.path);
-                  return (
-                    <SidebarMenuItem key={menuItem.path}>
-                      <SidebarMenuButton
-                        isActive={isActive}
-                        onClick={() => setLocation(menuItem.path)}
-                        tooltip={menuItem.label}
-                        className={`h-10 transition-all font-normal text-white/80 hover:text-white hover:bg-white/10 ${
-                          isActive ? "bg-white/20 text-white font-medium" : ""
-                        }`}
-                      >
-                        <menuItem.icon className="h-4 w-4 shrink-0" />
-                        <span>{menuItem.label}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    <SidebarMenuGroup
+                      key={(item as MenuGroup).label}
+                      group={item as MenuGroup}
+                      isItemActive={isItemActive}
+                      setLocation={setLocation}
+                    />
                   );
                 }
+                const menuItem = item as MenuItem;
+                const isActive = isItemActive(menuItem.path);
+                return (
+                  <SidebarMenuItem key={menuItem.path}>
+                    <SidebarMenuButton
+                      isActive={isActive}
+                      onClick={() => setLocation(menuItem.path)}
+                      tooltip={menuItem.label}
+                      className={`h-10 transition-all font-normal text-white/80 hover:text-white hover:bg-white/10 ${
+                        isActive ? "bg-white/20 text-white font-medium" : ""
+                      }`}
+                    >
+                      <menuItem.icon className="h-4 w-4 shrink-0" />
+                      <span>{menuItem.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
               })}
             </SidebarMenu>
           </SidebarContent>
