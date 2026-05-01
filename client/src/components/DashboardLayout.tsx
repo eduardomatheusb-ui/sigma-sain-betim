@@ -124,6 +124,15 @@ const externalProfessionalMenuItems: (MenuItem | MenuGroup)[] = [
   { icon: Briefcase, label: "Meus Casos", path: "/farol/meus-casos" },
 ];
 
+// Coordenador
+const coordinatorMenuItems: (MenuItem | MenuGroup)[] = [
+  { icon: Home, label: "Página Inicial", path: "/" },
+  { icon: LayoutDashboard, label: "Dashboard Estratégico", path: "/dashboard" },
+  { icon: GraduationCap, label: "Alunos", path: "/alunos" },
+  { icon: UserCheck, label: "Mediadores", path: "/mediadores" },
+  { icon: BarChart3, label: "Relatórios", path: "/relatorios" },
+];
+
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 260;
 const MIN_WIDTH = 200;
@@ -210,6 +219,7 @@ function DashboardLayoutContent({
   const menuItems =
     user?.role === "admin" ? adminMenuItems :
     user?.role === "sain_assessor" ? sainAssessorMenuItems :
+    user?.role === "coordinator" ? coordinatorMenuItems :
     user?.role === "external_professional" ? externalProfessionalMenuItems :
     secretaryMenuItems;
   const isItemActive = (path: string) => location === path || (path !== "/" && location.startsWith(path));
@@ -353,6 +363,7 @@ function DashboardLayoutContent({
                       <p className="text-xs text-white/60 truncate mt-1">
                         {user?.role === "admin" ? "Administrador" :
          user?.role === "sain_assessor" ? "Assessor SAIN" :
+         user?.role === "coordinator" ? "Coordenador" :
          user?.role === "external_professional" ? "Profissional Externo" :
          "Secretário de Escola"}
                       </p>

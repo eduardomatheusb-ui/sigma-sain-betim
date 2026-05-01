@@ -8,7 +8,7 @@ import { TRPCError } from "@trpc/server";
 import { getSchools, getStudentsBySchool, getMediatorsBySchool, getAttendancesBySchool, getExternalDemandsBySchool } from "./db";
 import { notifyOwner } from "./_core/notification";
 import { getDb } from "./db";
-import { students, mediators, attendances, externalDemands, schools, users, demands, mediatorStudents, statusHistory, weeklySnapshots, studentEditHistory, mediatorStatusChangeHistory, farolCases, farolCaseHistory, farolCaseMovements } from "../drizzle/schema";
+import { students, mediators, attendances, externalDemands, schools, users, demands, mediatorStudents, statusHistory, weeklySnapshots, studentEditHistory, mediatorStatusChangeHistory, farolCases, farolCaseHistory, farolCaseMovements, userSchools, farolAdvisors } from "../drizzle/schema";
 import { eq, and, like, sql, desc, inArray } from "drizzle-orm";
 
 // Status e tipos de alteração do Quadro de Atendentes (MVP integrado)
@@ -1497,13 +1497,50 @@ export const appRouter = router({
     updateRole: protectedProcedure
       .input(z.object({
         userId: z.number(),
-        role: z.enum(["admin", "school_user"]),
+        role: z.enum(["admin", "sain_assessor", "coordinator", "external_professional", "school_user"]),
       }))
       .mutation(async ({ ctx, input }) => {
         if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         await db.update(users).set({ role: input.role }).where(eq(users.id, input.userId));
+        return { success: true };
+      }),
+
+    getUserSchools: protectedProcedure
+      .input(z.object({ userId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const db = await getDb();
+        if (!db) return [];
+        const links = await db
+          .select({ schoolId: userSchools.schoolId, schoolName: schools.name })
+          .from(userSchools)
+          .leftJoin(schools, eq(userSchools.schoolId, schools.id))
+          .where(eq(userSchools.userId, input.userId));
+        return links;
+      }),
+
+    setUserSchools: protectedProcedure
+      .input(z.object({
+        userId: z.number(),
+        schoolIds: z.array(z.number()),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        // Delete existing links
+        await db.delete(userSchools).where(eq(userSchools.userId, input.userId));
+        // Insert new links
+        if (input.schoolIds.length > 0) {
+          await db.insert(userSchools).values(
+            input.schoolIds.map(schoolId => ({ userId: input.userId, schoolId }))
+          );
+        }
+        // Also update legacy schoolId field (first school or null)
+        const primarySchoolId = input.schoolIds[0] ?? null;
+        await db.update(users).set({ schoolId: primarySchoolId }).where(eq(users.id, input.userId));
         return { success: true };
       }),
 
@@ -1537,8 +1574,10 @@ export const appRouter = router({
       .input(z.object({
         name: z.string().min(1, "Nome obrigatório"),
         email: z.string().email("E-mail inválido"),
-        role: z.enum(["admin", "school_user"]),
+        role: z.enum(["admin", "sain_assessor", "coordinator", "external_professional", "school_user"]),
         schoolId: z.number().nullable().optional(),
+        schoolIds: z.array(z.number()).optional(),
+        cargo: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem criar usuários" });
@@ -1546,15 +1585,33 @@ export const appRouter = router({
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, input.email));
         if (existing.length > 0) throw new TRPCError({ code: "CONFLICT", message: "Já existe um usuário com este e-mail" });
-        await db.insert(users).values({
+        // Determine primary schoolId
+        const primarySchoolId = input.schoolId ?? (input.schoolIds?.[0] ?? null);
+        const [result] = await db.insert(users).values({
           openId: `pre_${Date.now()}_${Math.random().toString(36).slice(2)}`,
           name: input.name,
           email: input.email,
           role: input.role,
-          schoolId: input.schoolId ?? null,
+          schoolId: primarySchoolId,
           isActive: true,
           loginMethod: "pre_registered",
         });
+        const newUserId = (result as any).insertId as number;
+        // Insert user_schools links
+        const allSchoolIds = input.schoolIds ?? (primarySchoolId ? [primarySchoolId] : []);
+        if (allSchoolIds.length > 0) {
+          await db.insert(userSchools).values(allSchoolIds.map(sid => ({ userId: newUserId, schoolId: sid })));
+        }
+        // Auto-create farolAdvisors for sain_assessor and external_professional
+        if (input.role === "sain_assessor" || input.role === "external_professional") {
+          await db.insert(farolAdvisors).values({
+            name: input.name,
+            email: input.email,
+            cargo: input.cargo ?? (input.role === "sain_assessor" ? "Assessor SAIN" : "Profissional Externo"),
+            userId: newUserId,
+            isActive: true,
+          } as any);
+        }
         return { success: true };
       }),
   }),

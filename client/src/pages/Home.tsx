@@ -41,6 +41,7 @@ export default function Home() {
 
   if (role === "admin") return <AdminHome userName={user?.name || ""} />;
   if (role === "sain_assessor") return <SainAssessorHome userName={user?.name || ""} />;
+  if (role === "coordinator") return <CoordinatorHome userName={user?.name || ""} />;
   if (role === "external_professional") return <ExternalProfessionalHome userName={user?.name || ""} />;
   return <SchoolHome userName={user?.name || ""} />;
 }
@@ -360,6 +361,70 @@ function SainAssessorHome({ userName }: { userName: string }) {
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Home para Coordenador
+// ─────────────────────────────────────────────────────────────────────────────
+function CoordinatorHome({ userName }: { userName: string }) {
+  const { data: stats } = trpc.dashboard.stats.useQuery();
+
+  const quickActions = [
+    { label: "Dashboard Estratégico", desc: "Visão consolidada das escolas", href: "/dashboard", icon: <School className="w-5 h-5" /> },
+    { label: "Alunos", desc: "Consultar e acompanhar alunos", href: "/alunos", icon: <GraduationCap className="w-5 h-5" /> },
+    { label: "Mediadores", desc: "Consultar mediadores vinculados", href: "/mediadores", icon: <Users className="w-5 h-5" /> },
+    { label: "Relatórios", desc: "Gerar relatórios e exportar dados", href: "/relatorios", icon: <ClipboardList className="w-5 h-5" /> },
+  ];
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Secretaria Municipal de Educação</p>
+        <h1 className="text-2xl font-bold mt-1">Bem-vindo, {userName}!</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Painel do Coordenador
+          <Badge variant="outline" className="ml-2 text-xs bg-orange-50 text-orange-700 border-orange-200">Coordenador</Badge>
+        </p>
+      </div>
+
+      {/* Métricas */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        {[
+          { label: "Total de Alunos", value: stats?.totalStudents ?? 0, icon: <GraduationCap className="w-5 h-5 text-primary" /> },
+          { label: "Mediadores Ativos", value: (stats as any)?.activeMediators ?? 0, icon: <Users className="w-5 h-5 text-blue-600" /> },
+          { label: "Atend. Pendentes", value: stats?.pendingAttendances ?? 0, icon: <ClipboardList className="w-5 h-5 text-amber-600" /> },
+        ].map(m => (
+          <Card key={m.label}>
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center gap-2 mb-1">{m.icon}<p className="text-xs text-muted-foreground">{m.label}</p></div>
+              <p className="text-2xl font-bold">{m.value}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Ações rápidas */}
+      <Card>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Acesso rápido</CardTitle></CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {quickActions.map(a => (
+              <Link key={a.label} href={a.href}>
+                <div className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 transition cursor-pointer group">
+                  <div className="p-2 bg-primary/10 rounded-lg text-primary">{a.icon}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">{a.label}</p>
+                    <p className="text-xs text-muted-foreground truncate">{a.desc}</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

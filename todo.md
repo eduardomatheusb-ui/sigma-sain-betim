@@ -1236,3 +1236,43 @@
 - [x] 119 testes vitest passando (sem regressões)
 - [x] 0 erros TypeScript
 - [x] Dev server rodando normalmente após restart
+
+## Fase 48 — Reestruturação de Gestão de Usuários e Vínculos com Escolas
+
+### 1. Schema e Banco
+- [x] Adicionar role coordinator ao enum de roles
+- [x] Criar tabela user_schools (id, userId, schoolId, createdAt)
+- [x] Aplicar migrations no banco
+
+### 2. Migração de Dados
+- [x] Popular user_schools a partir de schoolId existente em users
+
+### 3. Backend
+- [x] Procedure users.getUserSchools(userId)
+- [x] Procedure users.setUserSchools(userId, schoolIds[])
+- [x] Atualizar users.create para aceitar todos os 5 roles, schoolIds[], cargo, e auto-criar farolAdvisors
+- [x] Atualizar users.updateRole para aceitar todos os 5 roles
+
+### 4. Frontend - Página Usuários
+- [x] Mostrar todos os perfis (admin, assessor SAIN, coordenador, profissional externo, secretário)
+- [x] Seletor multi-escola para sain_assessor, coordinator, external_professional
+- [x] Seletor de escola única para school_user
+- [x] Labels de roles em português (Administrador, Assessor SAIN, Coordenador, Profissional Externo, Secretário de Escola)
+- [x] Métricas por perfil na listagem
+
+### 5. Farol Assessores - Transformar em Relatório
+- [x] Remover formulário de cadastro de assessores
+- [x] Manter visualização de quem está responsável por quais casos
+- [x] Adicionar nota informativa sobre cadastro em /usuarios
+
+### 6. Vincular farol_advisors aos users
+- [x] Ao criar usuário sain_assessor ou external_professional, criar registro em farol_advisors automaticamente
+
+### 7. DashboardLayout - Menu Coordinator
+- [x] Adicionar menu para coordinator: Página Inicial, Dashboard Estratégico, Alunos, Mediadores, Relatórios
+- [x] CoordinatorHome com métricas e acesso rápido
+- [x] Label de role "Coordenador" no footer da sidebar
+
+### 8. Testes e Checkpoint
+- [x] 119 testes passando (sem regressões)
+- [x] 0 erros TypeScript

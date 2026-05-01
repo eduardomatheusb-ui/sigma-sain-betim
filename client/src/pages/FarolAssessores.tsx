@@ -1,182 +1,94 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { toast } from "sonner";
-import { Users, Plus, Edit2, Trash2, RotateCcw } from "lucide-react";
-
-interface FormData {
-  nome: string;
-  email: string;
-  telefone: string;
-  cargo: string;
-  areaAtuacao: string;
-  regional: string;
-}
-
-const AREAS_ATUACAO = [
-  "Educação Inclusiva",
-  "Atendimento Especializado",
-  "Coordenação Pedagógica",
-  "Gestão Administrativa",
-  "Assessoria Técnica",
-  "Articulação de Rede",
-];
-
-const REGIONAIS = [
-  "Centro",
-  "Norte",
-  "Sul",
-  "Leste",
-  "Oeste",
-  "Regional 1",
-  "Regional 2",
-  "Regional 3",
-];
+import { Users, Search, Info, ExternalLink } from "lucide-react";
+import { Link } from "wouter";
 
 export default function FarolAssessores() {
   const { user } = useAuth();
-  
-  const [isOpen, setIsOpen] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterRegional, setFilterRegional] = useState("Todas");
-  const [filterArea, setFilterArea] = useState("Todas");
-  const [filterStatus, setFilterStatus] = useState("Todos");
 
-  const [formData, setFormData] = useState<FormData>({
-    nome: "",
-    email: "",
-    telefone: "",
-    cargo: "",
-    areaAtuacao: "",
-    regional: "",
-  });
+  // Load advisors (read-only)
+  const { data: advisors = [], isLoading } = trpc.farol.listAdvisors.useQuery({});
 
-  // Queries
-  const { data: advisors = [], isLoading, refetch } = trpc.farol.listAdvisors.useQuery(
-    { search: searchTerm, regional: filterRegional !== "Todas" ? filterRegional : undefined }
-  );
+  // Load all cases to show case count per advisor
+  const { data: cases = [] } = trpc.farol.listCases.useQuery({});
 
-  const createMutation = trpc.farol.createAdvisor.useMutation({
-    onSuccess: () => {
-      toast.success("Assessor criado com sucesso");
-      setIsOpen(false);
-      setFormData({ nome: "", email: "", telefone: "", cargo: "", areaAtuacao: "", regional: "" });
-      refetch();
-    },
-    onError: (error: any) => {
-      toast.error(error.message);
-    },
-  });
-
-  const updateMutation = trpc.farol.updateAdvisor.useMutation({
-    onSuccess: () => {
-      toast.success("Assessor atualizado com sucesso");
-      setIsOpen(false);
-      setEditingId(null);
-      setFormData({ nome: "", email: "", telefone: "", cargo: "", areaAtuacao: "", regional: "" });
-      refetch();
-    },
-    onError: (error: any) => {
-      toast.error(error.message);
-    },
-  });
-
-  const deleteMutation = trpc.farol.deleteAdvisor.useMutation({
-    onSuccess: () => {
-      toast.success("Assessor desativado com sucesso");
-      refetch();
-    },
-    onError: (error: any) => {
-      toast.error(error.message);
-    },
-  });
-
-  // Filtros
   const filteredAdvisors = useMemo(() => {
-    return advisors.filter((advisor) => {
-      const matchArea = filterArea === "Todas" || advisor.areaAtuacao === filterArea;
-      const matchStatus = filterStatus === "Todos" || (filterStatus === "Ativo" ? advisor.active : !advisor.active);
-      return matchArea && matchStatus;
-    });
-  }, [advisors, filterArea, filterStatus]);
+    const q = searchTerm.toLowerCase();
+    return advisors.filter((a: any) =>
+      (a.nome ?? "").toLowerCase().includes(q) ||
+      (a.email ?? "").toLowerCase().includes(q) ||
+      (a.cargo ?? "").toLowerCase().includes(q)
+    );
+  }, [advisors, searchTerm]);
 
-  // Métricas
-  const metrics = useMemo(() => {
-    const total = advisors.length;
-    const ativos = advisors.filter((a: any) => a.active).length;
-    const inativos = advisors.filter((a: any) => !a.active).length;
-    const regionais = new Set(advisors.map((a: any) => a.regional)).size;
-    return { total, ativos, inativos, regionais };
-  }, [advisors]);
-
-  const handleOpenForm = (advisor?: (typeof advisors)[0]) => {
-    if (advisor) {
-      setEditingId(advisor.id);
-      setFormData({
-        nome: advisor.nome,
-        email: advisor.email || "",
-        telefone: advisor.telefone || "",
-        cargo: advisor.cargo || "",
-        areaAtuacao: advisor.areaAtuacao || "",
-        regional: advisor.regional,
-      });
-    } else {
-      setEditingId(null);
-      setFormData({ nome: "", email: "", telefone: "", cargo: "", areaAtuacao: "", regional: "" });
+  // Count open cases per advisor
+  const caseCountByAdvisor = useMemo(() => {
+    const map: Record<number, number> = {};
+    for (const c of cases as any[]) {
+      if (c.advisorId) {
+        map[c.advisorId] = (map[c.advisorId] ?? 0) + 1;
+      }
     }
-    setIsOpen(true);
-  };
+    return map;
+  }, [cases]);
 
-  const handleSubmit = async () => {
-    if (!formData.nome || !formData.email || !formData.telefone || !formData.cargo || !formData.areaAtuacao || !formData.regional) {
-      toast.error("Preencha todos os campos obrigatórios");
-      return;
-    }
+  const metrics = useMemo(() => ({
+    total: advisors.length,
+    ativos: advisors.filter((a: any) => a.active).length,
+    comCasos: advisors.filter((a: any) => caseCountByAdvisor[a.id] > 0).length,
+  }), [advisors, caseCountByAdvisor]);
 
-    if (editingId) {
-      updateMutation.mutate({ id: editingId, ...formData });
-    } else {
-      createMutation.mutate(formData);
-    }
-  };
-
-  const handleDelete = (id: number) => {
-    if (confirm("Tem certeza que deseja desativar este assessor?")) {
-      deleteMutation.mutate({ id });
-    }
-  };
-
-  if (!user || user.role !== "admin") {
+  if (!user || !["admin", "sain_assessor"].includes(user.role)) {
     return (
-      <div className="p-6">
-        <p className="text-red-600">Acesso negado. Apenas administradores podem acessar esta página.</p>
+      <div className="flex flex-col items-center justify-center py-16 gap-4">
+        <Users className="w-12 h-12 text-muted-foreground opacity-30" />
+        <div className="text-center">
+          <h2 className="text-xl font-semibold">Acesso Restrito</h2>
+          <p className="text-muted-foreground mt-1">Esta área é exclusiva para administradores e assessores SAIN.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="flex items-center gap-2 text-3xl font-bold">
-          <Users className="h-8 w-8" />
-          Assessores do Farol
-        </h1>
-        <p className="text-gray-600">Gestão dos responsáveis técnicos vinculados aos casos acompanhados pelo Farol da Gestão</p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Users className="w-6 h-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Assessores do Farol</h1>
+            <p className="text-sm text-muted-foreground">Relatório de responsáveis técnicos vinculados aos casos do Farol da Gestão</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Nota informativa */}
+      <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+        <Info className="w-4 h-4 mt-0.5 shrink-0" />
+        <div>
+          <strong>Cadastro de assessores:</strong> O cadastro de novos assessores é feito na página{" "}
+          <Link href="/usuarios" className="underline font-medium hover:text-blue-900">
+            Gestão de Usuários
+          </Link>
+          , ao criar um usuário com perfil <em>Assessor SAIN</em> ou <em>Profissional Externo</em>.
+          Este relatório exibe apenas os responsáveis já cadastrados e seus casos vinculados.
+        </div>
       </div>
 
       {/* Métricas */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Total de Assessores</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total de Assessores</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{metrics.total}</div>
@@ -184,7 +96,7 @@ export default function FarolAssessores() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Assessores Ativos</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Assessores Ativos</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{metrics.ativos}</div>
@@ -192,236 +104,90 @@ export default function FarolAssessores() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Assessores Inativos</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Com Casos Ativos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{metrics.inativos}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Regionais Atendidas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{metrics.regionais}</div>
+            <div className="text-2xl font-bold text-primary">{metrics.comCasos}</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filtros e Ações */}
-      <div className="space-y-4">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:gap-2">
-          <div className="flex-1">
-            <label className="text-sm font-medium">Buscar por nome</label>
+      {/* Busca */}
+      <Card>
+        <CardContent className="pt-4 pb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Digite o nome do assessor..."
+              className="pl-9"
+              placeholder="Buscar por nome, e-mail ou cargo..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="mt-1"
+              onChange={e => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="w-full md:w-48">
-            <label className="text-sm font-medium">Regional</label>
-            <Select value={filterRegional} onValueChange={setFilterRegional}>
-              <SelectTrigger className="mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Todas">Todas as Regionais</SelectItem>
-                {REGIONAIS.map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {r}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="w-full md:w-48">
-            <label className="text-sm font-medium">Área de Atuação</label>
-            <Select value={filterArea} onValueChange={setFilterArea}>
-              <SelectTrigger className="mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Todas">Todas as Áreas</SelectItem>
-                {AREAS_ATUACAO.map((a) => (
-                  <SelectItem key={a} value={a}>
-                    {a}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="w-full md:w-48">
-            <label className="text-sm font-medium">Status</label>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Todos">Todos os Status</SelectItem>
-                <SelectItem value="Ativo">Ativos</SelectItem>
-                <SelectItem value="Inativo">Inativos</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Button onClick={() => handleOpenForm()} className="w-full md:w-auto">
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Assessor
-          </Button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Tabela */}
-      <div className="rounded-lg border">
+      <div className="rounded-lg border overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="bg-muted/30">
               <TableHead>Nome</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Telefone</TableHead>
-              <TableHead>Cargo</TableHead>
-              <TableHead>Área de Atuação</TableHead>
+              <TableHead>E-mail</TableHead>
+              <TableHead>Cargo / Função</TableHead>
               <TableHead>Regional</TableHead>
+              <TableHead>Casos vinculados</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-4">
-                  Carregando...
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  Carregando assessores...
                 </TableCell>
               </TableRow>
             ) : filteredAdvisors.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-4">
-                  Nenhum assessor encontrado
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  {advisors.length === 0
+                    ? "Nenhum assessor cadastrado. Crie usuários com perfil Assessor SAIN ou Profissional Externo em Gestão de Usuários."
+                    : "Nenhum assessor encontrado com os filtros aplicados."}
                 </TableCell>
               </TableRow>
             ) : (
-                  filteredAdvisors.map((advisor: any) => (
-                <TableRow key={advisor.id}>
-                  <TableCell className="font-medium">{advisor.nome}</TableCell>
-                  <TableCell>{advisor.email}</TableCell>
-                  <TableCell>{advisor.telefone}</TableCell>
-                  <TableCell>{advisor.cargo}</TableCell>
-                  <TableCell>{advisor.areaAtuacao}</TableCell>
-                  <TableCell>{advisor.regional}</TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${advisor.active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
-                      {advisor.active ? "Ativo" : "Inativo"}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => handleOpenForm(advisor)}>
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      {advisor.active ? (
-                        <Button variant="outline" size="sm" onClick={() => handleDelete(advisor.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+              filteredAdvisors.map((advisor: any) => {
+                const count = caseCountByAdvisor[advisor.id] ?? 0;
+                return (
+                  <TableRow key={advisor.id} className="hover:bg-muted/20">
+                    <TableCell className="font-medium">{advisor.nome}</TableCell>
+                    <TableCell className="text-muted-foreground">{advisor.email ?? "—"}</TableCell>
+                    <TableCell>{advisor.cargo ?? "—"}</TableCell>
+                    <TableCell>{advisor.regional ?? "—"}</TableCell>
+                    <TableCell>
+                      {count > 0 ? (
+                        <Badge className="bg-primary/10 text-primary hover:bg-primary/10">
+                          {count} {count === 1 ? "caso" : "casos"}
+                        </Badge>
                       ) : (
-                        <Button variant="outline" size="sm" onClick={() => updateMutation.mutate({ id: advisor.id, active: true })}>
-                          <RotateCcw className="h-4 w-4" />
-                        </Button>
+                        <span className="text-muted-foreground text-sm">Sem casos</span>
                       )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={advisor.active
+                        ? "bg-green-100 text-green-800 hover:bg-green-100"
+                        : "bg-red-100 text-red-800 hover:bg-red-100"
+                      }>
+                        {advisor.active ? "Ativo" : "Inativo"}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
       </div>
-
-      {/* Dialog de Formulário */}
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editingId ? "Editar Assessor" : "Novo Assessor"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Nome *</label>
-              <Input
-                value={formData.nome}
-                onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                placeholder="Nome completo"
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Email *</label>
-              <Input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="email@exemplo.com"
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Telefone *</label>
-              <Input
-                value={formData.telefone}
-                onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                placeholder="(00) 00000-0000"
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Cargo *</label>
-              <Input
-                value={formData.cargo}
-                onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
-                placeholder="Ex: Coordenador"
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Área de Atuação *</label>
-              <Select value={formData.areaAtuacao} onValueChange={(value) => setFormData({ ...formData, areaAtuacao: value })}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Selecione uma área" />
-                </SelectTrigger>
-                <SelectContent>
-                  {AREAS_ATUACAO.map((area) => (
-                    <SelectItem key={area} value={area}>
-                      {area}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium">Regional *</label>
-              <Select value={formData.regional} onValueChange={(value) => setFormData({ ...formData, regional: value })}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Selecione uma regional" />
-                </SelectTrigger>
-                <SelectContent>
-                  {REGIONAIS.map((regional) => (
-                    <SelectItem key={regional} value={regional}>
-                      {regional}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex gap-2 pt-4">
-              <Button variant="outline" onClick={() => setIsOpen(false)} className="flex-1">
-                Cancelar
-              </Button>
-              <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending} className="flex-1">
-                {editingId ? "Atualizar" : "Criar"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

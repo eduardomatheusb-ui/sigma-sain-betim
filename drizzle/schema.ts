@@ -11,7 +11,7 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["admin", "sain_assessor", "external_professional", "school_user"]).default("school_user").notNull(),
+  role: mysqlEnum("role", ["admin", "sain_assessor", "coordinator", "external_professional", "school_user"]).default("school_user").notNull(),
   schoolId: int("schoolId"),
   isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -459,3 +459,18 @@ export const caseEvolutions = mysqlTable("case_evolutions", {
 
 export type CaseEvolution = typeof caseEvolutions.$inferSelect;
 export type InsertCaseEvolution = typeof caseEvolutions.$inferInsert;
+
+/**
+ * User-School many-to-many relationship table.
+ * Source of truth for which schools a user is linked to.
+ * The schoolId field in users is kept for backward compatibility only.
+ */
+export const userSchools = mysqlTable("user_schools", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  schoolId: int("schoolId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type UserSchool = typeof userSchools.$inferSelect;
+export type InsertUserSchool = typeof userSchools.$inferInsert;
