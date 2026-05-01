@@ -174,14 +174,17 @@ export const farolRouter = router({
       try {
         // Gerar protocolo CRAEIRV-YYYY-NNNN
         const year = new Date().getFullYear();
-        const lastCase = await db.select({ id: farolCases.id })
+        const lastCase = await db.select({ numeroCaso: farolCases.numeroCaso })
           .from(farolCases)
           .where(like(farolCases.numeroCaso, `CRAEIRV-${year}-%`))
-          .orderBy(desc(farolCases.id))
+          .orderBy(desc(farolCases.numeroCaso))
           .limit(1);
         
-        const sequence = lastCase.length > 0 ? 
-          parseInt(lastCase[0].id.toString().slice(-4)) + 1 : 1;
+        // Extrair o número sequencial do último protocolo (ex: CRAEIRV-2026-0003 → 3)
+        const lastSeq = lastCase.length > 0
+          ? parseInt(lastCase[0].numeroCaso.split('-').pop() || '0', 10)
+          : 0;
+        const sequence = lastSeq + 1;
         const numeroCaso = `CRAEIRV-${year}-${String(sequence).padStart(4, '0')}`;
         
            const insertData = {

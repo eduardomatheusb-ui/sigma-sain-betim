@@ -288,11 +288,16 @@ export default function FarolGestao() {
       return;
     }
 
+    // schoolId: prefer state value, fall back to the select's numeric value (id)
+    const schoolIdFromForm = parseInt(escola) || null;
+    const resolvedSchoolId = selectedSchoolId || schoolIdFromForm;
+    // Also get the school name for display (escola field stores the id, look up the name)
+    const schoolName = schoolsList?.find((s: any) => String(s.id) === String(resolvedSchoolId))?.name || escola;
     const caseData = {
       nomeEstudante,
       idade: parseInt(formData.get("idade") as string) || 0,
-      escola,
-      schoolId: selectedSchoolId || undefined,
+      escola: schoolName,
+      schoolId: resolvedSchoolId || undefined,
       studentId: selectedStudentId || undefined,
       segmento: formData.get("segmento") as string,
       regional: formData.get("regional") as string,
@@ -323,9 +328,12 @@ export default function FarolGestao() {
 
   // Handle school change - reset student search
   const handleSchoolChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const schoolName = e.target.value;
-    const school = schoolsList.find((s: any) => s.name === schoolName);
-    setSelectedSchoolId(school?.id || null);
+    const val = e.target.value;
+    // value is now the school id (numeric string) — fall back to name lookup for safety
+    const byId = schoolsList.find((s: any) => String(s.id) === val);
+    const byName = schoolsList.find((s: any) => s.name === val);
+    const school = byId || byName;
+    setSelectedSchoolId(school?.id ?? null);
     setStudentSearch("");
     setSelectedStudentId(null);
     // Clear student input
@@ -333,8 +341,8 @@ export default function FarolGestao() {
     if (nomeInput) nomeInput.value = '';
   };
 
-  // Renderizar formulário
-  const FormContent = () => (
+  // Renderizar formulário como JSX direto (não como sub-componente, para evitar remontagem e perda de estado)
+  const formContentJSX = (
     <form onSubmit={(e) => handleSubmitCase(e, !!editingCaseId)} className="space-y-6">
       {/* Identificação do Caso */}
       <div>
@@ -431,7 +439,7 @@ export default function FarolGestao() {
             <select name="escola" required className="w-full p-2 border rounded mt-1" onChange={handleSchoolChange}>
               <option value="">Selecione uma escola</option>
               {(schoolsList)?.map?.((s: any) => (
-                <option key={s.id} value={s.name}>{s.name}</option>
+                <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </select>
           </div>
@@ -534,6 +542,8 @@ export default function FarolGestao() {
       </div>
     </form>
   );
+
+
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -788,7 +798,7 @@ export default function FarolGestao() {
               </Button>
             </CardHeader>
             <CardContent>
-              <FormContent />
+              {formContentJSX}
             </CardContent>
           </Card>
         </div>
@@ -805,7 +815,7 @@ export default function FarolGestao() {
               <DrawerClose />
             </DrawerHeader>
             <div className="px-4 pb-6 overflow-y-auto max-h-[70vh]">
-              <FormContent />
+              {formContentJSX}
             </div>
           </DrawerContent>
         </Drawer>
