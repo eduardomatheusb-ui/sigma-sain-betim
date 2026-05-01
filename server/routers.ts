@@ -2164,6 +2164,18 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        // P1: Apenas admin, sain_assessor e coordinator podem criar demandas externas institucionais
+        const allowedRoles = ["admin", "sain_assessor", "coordinator"];
+        if (!allowedRoles.includes(ctx.user.role)) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores, assessores SAIN e coordenadores podem criar demandas externas institucionais." });
+        }
+        // Se vinculada a escola, validar escopo do usuário (coordinator/sain_assessor)
+        if (input.schoolId && ctx.user.role !== "admin") {
+          const schoolIds = await getUserSchoolIds(ctx.user.id);
+          if (schoolIds.length > 0 && !schoolIds.includes(input.schoolId)) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Você não tem permissão sobre a escola vinculada a esta demanda." });
+          }
+        }
         try {
           const [result] = await db.insert(externalDemands).values({
             protocolo: input.protocolo,

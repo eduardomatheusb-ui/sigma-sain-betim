@@ -34,11 +34,12 @@ function AdminRoute({ component: Component }: { component: React.ComponentType }
   return <Component />;
 }
 
-/** Componente que protege rotas do Farol (admin ou sain_assessor) */
+/** Componente que protege rotas do Farol e Demandas Externas (admin, sain_assessor ou coordinator) */
 function SainAssessorRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, loading } = useAuth();
   if (loading) return null;
-  if (!user || (user.role !== "admin" && user.role !== "sain_assessor")) {
+  const allowed = ["admin", "sain_assessor", "coordinator"];
+  if (!user || !allowed.includes(user.role)) {
     return <Redirect to="/" />;
   }
   return <Component />;

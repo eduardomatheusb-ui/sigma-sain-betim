@@ -1389,3 +1389,45 @@
 - [x] 119 testes passando (10 arquivos, 0 falhas)
 - [x] 0 erros TypeScript
 - [x] Checkpoint salvo
+
+## Fase 51b — Fechamento de Segurança ✅, Auditoria Visual e Validação de Perfis
+
+### P1: Restringir externalDemands.create
+- [x] Bloquear school_user de criar demandas externas (FORBIDDEN)
+- [x] Bloquear external_professional de criar demandas externas (FORBIDDEN)
+- [x] Permitir admin, sain_assessor, coordinator
+- [x] Validar escopo de escola vinculada (coordinator/sain_assessor)
+
+### P2: Testes de bloqueio por escopo
+- [x] Teste: school_user tenta editar demands de outra escola → FORBIDDEN/NOT_FOUND
+- [x] Teste: school_user tenta editar student de outra escola → FORBIDDEN/NOT_FOUND
+- [x] Teste: school_user tenta editar attendance de outra escola → FORBIDDEN/NOT_FOUND
+- [x] Teste: não-admin tenta excluir attendance → FORBIDDEN
+- [x] Teste: school_user tenta criar demanda externa → FORBIDDEN
+- [x] Teste: external_professional tenta criar demanda externa → FORBIDDEN
+- [x] Teste: admin consegue executar todas as ações (não FORBIDDEN)
+- [x] Testes de verificação de roles (5 perfis) via auth.me
+
+### P3: Toast de rate limit no frontend
+- [x] Interceptar TOO_MANY_REQUESTS no cliente tRPC (main.tsx)
+- [x] Exibir toast amigável: "Muitas requisições em pouco tempo. Aguarde alguns instantes."
+- [x] Toast com id único para evitar duplicatas (id: "rate-limit")
+
+### P4: Histórico visual no perfil do mediador
+- [x] HistoryModal já existia e está integrado em Mediators.tsx
+- [x] Consome mediators.getHistory (dados reais: mediatorStatusChangeHistory + statusHistory)
+- [x] Timeline com data, usuário, campo, valor anterior/novo
+- [x] Mensagem amigável quando sem histórico
+
+### P5: Validar menus por perfil
+- [x] Admin: acesso total (8 grupos de menu)
+- [x] Assessor SAIN: Dashboard + Acompanhamento de Casos + Relatórios
+- [x] Coordenador: Dashboard + Cadastro + Mediadores + Relatórios
+- [x] Escola (school_user): Quadro + Alunos + Mediadores (sem dashboards, demandas, config)
+- [x] Profissional externo: apenas Meus Casos
+- [x] SainAssessorRoute agora inclui coordinator (corrigido)
+
+### Testes e Checkpoint
+- [x] 138 testes passando (11 arquivos, 0 falhas)
+- [x] 0 erros TypeScript
+- [x] Checkpoint salvo

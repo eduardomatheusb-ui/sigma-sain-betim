@@ -3,6 +3,7 @@ import { UNAUTHED_ERR_MSG } from '@shared/const';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, TRPCClientError } from "@trpc/client";
 import { createRoot } from "react-dom/client";
+import { toast } from "sonner";
 import superjson from "superjson";
 import App from "./App";
 import { getLoginUrl } from "./const";
@@ -21,10 +22,23 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
   window.location.href = getLoginUrl();
 };
 
+/** Exibe toast amigável quando o servidor retorna TOO_MANY_REQUESTS (rate limit) */
+const handleRateLimitError = (error: unknown) => {
+  if (!(error instanceof TRPCClientError)) return;
+  const data = (error as TRPCClientError<any>).data;
+  if (data?.code === "TOO_MANY_REQUESTS") {
+    toast.warning(
+      "Muitas requisições em pouco tempo. Aguarde alguns instantes e tente novamente.",
+      { duration: 5000, id: "rate-limit" }
+    );
+  }
+};
+
 queryClient.getQueryCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.query.state.error;
     redirectToLoginIfUnauthorized(error);
+    handleRateLimitError(error);
     console.error("[API Query Error]", error);
   }
 });
@@ -33,6 +47,7 @@ queryClient.getMutationCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.mutation.state.error;
     redirectToLoginIfUnauthorized(error);
+    handleRateLimitError(error);
     console.error("[API Mutation Error]", error);
   }
 });
