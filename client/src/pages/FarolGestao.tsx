@@ -32,7 +32,7 @@ export default function FarolGestao() {
   const [dataFim, setDataFim] = useState("");
   const [ordenacao, setOrdenacao] = useState("updatedAt");
   const [ordem, setOrdem] = useState<"asc" | "desc">("desc");
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
   const [incluirHistorico, setIncluirHistorico] = useState(false);
   
   // UI State
@@ -57,16 +57,12 @@ export default function FarolGestao() {
   const { data: metrics } = trpc.farol.metrics.useQuery();
   const schoolsQuery = (trpc.schools.list.useQuery() as any);
   const schoolsList = (schoolsQuery?.data || []) as any[];
-  const studentsQuery = (trpc.students.listBySchool.useQuery() as any);
-  const studentsList = (studentsQuery?.data || []) as any[];
 
-  // Student search
-  const filteredStudents = useMemo(() => {
-    if (!studentSearch || studentSearch.length < 2) return [];
-    return (studentsList as any[])?.filter?.((s: any) => 
-      s.name.toLowerCase().includes(studentSearch.toLowerCase())
-    ) || [];
-  }, [studentSearch, studentsList]);
+  // Student autocomplete via searchStudents
+  const { data: studentSearchResults = [] } = (trpc.demands.searchStudents.useQuery(
+    { query: studentSearch },
+    { enabled: studentSearch.length >= 2 }
+  ) as any);
 
   // Auto-scroll ao abrir formulário
   useEffect(() => {
@@ -331,7 +327,13 @@ export default function FarolGestao() {
           </div>
           <div>
             <label className="text-sm font-medium">Data de Entrada *</label>
-            <Input type="date" name="dataEntrada" required className="mt-1" />
+            <Input
+              type="date"
+              name="dataEntrada"
+              required
+              className="mt-1"
+              max={new Date().toISOString().split('T')[0]}
+            />
           </div>
         </div>
       </div>
@@ -353,23 +355,37 @@ export default function FarolGestao() {
             />
             {showStudentDropdown && studentSearch.length >= 2 && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded shadow-lg z-10 max-h-48 overflow-y-auto">
-                {filteredStudents.length > 0 ? (
-                  filteredStudents.map((s: any) => (
+                {(studentSearchResults as any[]).length > 0 ? (
+                  (studentSearchResults as any[]).map((s: any) => (
                     <button
                       key={s.id}
                       type="button"
                       className="w-full text-left px-3 py-2 hover:bg-gray-100 border-b last:border-b-0"
-                      onClick={() => {
+                      onMouseDown={() => {
+                        // Prefill nome
                         const nomeInput = document.querySelector('input[name="nomeEstudante"]') as HTMLInputElement;
-                        if (nomeInput) nomeInput.value = s.name;
+                        if (nomeInput) nomeInput.value = s.studentName || s.name || '';
+                        // Prefill escola
+                        const escolaSelect = document.querySelector('select[name="escola"]') as HTMLSelectElement;
+                        if (escolaSelect && s.schoolName) escolaSelect.value = s.schoolName;
+                        // Prefill regional
+                        const regionalInput = document.querySelector('input[name="regional"]') as HTMLInputElement;
+                        if (regionalInput && s.regional) regionalInput.value = s.regional;
+                        // Prefill segmento
                         const segmentoSelect = document.querySelector('select[name="segmento"]') as HTMLSelectElement;
-                        if (segmentoSelect && s.grade) segmentoSelect.value = s.grade;
+                        if (segmentoSelect && s.grade) {
+                          const seg = s.grade.includes('Creche') ? 'Creche'
+                            : s.grade.includes('Pré') ? 'Pré-escolar'
+                            : s.grade.match(/^[1-9]°/) ? 'Fundamental'
+                            : s.grade.match(/^[1-3]° Médio/) ? 'Médio' : '';
+                          if (seg) segmentoSelect.value = seg;
+                        }
                         setShowStudentDropdown(false);
-                        setStudentSearch("");
+                        setStudentSearch('');
                       }}
                     >
-                      <div className="font-medium">{s.name}</div>
-                      <div className="text-xs text-gray-500">{s.grade || "Série não informada"}</div>
+                      <div className="font-medium">{s.studentName || s.name}</div>
+                      <div className="text-xs text-gray-500">{s.schoolName || s.grade || 'Escola não informada'}</div>
                     </button>
                   ))
                 ) : (

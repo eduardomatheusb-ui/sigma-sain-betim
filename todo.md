@@ -1084,3 +1084,35 @@
 - [x] Build sem erros
 - [x] Dependências OK
 - [x] Screenshot do dashboard capturado
+
+## Fase 45 — Correções e Melhorias de Usabilidade (Pós-Testes)
+
+### 1. LGPD - Masking de CPF
+- [x] Masking de CPF na tabela de Relatórios (XXX.XXX.XXX-XX)
+- [x] Masking de CPF no export CSV de Alunos (LGPD)
+- [x] CPF não exibido na tabela de Mediadores (apenas no formulário de edição)
+- [x] CPF não incluído no CSV de Mediadores
+
+### 2. Farol da Gestão - Autocomplete e Prefill
+- [x] Implementar campo de busca de alunos com autocomplete (dropdown)
+- [x] Ao selecionar aluno, preencher automaticamente: escola, regional, segmento
+- [x] Busca de alunos via tRPC (demands.searchStudents, 2+ caracteres)
+- [x] Mostrar nome + escola no dropdown de sugestões
+- [x] Usar onMouseDown para evitar perda de foco
+
+### 3. Formulário de Alunos - Agrupamento de Deficiências
+- [x] Agrupar deficiências por categoria: Visuais, Auditivas, Físicas, Intelectuais, Transtornos, Outros
+- [x] Adicionar cabeçalho de categoria para cada grupo
+- [x] Manter layout em 2 colunas dentro de cada grupo
+
+### 4. Paginação em Tabelas
+- [x] Implementar paginação na tabela de Alunos (20 por página)
+- [x] Implementar paginação na tabela de Mediadores (20 por página)
+- [x] Implementar paginação na tabela de Relatórios (50 por página)
+- [x] Adicionar controles: anterior, próximo, número de página, total
+
+### 5. Melhorias de UX Gerais
+- [x] Formatar exibição de deficiências no CSV (remover colchetes e aspas do JSON)
+- [x] Expandir filtros por padrão no Farol da Gestão (showFilters = true)
+- [x] Validação de data futura no formulário do Farol (max = hoje)
+- [x] Scroll horizontal em tabelas (overflow-x-auto já implementado)

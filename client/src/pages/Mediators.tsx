@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -122,6 +122,10 @@ export default function Mediators() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [schoolFilter, setSchoolFilter] = useState("all");
 
+  // Paginação
+  const [mediatorsPage, setMediatorsPage] = useState(1);
+  const MEDIATORS_PAGE_SIZE = 20;
+
   // Histórico de mudanças de situação
   const [historyMediatorId, setHistoryMediatorId] = useState<number | null>(null);
   const [historyMediatorName, setHistoryMediatorName] = useState("");
@@ -189,6 +193,14 @@ export default function Mediators() {
       return matchSearch && matchStatus && matchSchool;
     });
   }, [mediatorsData, search, statusFilter, schoolFilter]);
+
+  // Paginação de mediadores
+  const mediatorsTotalPages = Math.max(1, Math.ceil(filtered.length / MEDIATORS_PAGE_SIZE));
+  const paginatedMediators = filtered.slice(
+    (mediatorsPage - 1) * MEDIATORS_PAGE_SIZE,
+    mediatorsPage * MEDIATORS_PAGE_SIZE
+  );
+  useEffect(() => { setMediatorsPage(1); }, [search, statusFilter, schoolFilter]);
 
   const metrics = useMemo(() => ({
     total: mediatorsData.length,
@@ -302,7 +314,7 @@ export default function Mediators() {
                 ) : filtered.length === 0 ? (
                   <tr><td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">Nenhum atendente encontrado.</td></tr>
                 ) : (
-                  filtered.map((row: any, idx: number) => (
+                  paginatedMediators.map((row: any, idx: number) => (
                     <tr key={row.id} className={`border-b last:border-0 align-top hover:bg-muted/20 transition-colors ${idx % 2 === 0 ? "" : "bg-muted/10"}`}>
                       <td className="px-4 py-3">{row.schoolName ?? "—"}</td>
                       <td className="px-4 py-3 text-muted-foreground">{row.responsible ?? "—"}</td>
@@ -341,6 +353,25 @@ export default function Mediators() {
               </tbody>
             </table>
           </div>
+          {/* Controles de paginação */}
+          {mediatorsTotalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t">
+              <p className="text-sm text-muted-foreground">
+                Exibindo {(mediatorsPage - 1) * MEDIATORS_PAGE_SIZE + 1}–{Math.min(mediatorsPage * MEDIATORS_PAGE_SIZE, filtered.length)} de {filtered.length} registros
+              </p>
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm" disabled={mediatorsPage === 1} onClick={() => setMediatorsPage(p => p - 1)}>Anterior</Button>
+                {Array.from({ length: Math.min(5, mediatorsTotalPages) }, (_, i) => {
+                  const page = mediatorsPage <= 3 ? i + 1 : mediatorsPage + i - 2;
+                  if (page < 1 || page > mediatorsTotalPages) return null;
+                  return (
+                    <Button key={page} variant={page === mediatorsPage ? "default" : "outline"} size="sm" onClick={() => setMediatorsPage(page)}>{page}</Button>
+                  );
+                })}
+                <Button variant="outline" size="sm" disabled={mediatorsPage === mediatorsTotalPages} onClick={() => setMediatorsPage(p => p + 1)}>Próxima</Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

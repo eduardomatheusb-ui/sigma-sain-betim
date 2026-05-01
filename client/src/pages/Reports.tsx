@@ -10,7 +10,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { BarChart3, Download, FileText, Search } from "lucide-react";
+import { BarChart3, ChevronLeft, ChevronRight, Download, FileText, Search } from "lucide-react";
+import { useEffect } from "react";
 import { Input } from "@/components/ui/input";
 
 type ReportType = "students" | "mediators" | "attendances" | "schools";
@@ -34,11 +35,14 @@ const SHIFT_LABELS: Record<string, string> = {
   morning: "Manha", afternoon: "Tarde", full: "Integral", evening: "Noturno",
 };
 
+const PAGE_SIZE = 50;
+
 export default function Reports() {
   const [reportType, setReportType] = useState<ReportType>("students");
   const [schoolFilter, setSchoolFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
   const { data: schoolsList } = trpc.schools.list.useQuery();
   const schoolId = schoolFilter !== "all" ? parseInt(schoolFilter) : undefined;
@@ -59,6 +63,11 @@ export default function Reports() {
       return values.includes(q);
     });
   }, [rows, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => { setPage(1); }, [reportType, schoolFilter, statusFilter, search]);
 
   const exportCSV = () => {
     if (!filtered.length) { toast.error("Nenhum dado para exportar"); return; }
@@ -179,7 +188,31 @@ export default function Reports() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <ReportTable type={reportType} rows={filtered} />
+              <ReportTable type={reportType} rows={paginated} />
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-3 border-t">
+                <span className="text-sm text-muted-foreground">
+                  Página {page} de {totalPages} — {filtered.length} registros
+                </span>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const p = page <= 3 ? i + 1 : page + i - 2;
+                    if (p < 1 || p > totalPages) return null;
+                    return (
+                      <Button key={p} variant={p === page ? "default" : "outline"} size="sm" className="w-8 h-8 p-0" onClick={() => setPage(p)}>
+                        {p}
+                      </Button>
+                    );
+                  })}
+                  <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
             </div>
           )}
         </CardContent>
@@ -263,8 +296,31 @@ function ReportTable({ type, rows }: { type: ReportType; rows: any[] }) {
   );
 }
 
+function maskCPF(cpf: string): string {
+  if (!cpf) return "-";
+  const digits = cpf.replace(/\D/g, "");
+  if (digits.length === 11) {
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`
+      .replace(/\d(?=.*\d{4})/g, "*");
+  }
+  // Partial mask: show only last 4 digits
+  if (digits.length > 4) return "*".repeat(digits.length - 4) + digits.slice(-4);
+  return cpf;
+}
+
+function formatDisabilities(value: any): string {
+  if (!value) return "-";
+  try {
+    const arr = typeof value === "string" ? JSON.parse(value) : value;
+    if (Array.isArray(arr)) return arr.filter(Boolean).join(", ") || "-";
+  } catch {}
+  return String(value).replace(/[\[\]"]/g, "").trim() || "-";
+}
+
 function formatCell(key: string, value: any): React.ReactNode {
   if (value === null || value === undefined) return <span className="text-muted-foreground">-</span>;
+  if (key === "cpf") return <span className="font-mono text-xs text-muted-foreground">{maskCPF(String(value))}</span>;
+  if (key === "disability") return <span className="text-xs">{formatDisabilities(value)}</span>;
   if (key === "status" || key === "weeklyStatus") {
     const label = STATUS_LABELS[value] || value;
     const color = value === "active" || value === "completed" || value === "updated"

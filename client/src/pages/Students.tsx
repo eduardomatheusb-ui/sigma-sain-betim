@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,33 @@ const DISABILITY_OPTIONS = [
   "Em hipótese diagnóstica (em avaliação)",
   "P300 - potencial evocado auditivo",
   "Outro",
+];
+
+const DISABILITY_GROUPS: { label: string; options: string[] }[] = [
+  {
+    label: "Deficiências Visuais",
+    options: ["Deficiência visual - baixa visão", "Deficiência visual - cegueira", "Visão monocular"],
+  },
+  {
+    label: "Deficiências Auditivas",
+    options: ["Deficiência auditiva - surdez", "Deficiência auditiva - baixa audição", "Surdocegueira", "Deficiência sensorial"],
+  },
+  {
+    label: "Deficiências Físicas e Intelectuais",
+    options: ["Deficiência física", "Deficiência intelectual", "Síndrome de Down"],
+  },
+  {
+    label: "Transtornos do Neurodesenvolvimento",
+    options: ["TEA - Transtorno do Espectro Autista", "TDAH - Transtorno de Déficit de Atenção e Hiperatividade", "TOD - Transtorno Opositor Desafiador"],
+  },
+  {
+    label: "Transtornos de Aprendizagem e Ansiedade",
+    options: ["Dislexia", "Disgrafia", "Discalculia", "TPAC - Transtorno do Processamento Auditivo Central", "TAG - Transtorno de Ansiedade Generalizada"],
+  },
+  {
+    label: "Outros",
+    options: ["Altas habilidades/superdotação", "Em hipótese diagnóstica (em avaliação)", "P300 - potencial evocado auditivo", "Outro"],
+  },
 ];
 
 const SHIFT_LABELS: Record<string, string> = {
@@ -164,6 +191,10 @@ export default function Students() {
   const [filterShift, setFilterShift] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
 
+  // Paginação
+  const [studentsPage, setStudentsPage] = useState(1);
+  const STUDENTS_PAGE_SIZE = 20;
+
   // Histórico de alterações
   const [historyDemandId, setHistoryDemandId] = useState<number | null>(null);
   const [historyStudentName, setHistoryStudentName] = useState("");
@@ -260,6 +291,14 @@ export default function Students() {
   const uniqueSchools = useMemo(() => {
     return Array.from(new Set(demands.map((d) => d.schoolName))).sort();
   }, [demands]);
+
+  // Paginação de alunos
+  const studentsTotalPages = Math.max(1, Math.ceil(filteredDemands.length / STUDENTS_PAGE_SIZE));
+  const paginatedDemands = filteredDemands.slice(
+    (studentsPage - 1) * STUDENTS_PAGE_SIZE,
+    studentsPage * STUDENTS_PAGE_SIZE
+  );
+  useEffect(() => { setStudentsPage(1); }, [searchQuery, filterSchool, filterShift, filterStatus]);
 
   const toggleDisability = (disability: string) => {
     setForm((prev) => ({
@@ -381,11 +420,18 @@ export default function Students() {
     if (deletingId !== null) deleteMutation.mutate({ id: deletingId });
   };
 
+  const maskCPF = (cpf: string) => {
+    if (!cpf) return "";
+    const digits = cpf.replace(/\D/g, "");
+    if (digits.length === 11) return `${digits.slice(0,3)}.${digits.slice(3,6)}.${digits.slice(6,9)}-${digits.slice(9)}`.replace(/\d(?=\d{2})/g, (_, i) => i < 7 ? "*" : _);
+    return cpf.replace(/./g, (c, i) => (i > 1 && i < cpf.length - 2) ? "*" : c);
+  };
+
   const exportCSV = () => {
     const headers = ["Aluno", "CPF/Certidão", "Unidade", "Turno", "Turma", "Deficiências", "Situação", "Situação Atendente", "Atendente", "Compartilhado", "Observação", "Atualizado"];
     const rows = filteredDemands.map((d) => [
       d.studentName,
-      d.cpf || "",
+      maskCPF(d.cpf || ""),
       d.schoolName,
       SHIFT_LABELS[d.shift] || d.shift,
       d.grade || "",
@@ -574,17 +620,24 @@ export default function Students() {
             {/* Deficiências/Transtornos */}
             <div className="space-y-2">
               <Label>Deficiência/Transtorno *</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border border-border rounded-md p-3 bg-muted/30">
-                {DISABILITY_OPTIONS.map((disability) => (
-                  <div key={disability} className="flex items-center gap-2">
-                    <Checkbox
-                      id={`dis-${disability}`}
-                      checked={form.disabilities.includes(disability)}
-                      onCheckedChange={() => toggleDisability(disability)}
-                    />
-                    <label htmlFor={`dis-${disability}`} className="text-sm cursor-pointer">
-                      {disability}
-                    </label>
+              <div className="border border-border rounded-md p-3 bg-muted/30 space-y-4">
+                {DISABILITY_GROUPS.map((group) => (
+                  <div key={group.label}>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">{group.label}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                      {group.options.map((disability) => (
+                        <div key={disability} className="flex items-center gap-2">
+                          <Checkbox
+                            id={`dis-${disability}`}
+                            checked={form.disabilities.includes(disability)}
+                            onCheckedChange={() => toggleDisability(disability)}
+                          />
+                          <label htmlFor={`dis-${disability}`} className="text-sm cursor-pointer leading-tight">
+                            {disability}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -997,7 +1050,7 @@ export default function Students() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredDemands.map((demand) => {
+                  {paginatedDemands.map((demand) => {
                     const disabilities = demand.disabilities ? JSON.parse(demand.disabilities) as string[] : [];
                     return (
                       <TableRow key={demand.id}>
@@ -1075,6 +1128,25 @@ export default function Students() {
                   })}
                 </TableBody>
               </Table>
+            </div>
+          )}
+          {/* Controles de paginação */}
+          {studentsTotalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t">
+              <p className="text-sm text-muted-foreground">
+                Exibindo {(studentsPage - 1) * STUDENTS_PAGE_SIZE + 1}–{Math.min(studentsPage * STUDENTS_PAGE_SIZE, filteredDemands.length)} de {filteredDemands.length} registros
+              </p>
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm" disabled={studentsPage === 1} onClick={() => setStudentsPage(p => p - 1)}>Anterior</Button>
+                {Array.from({ length: Math.min(5, studentsTotalPages) }, (_, i) => {
+                  const page = studentsPage <= 3 ? i + 1 : studentsPage + i - 2;
+                  if (page < 1 || page > studentsTotalPages) return null;
+                  return (
+                    <Button key={page} variant={page === studentsPage ? "default" : "outline"} size="sm" onClick={() => setStudentsPage(page)}>{page}</Button>
+                  );
+                })}
+                <Button variant="outline" size="sm" disabled={studentsPage === studentsTotalPages} onClick={() => setStudentsPage(p => p + 1)}>Próxima</Button>
+              </div>
             </div>
           )}
         </CardContent>
