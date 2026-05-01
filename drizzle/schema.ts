@@ -396,6 +396,7 @@ export const farolCases = mysqlTable("farol_cases", {
   telefone: varchar("telefone", { length: 20 }),
   escola: varchar("escola", { length: 255 }),
   schoolId: int("schoolId"),
+  studentId: int("studentId"),                    // FK → students.id (opcional)
   regional: varchar("regional", { length: 100 }),
   segmento: varchar("segmento", { length: 100 }),
   tipoDemanda: varchar("tipoDemanda", { length: 100 }),

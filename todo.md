@@ -1895,3 +1895,36 @@
 - [x] Resultado do TypeScript (0 erros)
 - [x] Listar pendências restantes
 - [x] Recomendação sobre liberação para uso assistido
+
+## Fase 55.3 — Busca de Aluno Dependente da Escola
+
+### P1: Auditoria da procedure de busca de alunos
+- [x] Verificar procedure demands.searchStudents (schoolId obrigatório?)
+- [x] Verificar se a query filtra por schoolId
+- [x] Confirmar fonte oficial dos alunos (students ou demands)
+- [x] Garantir que backend não retorne alunos sem schoolId
+
+### P2: Criação de Caso (FarolGestao)
+- [x] Campo Aluno desabilitado até escola ser selecionada
+- [x] Mensagem "Selecione primeiro a escola para buscar os alunos."
+- [x] Após escola selecionada, habilitar campo Aluno
+- [x] Buscar somente alunos da escola selecionada (schoolId obrigatório)
+- [x] Ao trocar escola, limpar aluno selecionado
+- [x] Mensagem "Aluno não encontrado nesta escola." se busca sem resultado
+- [x] Salvar studentId, studentName e schoolId ao selecionar aluno
+- [ ] Mensagem "Nenhum aluno cadastrado para esta escola." (requer query separada)
+
+### P3: Gestão de Demandas Externas (ExternalDemands)
+- [x] Campo Aluno desabilitado até escola ser selecionada
+- [x] Mensagem "Selecione primeiro a escola para buscar os alunos."
+- [x] Após escola selecionada, habilitar campo Aluno
+- [x] Buscar somente alunos da escola selecionada (schoolId obrigatório)
+- [x] Ao trocar escola, limpar aluno selecionado
+- [x] Mensagem "Aluno não encontrado nesta escola." se busca sem resultado
+- [x] Salvar studentId, studentName e schoolId ao selecionar aluno
+- [ ] Mensagem "Nenhum aluno cadastrado para esta escola." (requer query separada)
+
+### P4: Testes e Validação Técnica
+- [x] pnpm test --run (147 testes passam, 12 arquivos)
+- [x] npx tsc --noEmit (0 erros TypeScript)
+- [x] Relatório final da Fase 55.3

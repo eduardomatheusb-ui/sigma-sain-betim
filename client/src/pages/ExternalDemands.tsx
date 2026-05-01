@@ -123,6 +123,7 @@ export default function ExternalDemands() {
     responsavelNome: '',
     responsavelId: '',
     schoolId: '',
+    studentId: '',
     studentName: '',
     resumo: '',
     descricaoCompleta: '',
@@ -196,6 +197,7 @@ export default function ExternalDemands() {
         responsavelNome: formData.responsavelNome || undefined,
         responsavelId: formData.responsavelId ? parseInt(formData.responsavelId) : undefined,
         schoolId: formData.schoolId ? parseInt(formData.schoolId) : undefined,
+        studentId: formData.studentId ? parseInt(formData.studentId) : undefined,
         studentName: formData.studentName,
         resumo: formData.resumo,
         descricaoCompleta: formData.descricaoCompleta,
@@ -213,6 +215,7 @@ export default function ExternalDemands() {
         responsavelNome: '',
         responsavelId: '',
         schoolId: '',
+        studentId: '',
         studentName: '',
         resumo: '',
         descricaoCompleta: '',
@@ -418,13 +421,15 @@ export default function ExternalDemands() {
                       return [];
                     }}
                     onSelect={(school: any) => {
-                      setFormData({ ...formData, schoolId: String(school.id) });
+                      setFormData({ ...formData, schoolId: String(school.id), studentId: '', studentName: '' });
                       setSchoolSearchQuery('');
+                      setStudentSearchQuery('');
                     }}
                     value={formData.schoolId ? { id: parseInt(formData.schoolId), name: schools.find((s: any) => s.id === parseInt(formData.schoolId))?.name || '' } : null}
                     onClear={() => {
-                      setFormData({ ...formData, schoolId: '' });
+                      setFormData({ ...formData, schoolId: '', studentId: '', studentName: '' });
                       setSchoolSearchQuery('');
+                      setStudentSearchQuery('');
                     }}
                   />
                   {schoolSearchResult.isLoading && <p className="text-xs text-muted-foreground">Carregando escolas...</p>}
@@ -434,8 +439,9 @@ export default function ExternalDemands() {
                         <button
                           key={s.id}
                           onClick={() => {
-                            setFormData({ ...formData, schoolId: String(s.id) });
+                            setFormData({ ...formData, schoolId: String(s.id), studentId: '', studentName: '' });
                             setSchoolSearchQuery('');
+                            setStudentSearchQuery('');
                           }}
                           className="block w-full text-left px-2 py-1 text-sm hover:bg-slate-200 rounded"
                         >
@@ -463,7 +469,7 @@ export default function ExternalDemands() {
                       setStudentSearchQuery('');
                     }}
                     onClear={() => {
-                      setFormData({ ...formData, studentName: '' });
+                      setFormData({ ...formData, studentId: '', studentName: '' });
                       setStudentSearchQuery('');
                     }}
                   />
@@ -474,7 +480,7 @@ export default function ExternalDemands() {
                         <button
                           key={s.id}
                           onClick={() => {
-                            setFormData({ ...formData, studentName: s.name });
+                            setFormData({ ...formData, studentId: String(s.id), studentName: s.name });
                             setStudentSearchQuery('');
                           }}
                           className="block w-full text-left px-2 py-1 text-sm hover:bg-slate-200 rounded"
@@ -485,7 +491,10 @@ export default function ExternalDemands() {
                     </div>
                   )}
                   {formData.schoolId && studentSearchResult.data && studentSearchResult.data.length === 0 && studentSearchQuery.length >= 2 && (
-                    <p className="text-xs text-gray-500 mt-2">Aluno não encontrado nesta escola. Verifique se o aluno ja foi cadastrado.</p>
+                    <p className="text-xs text-amber-600 mt-2">Aluno não encontrado nesta escola. Verifique se o aluno já foi cadastrado.</p>
+                  )}
+                  {formData.studentName && (
+                    <p className="text-xs text-green-600 mt-1">✓ Aluno selecionado: {formData.studentName}</p>
                   )}
                 </div>
               </div>
