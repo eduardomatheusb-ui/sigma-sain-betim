@@ -360,16 +360,20 @@ export default function FarolGestao() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="relative">
             <label className="text-sm font-medium">Nome do Aluno *</label>
+            {!selectedSchoolId && (
+              <p className="text-xs text-amber-600 mb-1">Selecione primeiro a escola para buscar os alunos.</p>
+            )}
             <Input
               name="nomeEstudante"
-              placeholder="Digite o nome do aluno"
+              placeholder={selectedSchoolId ? "Digite o nome do aluno" : "Selecione uma escola primeiro"}
               required
+              disabled={!selectedSchoolId}
               className="mt-1"
               onChange={(e) => setStudentSearch(e.target.value)}
-              onFocus={() => setShowStudentDropdown(true)}
+              onFocus={() => selectedSchoolId && setShowStudentDropdown(true)}
               autoComplete="off"
             />
-            {showStudentDropdown && studentSearch.length >= 2 && (
+            {showStudentDropdown && selectedSchoolId && studentSearch.length >= 2 && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded shadow-lg z-10 max-h-48 overflow-y-auto">
                 {(studentSearchResults as any[]).length > 0 ? (
                   (studentSearchResults as any[]).map((s: any) => (
@@ -378,49 +382,35 @@ export default function FarolGestao() {
                       type="button"
                       className="w-full text-left px-3 py-2 hover:bg-gray-100 border-b last:border-b-0"
                       onMouseDown={() => {
-                        // Prefill nome
                         const nomeInput = document.querySelector('input[name="nomeEstudante"]') as HTMLInputElement;
-                        if (nomeInput) nomeInput.value = s.studentName || s.name || '';
-                        // Prefill escola
-                        const escolaSelect = document.querySelector('select[name="escola"]') as HTMLSelectElement;
-                        if (escolaSelect && s.schoolName) escolaSelect.value = s.schoolName;
-                        // Prefill regional
-                        const regionalInput = document.querySelector('input[name="regional"]') as HTMLInputElement;
-                        if (regionalInput && s.regional) regionalInput.value = s.regional;
-                        // Prefill segmento
-                        const segmentoSelect = document.querySelector('select[name="segmento"]') as HTMLSelectElement;
-                        if (segmentoSelect && s.grade) {
-                          const seg = s.grade.includes('Creche') ? 'Creche'
-                            : s.grade.includes('Pré') ? 'Pré-escolar'
-                            : s.grade.match(/^[1-9]°/) ? 'Fundamental'
-                            : s.grade.match(/^[1-3]° Médio/) ? 'Médio' : '';
-                          if (seg) segmentoSelect.value = seg;
-                        }
+                        if (nomeInput) nomeInput.value = s.name || '';
+                        setSelectedStudentId(s.id);
                         setShowStudentDropdown(false);
                         setStudentSearch('');
                       }}
                     >
-                      <div className="font-medium">{s.studentName || s.name}</div>
-                      <div className="text-xs text-gray-500">{s.schoolName || s.grade || 'Escola não informada'}</div>
+                      <div className="font-medium">{s.name}</div>
+                      <div className="text-xs text-gray-500">Matricula: {s.enrollmentNumber || '-'} | Turma: {s.grade || '-'}</div>
                     </button>
                   ))
                 ) : (
-                  <div className="px-3 py-2 text-sm text-gray-500">Nenhum aluno encontrado</div>
+                  <div className="px-3 py-2 text-sm text-gray-500">Aluno não encontrado nesta escola. Verifique se o aluno ja foi cadastrado.</div>
                 )}
               </div>
             )}
           </div>
           <div>
             <label className="text-sm font-medium">Idade</label>
-            <Input type="number" name="idade" placeholder="Idade" className="mt-1" />
+            <Input name="idade" type="number" placeholder="Idade" className="mt-1" />
           </div>
           <div>
             <label className="text-sm font-medium">Segmento</label>
             <select name="segmento" className="w-full p-2 border rounded mt-1">
               <option value="">Selecione</option>
-              {segmentoOptions.map((opt: string) => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
+              <option value="Creche">Creche</option>
+              <option value="Pré-escolar">Pré-escolar</option>
+              <option value="Fundamental">Fundamental</option>
+              <option value="Médio">Médio</option>
             </select>
           </div>
         </div>
