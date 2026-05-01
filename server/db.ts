@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, schools, students, mediators, attendances, externalDemands, mediatorStudents, statusHistory, weeklySnapshots, demands, userSchools } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -178,5 +178,47 @@ export async function getStudentCount(schoolId?: number): Promise<number> {
     return rows.length;
   } catch {
     return 0;
+  }
+}
+
+
+/**
+ * Gera protocolo único para Demandas Externas.
+ * Formato: SAIN-XXXXXX/YYYY
+ * Exemplo: SAIN-000001/2026, SAIN-000002/2026
+ * Busca o último protocolo do ano e incrementa o sequencial.
+ */
+export async function generateProtocol(): Promise<string> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const year = new Date().getFullYear();
+  const prefix = `SAIN-`;
+  const suffix = `/${year}`;
+  
+  try {
+    // Buscar o último protocolo do ano corrente
+    const lastProtocol = await db.select({ protocolo: externalDemands.protocolo })
+      .from(externalDemands)
+      .orderBy(sql`CAST(SUBSTRING(protocolo, 6, 6) AS UNSIGNED) DESC`)
+      .limit(1);
+    
+    let nextNumber = 1;
+    if (lastProtocol.length > 0 && lastProtocol[0].protocolo) {
+      const lastProto = lastProtocol[0].protocolo;
+      const match = lastProto.match(/SAIN-(\d{6})\//);  
+      if (match) {
+        nextNumber = parseInt(match[1], 10) + 1;
+      }
+    }
+    
+    const paddedNumber = String(nextNumber).padStart(6, '0');
+    return `${prefix}${paddedNumber}${suffix}`;
+  } catch (error) {
+    console.error("[generateProtocol] Error:", error);
+    // Fallback: usar timestamp como sequencial
+    const timestamp = Date.now() % 1000000;
+    const paddedNumber = String(timestamp).padStart(6, '0');
+    return `${prefix}${paddedNumber}${suffix}`;
   }
 }

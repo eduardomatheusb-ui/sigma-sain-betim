@@ -1431,3 +1431,39 @@
 - [x] 138 testes passando (11 arquivos, 0 falhas)
 - [x] 0 erros TypeScript
 - [x] Checkpoint salvo
+
+## Fase 52 — Reestruturação do Módulo Demandas Externas (Menu Simplificado + Protocolo Automático)
+
+### 52.1: Schema e Geração de Protocolo
+- [ ] Adicionar coluna `protocolo` (UNIQUE, VARCHAR) ao schema externalDemands
+- [ ] Criar migration SQL para adicionar coluna
+- [ ] Criar helper `generateProtocol()` em server/db.ts que retorna SAIN-XXXXXX/YYYY
+- [ ] Helper deve buscar o último protocolo do ano e incrementar sequencial
+
+### 52.2: Backend - Procedures com Protocolo
+- [ ] externalDemands.create: gerar protocolo automaticamente antes de salvar
+- [ ] externalDemands.list: aceitar filtro por status (Em Andamento, Aguardando Resposta, Encaminhadas, Todas, Arquivadas)
+- [ ] externalDemands.getById: retornar protocolo e todos os dados
+- [ ] externalDemands.changeStatus: registrar mudança em audit + movements
+- [ ] Bloquear acesso de school_user e external_professional (apenas admin, sain_assessor, coordinator)
+
+### 52.3: Frontend - ExternalDemands.tsx Reescrito
+- [ ] Menu simplificado: apenas 2 itens (Gestão de Demandas, Arquivadas)
+- [ ] Página Gestão de Demandas com 5 abas internas: Nova Demanda, Todas, Em Andamento, Aguardando Resposta, Encaminhadas
+- [ ] Aba Nova Demanda: formulário completo com campos solicitados
+- [ ] Prévia de protocolo no formulário antes de salvar (SAIN-XXXXXX/YYYY)
+- [ ] Aba Todas: lista todas as demandas não arquivadas
+- [ ] Aba Em Andamento: filtra por status (Recebida, Triagem/Protocolo, Em instrução técnica, Devolvida, Em validação)
+- [ ] Aba Aguardando Resposta: filtra por status (Aguardando resposta, assinatura, retorno, complementação)
+- [ ] Aba Encaminhadas: filtra por status (Assinada, Encaminhada SEMED, Encaminhada órgão, Concluída)
+- [ ] Página Arquivadas: lista apenas demandas com status Arquivada
+
+### 52.4: Menu Lateral
+- [ ] Remover 6 sub-itens antigos do menu Demandas Externas
+- [ ] Adicionar apenas 2 itens: Gestão de Demandas, Arquivadas
+- [ ] Atualizar rotas: /demandas-externas → /demandas-externas/gestao, /demandas-externas/arquivadas
+
+### 52.5: Testes e Checkpoint
+- [ ] 138+ testes passando
+- [ ] 0 erros TypeScript
+- [ ] Checkpoint salvo
