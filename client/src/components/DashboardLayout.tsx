@@ -41,6 +41,11 @@ import {
   Briefcase,
   Eye,
   ChevronDown,
+  Plus,
+  Clock,
+  AlertTriangle,
+  ChevronRight,
+  Archive,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -92,6 +97,18 @@ const adminMenuItems: (MenuItem | MenuGroup)[] = [
     items: [
       { icon: Briefcase, label: "Casos", path: "/farol" },
       { icon: Eye, label: "Auditoria", path: "/farol/auditoria" },
+    ],
+  },
+  {
+    label: "Demandas Externas",
+    icon: FileText,
+    items: [
+      { icon: Plus, label: "Nova Demanda", path: "/demandas-externas/nova" },
+      { icon: FileText, label: "Todas as Demandas", path: "/demandas-externas" },
+      { icon: Clock, label: "Em Andamento", path: "/demandas-externas?tab=andamento" },
+      { icon: AlertTriangle, label: "Aguardando Resposta", path: "/demandas-externas?tab=aguardando" },
+      { icon: ChevronRight, label: "Encaminhadas", path: "/demandas-externas?tab=encaminhadas" },
+      { icon: Archive, label: "Arquivadas", path: "/demandas-externas?tab=arquivadas" },
     ],
   },
   { icon: BarChart3, label: "Relatórios", path: "/relatorios" },

@@ -203,24 +203,100 @@ export type InsertSharedAttendance = typeof sharedAttendances.$inferInsert;
 /**
  * ExternalDemands table - Solicitações vindas de fora da rede
  */
+/**
+ * Demandas Externas — expedientes institucionais recebidos pela Secretaria Adjunta de Inclusão.
+ * Fonte: MP, Conselho Tutelar, Ouvidoria, Gabinete, SEMED, Justiça e outros órgãos.
+ */
 export const externalDemands = mysqlTable("externalDemands", {
   id: int("id").autoincrement().primaryKey(),
-  studentId: int("studentId"),
-  schoolId: int("schoolId").notNull(),
+  // Identificação
+  protocolo: varchar("protocolo", { length: 100 }),
+  origem: varchar("origem", { length: 255 }).notNull(),           // órgão/setor demandante
+  orgaoSetor: varchar("orgaoSetor", { length: 255 }),             // detalhamento do órgão
+  tipoDocumento: mysqlEnum("tipoDocumento", [
+    "oficio", "notificacao", "recomendacao", "requisicao",
+    "encaminhamento", "solicitacao", "denuncia", "outros"
+  ]).default("oficio").notNull(),
+  // Datas e prazos
+  dataRecebimento: date("dataRecebimento").notNull(),
+  prazoResposta: date("prazoResposta"),
+  dataEncaminhamento: date("dataEncaminhamento"),
+  // Prioridade e status
+  prioridade: mysqlEnum("prioridade", ["baixa", "media", "alta", "urgente"]).default("media").notNull(),
+  status: mysqlEnum("status", [
+    "Recebida",
+    "Triagem/Protocolo",
+    "Em instrução técnica",
+    "Devolvida para complementação",
+    "Em validação do gabinete",
+    "Aguardando assinatura",
+    "Assinada",
+    "Encaminhada à SEMED",
+    "Arquivada"
+  ]).default("Recebida").notNull(),
+  // Responsável e vínculos
+  responsavelId: int("responsavelId"),                           // FK → users
+  responsavelNome: varchar("responsavelNome", { length: 255 }),
+  schoolId: int("schoolId"),                                     // escola relacionada (opcional)
+  studentId: int("studentId"),                                   // aluno relacionado (opcional)
+  studentName: varchar("studentName", { length: 255 }),
+  // Conteúdo
+  resumo: text("resumo").notNull(),
+  descricaoCompleta: text("descricaoCompleta"),
+  documentosLinks: text("documentosLinks"),                      // JSON array de links/anexos
+  respostaElaborada: text("respostaElaborada"),
+  situacaoFinal: text("situacaoFinal"),
+  // Legado (mantido para compatibilidade)
   demandType: varchar("demandType", { length: 100 }),
   source: varchar("source", { length: 100 }),
   description: text("description"),
-  status: mysqlEnum("status", ["pending", "in_progress", "resolved", "closed"]).default("pending").notNull(),
   priority: mysqlEnum("priority", ["low", "medium", "high"]).default("medium").notNull(),
   assignedTo: int("assignedTo"),
   dueDate: date("dueDate"),
   notes: text("notes"),
+  // Auditoria
+  createdBy: int("createdBy"),
+  createdByName: varchar("createdByName", { length: 255 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
-
 export type ExternalDemand = typeof externalDemands.$inferSelect;
 export type InsertExternalDemand = typeof externalDemands.$inferInsert;
+
+/**
+ * Histórico de movimentações de cada demanda externa.
+ * Registra cada mudança de status com observação e responsável.
+ */
+export const externalDemandMovements = mysqlTable("externalDemandMovements", {
+  id: int("id").autoincrement().primaryKey(),
+  demandId: int("demandId").notNull(),
+  statusAnterior: varchar("statusAnterior", { length: 100 }),
+  statusNovo: varchar("statusNovo", { length: 100 }).notNull(),
+  observacao: text("observacao"),
+  userId: int("userId").notNull(),
+  userName: varchar("userName", { length: 255 }).notNull(),
+  userRole: varchar("userRole", { length: 50 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type ExternalDemandMovement = typeof externalDemandMovements.$inferSelect;
+
+/**
+ * Trilha de auditoria completa de demandas externas.
+ * Registra criação, edição de campos, mudanças de status.
+ */
+export const externalDemandAudit = mysqlTable("externalDemandAudit", {
+  id: int("id").autoincrement().primaryKey(),
+  demandId: int("demandId").notNull(),
+  acao: mysqlEnum("acao", ["criacao", "edicao", "mudanca_status", "exclusao"]).notNull(),
+  campoAlterado: varchar("campoAlterado", { length: 100 }),
+  valorAnterior: text("valorAnterior"),
+  valorNovo: text("valorNovo"),
+  userId: int("userId").notNull(),
+  userName: varchar("userName", { length: 255 }).notNull(),
+  userRole: varchar("userRole", { length: 50 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type ExternalDemandAudit = typeof externalDemandAudit.$inferSelect;;
 
 /**
  * Demands table - Quadro de Atendentes (registro fiel ao sistema Netlify)

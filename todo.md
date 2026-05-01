@@ -1353,3 +1353,39 @@
 - [x] 119 testes passando (10 arquivos, 0 falhas)
 - [x] 0 erros TypeScript
 - [x] Checkpoint salvo
+
+## Fase 51 — Módulo Demandas Externas (Menu Principal Independente)
+
+### Schema e Banco
+- [x] Expandir tabela externalDemands com 17 novos campos (protocolo, origem, orgaoSetor, tipoDocumento, dataRecebimento, prazoResposta, dataEncaminhamento, prioridade, responsavelId, responsavelNome, studentName, resumo, descricaoCompleta, documentosLinks, respostaElaborada, situacaoFinal, createdBy, createdByName)
+- [x] Criar tabela externalDemandAudit (auditoria própria com campo alterado, valor anterior/novo)
+- [x] Criar tabela externalDemandMovements (histórico de movimentações com status anterior/novo)
+- [x] Migração aplicada via scripts/run-migration.mjs (22 comandos SQL, 0 falhas)
+
+### Backend (tRPC)
+- [x] externalDemands.list (admin: todas; outros: filtrado por user_schools)
+- [x] externalDemands.getById (detalhes completos)
+- [x] externalDemands.getMovements (histórico de movimentações)
+- [x] externalDemands.create (com auto-registro em externalDemandAudit)
+- [x] externalDemands.update (com auto-registro de auditoria por campo)
+- [x] externalDemands.changeStatus (com registro em externalDemandMovements + auditoria)
+
+### Frontend
+- [x] ExternalDemands.tsx reescrito com 5 tabs: Todas, Em Andamento, Aguardando Resposta, Encaminhadas, Arquivadas
+- [x] 5 cards de métricas com navegação por tab
+- [x] Formulário completo: protocolo, tipo de documento, origem, setor, data recebimento, prazo, prioridade, responsável, resumo, descrição completa, documentos/links
+- [x] Dialog de detalhes com histórico de movimentações
+- [x] Dialog de mudança de status com campo de observação
+- [x] Alerta visual de prazo vencido (borda vermelha + badge)
+- [x] Busca por origem, órgão, protocolo ou resumo
+
+### Menu Lateral
+- [x] "Demandas Externas" adicionado como grupo principal no adminMenuItems
+- [x] 6 sub-itens: Nova Demanda, Todas as Demandas, Em Andamento, Aguardando Resposta, Encaminhadas, Arquivadas
+- [x] Rotas /demandas-externas e /demandas-externas/nova adicionadas ao App.tsx
+- [x] Rota /demandas mantida como alias para compatibilidade
+
+### Testes e Checkpoint
+- [x] 119 testes passando (10 arquivos, 0 falhas)
+- [x] 0 erros TypeScript
+- [x] Checkpoint salvo

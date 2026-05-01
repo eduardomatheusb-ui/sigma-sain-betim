@@ -69,6 +69,8 @@ function Router() {
       <Route path="/usuarios">{() => <AdminRoute component={Users} />}</Route>
       {/* Rotas para admin e sain_assessor */}
       <Route path="/demandas">{() => <SainAssessorRoute component={ExternalDemands} />}</Route>
+      <Route path="/demandas-externas">{() => <SainAssessorRoute component={ExternalDemands} />}</Route>
+      <Route path="/demandas-externas/nova">{() => <SainAssessorRoute component={ExternalDemands} />}</Route>
       <Route path="/relatorios">{() => <SainAssessorRoute component={Reports} />}</Route>
       <Route path="/farol">{() => <SainAssessorRoute component={FarolGestao} />}</Route>
       <Route path="/farol/assessores">{() => <AdminRoute component={FarolAssessores} />}</Route>

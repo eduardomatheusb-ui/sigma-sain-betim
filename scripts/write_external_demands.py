@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import os
+
+content = r'''import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -313,3 +315,9 @@ function ChangeStatusDialog({ demandId, open, onClose, onSuccess }: { demandId: 
     </Dialog>
   );
 }
+'''
+
+target = '/home/ubuntu/sigma-sain-betim/client/src/pages/ExternalDemands.tsx'
+with open(target, 'w', encoding='utf-8') as f:
+    f.write(content)
+print(f"Written {len(content)} chars to {target}")

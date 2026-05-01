@@ -19,7 +19,7 @@ function withRateLimit(limiter: typeof searchRateLimiter) {
 }
 import { notifyOwner } from "./_core/notification";
 import { getDb } from "./db";
-import { students, mediators, attendances, externalDemands, schools, users, demands, mediatorStudents, statusHistory, weeklySnapshots, studentEditHistory, mediatorStatusChangeHistory, farolCases, farolCaseHistory, farolCaseMovements, userSchools, farolAdvisors } from "../drizzle/schema";
+import { students, mediators, attendances, externalDemands, externalDemandMovements, externalDemandAudit, schools, users, demands, mediatorStudents, statusHistory, weeklySnapshots, studentEditHistory, mediatorStatusChangeHistory, farolCases, farolCaseHistory, farolCaseMovements, userSchools, farolAdvisors } from "../drizzle/schema";
 import { eq, and, like, sql, desc, inArray } from "drizzle-orm";
 
 // Status e tipos de alteração do Quadro de Atendentes (MVP integrado)
@@ -110,7 +110,7 @@ export const appRouter = router({
             db.select().from(demands),
             db.select().from(mediators),
             db.select().from(attendances).where(eq(attendances.status, "pending")),
-            db.select().from(externalDemands).where(eq(externalDemands.status, "pending")),
+            db.select().from(externalDemands).where(eq(externalDemands.status, "Recebida")),
             db.select().from(schools),
             db.select().from(mediatorStudents),
           ]);
@@ -445,7 +445,7 @@ export const appRouter = router({
           onLeave: mediatorList.filter(m => m.schoolId === school.id && (m.status === "on_leave" || m.status === "temp_leave")).length,
           vacancies: mediatorList.filter(m => m.schoolId === school.id && m.status === "vacancy").length,
           attendances: attendanceList.filter(a => a.schoolId === school.id).length,
-          pendingDemands: demandList.filter(d => d.schoolId === school.id && d.status === "pending").length,
+          pendingDemands: demandList.filter(d => d.schoolId === school.id && (d.status === "Recebida" || d.status === "Triagem/Protocolo" || d.status === "Em instrução técnica")).length,
         }));
       } catch (error) {
         console.error("[Schools] Error fetching listWithStats:", error);
@@ -2076,43 +2076,241 @@ export const appRouter = router({
   }),
 
   externalDemands: router({
+    // Lista todas as demandas (admin vê tudo, outros filtram por escolas vinculadas)
+    list: protectedProcedure
+      .input(z.object({
+        status: z.string().optional(),
+        prioridade: z.string().optional(),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        let query = db.select().from(externalDemands).$dynamic();
+        if (ctx.user.role !== "admin") {
+          const schoolIds = await getUserSchoolIds(ctx.user.id, ctx.user.schoolId);
+          if (schoolIds.length === 0) return [];
+          query = query.where(inArray(externalDemands.schoolId, schoolIds));
+        }
+        const results = await query.orderBy(desc(externalDemands.createdAt));
+        // Filter by status/priority in memory if provided
+        let filtered = results;
+        if (input?.status) filtered = filtered.filter((d: any) => d.status === input.status);
+        if (input?.prioridade) filtered = filtered.filter((d: any) => d.prioridade === input.prioridade);
+        return filtered;
+      }),
+    // Mantém compatibilidade com código legado
     listBySchool: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user.role === "admin") {
-        return await getDb().then(db => db ? db.select().from(externalDemands) : []);
-      }
-      const schoolIds = await getUserSchoolIds(ctx.user.id, ctx.user.schoolId);
-      if (schoolIds.length === 0) return [];
       const db = await getDb();
       if (!db) return [];
-      return await db.select().from(externalDemands).where(inArray(externalDemands.schoolId, schoolIds));
+      if (ctx.user.role === "admin") return await db.select().from(externalDemands).orderBy(desc(externalDemands.createdAt));
+      const schoolIds = await getUserSchoolIds(ctx.user.id, ctx.user.schoolId);
+      if (schoolIds.length === 0) return [];
+      return await db.select().from(externalDemands).where(inArray(externalDemands.schoolId, schoolIds)).orderBy(desc(externalDemands.createdAt));
     }),
+    // Busca uma demanda por ID
+    getById: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        const [demand] = await db.select().from(externalDemands).where(eq(externalDemands.id, input.id));
+        if (!demand) throw new TRPCError({ code: "NOT_FOUND", message: "Demanda não encontrada" });
+        // Scope check
+        if (ctx.user.role !== "admin" && demand.schoolId) {
+          const schoolIds = await getUserSchoolIds(ctx.user.id, ctx.user.schoolId);
+          if (!schoolIds.includes(demand.schoolId)) throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
+        }
+        return demand;
+      }),
+    // Busca movimentações de uma demanda
+    getMovements: protectedProcedure
+      .input(z.object({ demandId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        return await db.select().from(externalDemandMovements)
+          .where(eq(externalDemandMovements.demandId, input.demandId))
+          .orderBy(desc(externalDemandMovements.createdAt));
+      }),
+    // Busca trilha de auditoria de uma demanda
+    getAudit: protectedProcedure
+      .input(z.object({ demandId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        return await db.select().from(externalDemandAudit)
+          .where(eq(externalDemandAudit.demandId, input.demandId))
+          .orderBy(desc(externalDemandAudit.createdAt));
+      }),
+    // Cria nova demanda externa
     create: protectedProcedure
       .input(z.object({
-        demandType: z.string().min(1),
-        source: z.enum(["family", "school", "health", "court", "other"]),
-        description: z.string().optional(),
-        priority: z.enum(["low", "medium", "high"]),
-        dueDate: z.string().optional(),
+        protocolo: z.string().optional(),
+        origem: z.string().min(1),
+        orgaoSetor: z.string().optional(),
+        tipoDocumento: z.enum(["oficio","notificacao","recomendacao","requisicao","encaminhamento","solicitacao","denuncia","outros"]).default("oficio"),
+        dataRecebimento: z.string(),
+        prazoResposta: z.string().optional(),
+        prioridade: z.enum(["baixa","media","alta","urgente"]).default("media"),
+        resumo: z.string().min(1),
+        descricaoCompleta: z.string().optional(),
+        responsavelId: z.number().optional(),
+        responsavelNome: z.string().optional(),
+        schoolId: z.number().optional(),
+        studentId: z.number().optional(),
+        studentName: z.string().optional(),
+        documentosLinks: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
-        const schoolId = ctx.user.schoolId || 1;
         try {
-          await db.insert(externalDemands).values({
-            demandType: input.demandType,
-            source: input.source,
-            description: input.description,
-            priority: input.priority,
-            dueDate: input.dueDate ? new Date(input.dueDate) : null,
-            schoolId,
-            status: "pending",
+          const [result] = await db.insert(externalDemands).values({
+            protocolo: input.protocolo,
+            origem: input.origem,
+            orgaoSetor: input.orgaoSetor,
+            tipoDocumento: input.tipoDocumento,
+            dataRecebimento: new Date(input.dataRecebimento),
+            prazoResposta: input.prazoResposta ? new Date(input.prazoResposta) : null,
+            prioridade: input.prioridade,
+            status: "Recebida",
+            resumo: input.resumo,
+            descricaoCompleta: input.descricaoCompleta,
+            responsavelId: input.responsavelId,
+            responsavelNome: input.responsavelNome,
+            schoolId: input.schoolId,
+            studentId: input.studentId,
+            studentName: input.studentName,
+            documentosLinks: input.documentosLinks,
+            createdBy: ctx.user.id,
+            createdByName: ctx.user.name,
           });
-          return { success: true };
+          // Audit log
+          const insertId = (result as any).insertId;
+          await db.insert(externalDemandAudit).values({
+            demandId: insertId,
+            acao: "criacao",
+            valorNovo: JSON.stringify({ origem: input.origem, resumo: input.resumo }),
+            userId: ctx.user.id,
+            userName: ctx.user.name ?? "Sistema",
+            userRole: ctx.user.role ?? undefined,
+          });
+          return { success: true, id: insertId };
         } catch (error) {
           console.error("[ExternalDemands] Error creating demand:", error);
-          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create demand" });
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Falha ao criar demanda" });
         }
+      }),
+    // Atualiza campos de uma demanda
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        protocolo: z.string().optional(),
+        origem: z.string().optional(),
+        orgaoSetor: z.string().optional(),
+        tipoDocumento: z.enum(["oficio","notificacao","recomendacao","requisicao","encaminhamento","solicitacao","denuncia","outros"]).optional(),
+        dataRecebimento: z.string().optional(),
+        prazoResposta: z.string().optional(),
+        dataEncaminhamento: z.string().optional(),
+        prioridade: z.enum(["baixa","media","alta","urgente"]).optional(),
+        resumo: z.string().optional(),
+        descricaoCompleta: z.string().optional(),
+        responsavelId: z.number().optional(),
+        responsavelNome: z.string().optional(),
+        schoolId: z.number().optional(),
+        studentId: z.number().optional(),
+        studentName: z.string().optional(),
+        documentosLinks: z.string().optional(),
+        respostaElaborada: z.string().optional(),
+        situacaoFinal: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        const [existing] = await db.select().from(externalDemands).where(eq(externalDemands.id, input.id));
+        if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Demanda não encontrada" });
+        if (ctx.user.role !== "admin" && existing.schoolId) {
+          const schoolIds = await getUserSchoolIds(ctx.user.id, ctx.user.schoolId);
+          if (!schoolIds.includes(existing.schoolId)) throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
+        }
+        const { id, ...updateData } = input;
+        const updates: Record<string, any> = {};
+        if (updateData.protocolo !== undefined) updates.protocolo = updateData.protocolo;
+        if (updateData.origem !== undefined) updates.origem = updateData.origem;
+        if (updateData.orgaoSetor !== undefined) updates.orgaoSetor = updateData.orgaoSetor;
+        if (updateData.tipoDocumento !== undefined) updates.tipoDocumento = updateData.tipoDocumento;
+        if (updateData.dataRecebimento !== undefined) updates.dataRecebimento = new Date(updateData.dataRecebimento);
+        if (updateData.prazoResposta !== undefined) updates.prazoResposta = new Date(updateData.prazoResposta);
+        if (updateData.dataEncaminhamento !== undefined) updates.dataEncaminhamento = new Date(updateData.dataEncaminhamento);
+        if (updateData.prioridade !== undefined) updates.prioridade = updateData.prioridade;
+        if (updateData.resumo !== undefined) updates.resumo = updateData.resumo;
+        if (updateData.descricaoCompleta !== undefined) updates.descricaoCompleta = updateData.descricaoCompleta;
+        if (updateData.responsavelId !== undefined) updates.responsavelId = updateData.responsavelId;
+        if (updateData.responsavelNome !== undefined) updates.responsavelNome = updateData.responsavelNome;
+        if (updateData.schoolId !== undefined) updates.schoolId = updateData.schoolId;
+        if (updateData.studentId !== undefined) updates.studentId = updateData.studentId;
+        if (updateData.studentName !== undefined) updates.studentName = updateData.studentName;
+        if (updateData.documentosLinks !== undefined) updates.documentosLinks = updateData.documentosLinks;
+        if (updateData.respostaElaborada !== undefined) updates.respostaElaborada = updateData.respostaElaborada;
+        if (updateData.situacaoFinal !== undefined) updates.situacaoFinal = updateData.situacaoFinal;
+        await db.update(externalDemands).set(updates).where(eq(externalDemands.id, input.id));
+        // Audit log for each changed field
+        for (const [campo, novoValor] of Object.entries(updates)) {
+          const valorAnterior = (existing as any)[campo];
+          if (String(valorAnterior) !== String(novoValor)) {
+            await db.insert(externalDemandAudit).values({
+              demandId: input.id,
+              acao: "edicao",
+              campoAlterado: campo,
+              valorAnterior: String(valorAnterior ?? ""),
+              valorNovo: String(novoValor ?? ""),
+              userId: ctx.user.id,
+              userName: ctx.user.name ?? "Sistema",
+              userRole: ctx.user.role ?? undefined,
+            });
+          }
+        }
+        return { success: true };
+      }),
+    // Altera status de uma demanda (com movimentação registrada)
+    changeStatus: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        status: z.enum(["Recebida","Triagem/Protocolo","Em instrução técnica","Devolvida para complementação","Em validação do gabinete","Aguardando assinatura","Assinada","Encaminhada à SEMED","Arquivada"]),
+        observacao: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        const [existing] = await db.select().from(externalDemands).where(eq(externalDemands.id, input.id));
+        if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Demanda não encontrada" });
+        if (ctx.user.role !== "admin" && existing.schoolId) {
+          const schoolIds = await getUserSchoolIds(ctx.user.id, ctx.user.schoolId);
+          if (!schoolIds.includes(existing.schoolId)) throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
+        }
+        await db.update(externalDemands).set({ status: input.status }).where(eq(externalDemands.id, input.id));
+        // Registrar movimentação
+        await db.insert(externalDemandMovements).values({
+          demandId: input.id,
+          statusAnterior: existing.status,
+          statusNovo: input.status,
+          observacao: input.observacao,
+          userId: ctx.user.id,
+          userName: ctx.user.name ?? "Sistema",
+          userRole: ctx.user.role ?? undefined,
+        });
+        // Audit log
+        await db.insert(externalDemandAudit).values({
+          demandId: input.id,
+          acao: "mudanca_status",
+          campoAlterado: "status",
+          valorAnterior: existing.status,
+          valorNovo: input.status,
+          userId: ctx.user.id,
+          userName: ctx.user.name ?? "Sistema",
+          userRole: ctx.user.role,
+        });
+        return { success: true };
       }),
    }),
 
