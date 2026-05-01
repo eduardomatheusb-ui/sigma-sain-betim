@@ -1731,3 +1731,167 @@
 - [x] Listar guias rápidos
 - [x] Listar checklist e planos
 - [x] Gerar recomendações para próximas fases
+
+
+## Fase 55.1 — Homologação Assistida com Usuários Reais
+
+### P1: Seleção de Usuários de Teste e Preparação
+- [ ] Selecionar 1 Administrador para teste
+- [ ] Selecionar 2 Assessores SAIN para teste
+- [ ] Selecionar 2 Coordenadores para teste
+- [ ] Selecionar 3 Secretários/Usuários de Escola para teste
+- [ ] Selecionar 1 Profissional Externo para teste (se possível)
+- [ ] Confirmar disponibilidade de todos os usuários
+- [ ] Agendar datas e horários de teste
+- [ ] Enviar convite com instruções pré-teste
+- [ ] Preparar ambiente de teste (staging ou produção)
+- [ ] Confirmar acesso de todos os usuários
+
+### P2: Criação de Roteiros de Teste por Perfil
+- [ ] Criar roteiro para Administrador (8 tarefas)
+- [ ] Criar roteiro para Assessor SAIN (5 tarefas)
+- [ ] Criar roteiro para Coordenador (5 tarefas)
+- [ ] Criar roteiro para Escola (5 tarefas)
+- [ ] Criar roteiro para Profissional Externo (2 tarefas)
+- [ ] Incluir instruções claras em cada roteiro
+- [ ] Incluir tempo estimado para cada tarefa
+- [ ] Incluir screenshots de referência (opcional)
+
+### P3: Criação de Formulário de Feedback
+- [ ] Criar formulário com 8-10 perguntas
+- [ ] Incluir perguntas sobre acesso ao sistema
+- [ ] Incluir perguntas sobre clareza do menu
+- [ ] Incluir perguntas sobre encontrabilidade de funções
+- [ ] Incluir perguntas sobre confusão em telas
+- [ ] Incluir perguntas sobre mensagens de erro
+- [ ] Incluir perguntas sobre qualidade da documentação
+- [ ] Incluir espaço para sugestões de melhoria
+- [ ] Incluir escala de satisfação (1-5)
+- [ ] Testar formulário com 1 usuário antes de distribuir
+
+### P4: Execução de Testes com Usuários
+- [ ] Executar teste com Administrador
+- [ ] Executar teste com Assessor 1
+- [ ] Executar teste com Assessor 2
+- [ ] Executar teste com Coordenador 1
+- [ ] Executar teste com Coordenador 2
+- [ ] Executar teste com Escola 1
+- [ ] Executar teste com Escola 2
+- [ ] Executar teste com Escola 3
+- [ ] Executar teste com Profissional Externo (se disponível)
+- [ ] Registrar tempo total de cada teste
+
+### P5: Registro de Evidências e Problemas
+- [ ] Documentar perfil testado para cada sessão
+- [ ] Registrar data e hora do teste
+- [ ] Registrar nome do usuário/grupo participante
+- [ ] Documentar tarefas realizadas com sucesso
+- [ ] Documentar tarefas com dificuldade
+- [ ] Registrar erros encontrados
+- [ ] Registrar sugestões recebidas
+- [ ] Classificar problemas por prioridade (crítica/alta/média/baixa)
+- [ ] Capturar screenshots de problemas (se aplicável)
+- [ ] Compilar todas as evidências em arquivo centralizado
+
+### P6: Análise de Feedback e Recomendações
+- [ ] Analisar feedback de cada perfil
+- [ ] Identificar padrões de problemas
+- [ ] Priorizar problemas por frequência e impacto
+- [ ] Separar problemas críticos de melhorias
+- [ ] Gerar recomendações de correção
+- [ ] Avaliar se documentação precisa ser revisada
+- [ ] Avaliar se interface precisa ser ajustada
+- [ ] Avaliar se permissões estão corretas
+- [ ] Compilar lista de ações recomendadas
+
+### P7: Relatório Final da Fase 55.1
+- [ ] Documentar perfis testados e quantidade de usuários
+- [ ] Resumir feedback geral por perfil
+- [ ] Listar problemas encontrados com prioridade
+- [ ] Listar sugestões recebidas
+- [ ] Documentar ajustes recomendados
+- [ ] Listar itens críticos antes do uso assistido
+- [ ] Indicar se há autorização para avançar para Fase 56
+- [ ] Gerar recomendações para próximas fases
+- [ ] Incluir evidências e screenshots
+- [ ] Obter assinatura de aprovação
+
+
+## Fase 55.2 — Correções da Homologação Assistida
+
+### P1: Busca de Aluno em Criação de Caso
+- [ ] Revisar componente de busca/autocomplete de aluno
+- [ ] Permitir busca real no banco de dados
+- [ ] Permitir digitação progressiva do nome
+- [ ] Exibir resultados conforme usuário digita
+- [ ] Preencher dados vinculados ao selecionar aluno
+- [ ] Avaliar preenchimento manual se aluno não existir
+- [ ] Evitar campo bloqueado ou lista que não carrega
+- [ ] Testar criação de caso com aluno buscado
+
+### P2: Alunos de Escola em Demandas Externas
+- [ ] Revisar integração entre escola selecionada e busca de alunos
+- [ ] Buscar alunos vinculados à escola selecionada
+- [ ] Implementar busca por nome do aluno
+- [ ] Preservar vínculo correto entre schoolId e studentName/studentId
+- [ ] Exibir mensagem clara se não houver alunos
+- [ ] Testar criação de demanda com escola e aluno vinculados
+
+### P3: Rota /demandas-externas/arquivadas (404)
+- [ ] Criar ou corrigir rota /demandas-externas/arquivadas
+- [ ] Garantir que submenu Arquivadas aponte para rota existente
+- [ ] Listar apenas demandas com status Arquivada
+- [ ] Manter permissões do módulo Demandas Externas
+- [ ] Bloquear acesso para Escola e Profissional Externo
+- [ ] Permitir acesso para Admin, SAIN Assessor, Coordenador
+- [ ] Testar acesso sem erro 404
+
+### P4: Erro ao Criar Usuário Novo
+- [ ] Revisar fluxo de criação de usuário
+- [ ] Verificar inserção em farol_advisors
+- [ ] Validar campos obrigatórios do perfil
+- [ ] Integrar criação de usuário com criação de assessor
+- [ ] Solicitar dados obrigatórios no formulário
+- [ ] Não exibir erro SQL bruto na interface
+- [ ] Exibir mensagem amigável em caso de falha
+- [ ] Testar criação de usuários de todos os perfis
+
+### P5-P8: Regionais, Auditoria, Assessor, Mensagens
+- [ ] Padronizar lista de regionais (10 regionais oficiais)
+- [ ] Atualizar selects, filtros e cadastros com regionais
+- [ ] Garantir escrita exata das regionais
+- [ ] Evitar duplicidades com acentuação
+- [ ] Melhorar rótulos e textos da tela de auditoria
+- [ ] Adicionar ícones de informação ou tooltips
+- [ ] Inserir texto introdutório na tela de auditoria
+- [ ] Adicionar campo de Assessor Responsável em Demandas
+- [ ] Buscar assessores ativos no banco
+- [ ] Permitir selecionar assessor responsável
+- [ ] Salvar vínculo com userId/advisorId
+- [ ] Exibir assessor em cards, detalhes e listagem
+- [ ] Permitir filtrar por assessor responsável
+- [ ] Tratar erros no backend
+- [ ] Retornar mensagens amigáveis
+- [ ] Registrar erros técnicos apenas em logs
+- [ ] Exibir mensagens compreensíveis ao usuário
+
+### P6: Testes e Validações Técnicas
+- [ ] pnpm test --run (todos os testes passam)
+- [ ] npx tsc --noEmit (0 erros TypeScript)
+- [ ] Teste manual: criar caso com aluno buscado
+- [ ] Teste manual: criar demanda com escola e aluno
+- [ ] Teste manual: acessar Arquivadas sem 404
+- [ ] Teste manual: criar usuário de cada perfil
+- [ ] Teste manual: selecionar assessor em demanda
+- [ ] Teste manual: validar regionais padronizadas
+- [ ] Teste manual: validar tela de auditoria
+
+### P7: Relatório Final da Fase 55.2
+- [ ] Documentar problemas corrigidos
+- [ ] Listar arquivos modificados
+- [ ] Documentar rotas ajustadas
+- [ ] Documentar campos adicionados
+- [ ] Documentar testes executados
+- [ ] Resultado do TypeScript (0 erros esperado)
+- [ ] Listar pendências restantes
+- [ ] Recomendação sobre liberação para uso assistido

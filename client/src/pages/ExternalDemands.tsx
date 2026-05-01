@@ -143,9 +143,9 @@ export default function ExternalDemands() {
     { enabled: schoolSearchQuery.length > 0 }
   );
   
-  const studentSearchResult = trpc.farol.searchStudents.useQuery(
-    { query: studentSearchQuery, schoolId: formData.schoolId ? parseInt(formData.schoolId) : undefined, limit: 10 },
-    { enabled: studentSearchQuery.length > 0 }
+  const studentSearchResult = trpc.demands.searchStudents.useQuery(
+    { query: studentSearchQuery, schoolId: formData.schoolId ? parseInt(formData.schoolId) : undefined },
+    { enabled: studentSearchQuery.length > 0 && !!formData.schoolId }
   );
 
   const filtered = useMemo(() => {
@@ -441,9 +441,9 @@ export default function ExternalDemands() {
                     }}
                   />
                   {studentSearchResult.isLoading && <p className="text-xs text-muted-foreground">Carregando alunos...</p>}
-                  {studentSearchResult.data?.students && studentSearchResult.data.students.length > 0 && (
-                    <div className="mt-2 p-2 border rounded bg-slate-50">
-                      {studentSearchResult.data.students.map((s: any) => (
+                  {studentSearchResult.data && studentSearchResult.data.length > 0 && (
+                    <div className="mt-2 p-2 border rounded bg-slate-50 max-h-48 overflow-y-auto">
+                      {studentSearchResult.data.map((s: any) => (
                         <button
                           key={s.id}
                           onClick={() => {

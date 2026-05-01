@@ -72,6 +72,7 @@ function Router() {
       <Route path="/demandas">{() => <SainAssessorRoute component={ExternalDemands} />}</Route>
       <Route path="/demandas-externas">{() => <SainAssessorRoute component={ExternalDemands} />}</Route>
       <Route path="/demandas-externas/nova">{() => <SainAssessorRoute component={ExternalDemands} />}</Route>
+      <Route path="/demandas-externas/arquivadas">{() => <SainAssessorRoute component={ExternalDemands} />}</Route>
       <Route path="/relatorios">{() => <SainAssessorRoute component={Reports} />}</Route>
       <Route path="/farol">{() => <SainAssessorRoute component={FarolGestao} />}</Route>
       <Route path="/farol/assessores">{() => <AdminRoute component={FarolAssessores} />}</Route>

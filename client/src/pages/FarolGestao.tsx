@@ -41,6 +41,8 @@ export default function FarolGestao() {
   const [editingCaseId, setEditingCaseId] = useState<number | null>(null);
   const [studentSearch, setStudentSearch] = useState("");
   const [showStudentDropdown, setShowStudentDropdown] = useState(false);
+  const [selectedSchoolId, setSelectedSchoolId] = useState<number | null>(null);
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
 
   // Queries
@@ -58,10 +60,10 @@ export default function FarolGestao() {
   const schoolsQuery = (trpc.schools.list.useQuery() as any);
   const schoolsList = (schoolsQuery?.data || []) as any[];
 
-  // Student autocomplete via searchStudents
+  // Student autocomplete via searchStudents - only search if school is selected
   const { data: studentSearchResults = [] } = (trpc.demands.searchStudents.useQuery(
-    { query: studentSearch },
-    { enabled: studentSearch.length >= 2 }
+    { query: studentSearch, schoolId: selectedSchoolId || undefined },
+    { enabled: studentSearch.length >= 2 && !!selectedSchoolId }
   ) as any);
 
   // Auto-scroll ao abrir formulário
@@ -312,6 +314,20 @@ export default function FarolGestao() {
     setShowForm(false);
     setEditingCaseId(null);
     setStudentSearch("");
+    setSelectedSchoolId(null);
+    setSelectedStudentId(null);
+  };
+
+  // Handle school change - reset student search
+  const handleSchoolChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const schoolName = e.target.value;
+    const school = schoolsList.find((s: any) => s.name === schoolName);
+    setSelectedSchoolId(school?.id || null);
+    setStudentSearch("");
+    setSelectedStudentId(null);
+    // Clear student input
+    const nomeInput = document.querySelector('input[name="nomeEstudante"]') as HTMLInputElement;
+    if (nomeInput) nomeInput.value = '';
   };
 
   // Renderizar formulário
@@ -416,7 +432,7 @@ export default function FarolGestao() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2">
             <label className="text-sm font-medium">Escola *</label>
-            <select name="escola" required className="w-full p-2 border rounded mt-1">
+            <select name="escola" required className="w-full p-2 border rounded mt-1" onChange={handleSchoolChange}>
               <option value="">Selecione uma escola</option>
               {(schoolsList)?.map?.((s: any) => (
                 <option key={s.id} value={s.name}>{s.name}</option>

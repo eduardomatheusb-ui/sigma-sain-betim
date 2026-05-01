@@ -1947,18 +1947,43 @@ export const appRouter = router({
     }),
 
     searchStudents: protectedProcedure
-      .input(z.object({ query: z.string().min(1) }))
+      .input(z.object({ query: z.string().min(1), schoolId: z.number().optional() }))
       .use(withRateLimit(searchRateLimiter))
       .query(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) return [];
         try {
-          const allDemands = await db.select().from(demands);
           const q = input.query.toLowerCase();
-          return allDemands
-            .filter(d => d.studentName.toLowerCase().includes(q))
+          
+          // Get user's school IDs
+          const userSchoolIds = await getUserSchoolIds(ctx.user.id, ctx.user.schoolId);
+          
+          // Get students from user's schools
+          let allStudents = await db.select().from(students);
+          
+          // Filter by user's schools
+          if (ctx.user.role !== 'admin') {
+            allStudents = allStudents.filter(s => userSchoolIds.includes(s.schoolId));
+          }
+          
+          // Filter by specific school if provided
+          if (input.schoolId) {
+            allStudents = allStudents.filter(s => s.schoolId === input.schoolId);
+          }
+          
+          // Search by name
+          return allStudents
+            .filter(s => s.name.toLowerCase().includes(q))
             .slice(0, 10)
-            .map(d => ({ id: d.id, studentName: d.studentName, schoolName: d.schoolName, cpf: d.cpf }));
+            .map(s => ({ 
+              id: s.id, 
+              name: s.name, 
+              schoolId: s.schoolId,
+              cpf: s.cpf,
+              grade: s.grade,
+              shift: s.shift,
+              enrollmentNumber: s.enrollmentNumber
+            }));
         } catch {
           return [];
         }
