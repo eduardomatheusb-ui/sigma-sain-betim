@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -185,10 +186,18 @@ export default function FarolAuditDashboard() {
     <div className="min-h-screen bg-gray-50 p-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Auditoria do Acompanhamento de Casos</h1>
+        <div className="flex items-center gap-3 mb-2">
+          <Shield className="h-8 w-8 text-blue-600" />
+          <h1 className="text-3xl font-bold text-gray-900">Auditoria do Sistema</h1>
+        </div>
         <p className="mt-2 text-sm text-gray-600">
-          Visualize e monitore todas as ações realizadas no módulo de Acompanhamento de Casos
+          Registro completo de todas as ações realizadas no módulo de Acompanhamento de Casos.
+          Cada criação, edição ou exclusão de caso é registrada automaticamente com data, hora, usuário e perfil.
         </p>
+        <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200 text-sm text-blue-700">
+          <strong>Como usar:</strong> Utilize os filtros abaixo para localizar ações específicas por tipo, usuário, perfil ou período.
+          Clique em <strong>Exportar</strong> para baixar os registros filtrados em CSV.
+        </div>
       </div>
 
       {/* Filters Card */}
@@ -241,10 +250,11 @@ export default function FarolAuditDashboard() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="coordinator">Coordinator</SelectItem>
-                  <SelectItem value="advisor">Advisor</SelectItem>
-                  <SelectItem value="school_user">School User</SelectItem>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="sain_assessor">Assessor SAIN</SelectItem>
+                  <SelectItem value="coordinator">Coordenador</SelectItem>
+                  <SelectItem value="external_professional">Profissional Externo</SelectItem>
+                  <SelectItem value="school_user">Secretário de Escola</SelectItem>
                 </SelectContent>
               </Select>
             </div>

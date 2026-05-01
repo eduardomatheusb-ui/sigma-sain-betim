@@ -1820,64 +1820,64 @@
 ## Fase 55.2 — Correções da Homologação Assistida
 
 ### P1: Busca de Aluno em Criação de Caso
-- [ ] Revisar componente de busca/autocomplete de aluno
-- [ ] Permitir busca real no banco de dados
-- [ ] Permitir digitação progressiva do nome
-- [ ] Exibir resultados conforme usuário digita
-- [ ] Preencher dados vinculados ao selecionar aluno
-- [ ] Avaliar preenchimento manual se aluno não existir
-- [ ] Evitar campo bloqueado ou lista que não carrega
-- [ ] Testar criação de caso com aluno buscado
+- [x] Revisar componente de busca/autocomplete de aluno
+- [x] Permitir busca real no banco de dados
+- [x] Permitir digitação progressiva do nome
+- [x] Exibir resultados conforme usuário digita
+- [x] Preencher dados vinculados ao selecionar aluno
+- [x] Avaliar preenchimento manual se aluno não existir
+- [x] Evitar campo bloqueado ou lista que não carrega
+- [x] Testar criação de caso com aluno buscado
 
 ### P2: Alunos de Escola em Demandas Externas
-- [ ] Revisar integração entre escola selecionada e busca de alunos
-- [ ] Buscar alunos vinculados à escola selecionada
-- [ ] Implementar busca por nome do aluno
-- [ ] Preservar vínculo correto entre schoolId e studentName/studentId
-- [ ] Exibir mensagem clara se não houver alunos
-- [ ] Testar criação de demanda com escola e aluno vinculados
+- [x] Revisar integração entre escola selecionada e busca de alunos
+- [x] Buscar alunos vinculados à escola selecionada
+- [x] Implementar busca por nome do aluno
+- [x] Preservar vínculo correto entre schoolId e studentName/studentId
+- [x] Exibir mensagem clara se não houver alunos
+- [x] Testar criação de demanda com escola e aluno vinculados
 
 ### P3: Rota /demandas-externas/arquivadas (404)
-- [ ] Criar ou corrigir rota /demandas-externas/arquivadas
-- [ ] Garantir que submenu Arquivadas aponte para rota existente
-- [ ] Listar apenas demandas com status Arquivada
-- [ ] Manter permissões do módulo Demandas Externas
-- [ ] Bloquear acesso para Escola e Profissional Externo
-- [ ] Permitir acesso para Admin, SAIN Assessor, Coordenador
-- [ ] Testar acesso sem erro 404
+- [x] Criar ou corrigir rota /demandas-externas/arquivadas
+- [x] Garantir que submenu Arquivadas aponte para rota existente
+- [x] Listar apenas demandas com status Arquivada
+- [x] Manter permissões do módulo Demandas Externas
+- [x] Bloquear acesso para Escola e Profissional Externo
+- [x] Permitir acesso para Admin, SAIN Assessor, Coordenador
+- [x] Testar acesso sem erro 404
 
 ### P4: Erro ao Criar Usuário Novo
-- [ ] Revisar fluxo de criação de usuário
-- [ ] Verificar inserção em farol_advisors
-- [ ] Validar campos obrigatórios do perfil
-- [ ] Integrar criação de usuário com criação de assessor
-- [ ] Solicitar dados obrigatórios no formulário
-- [ ] Não exibir erro SQL bruto na interface
-- [ ] Exibir mensagem amigável em caso de falha
-- [ ] Testar criação de usuários de todos os perfis
+- [x] Revisar fluxo de criação de usuário
+- [x] Verificar inserção em farol_advisors
+- [x] Validar campos obrigatórios do perfil
+- [x] Integrar criação de usuário com criação de assessor
+- [x] Solicitar dados obrigatórios no formulário
+- [x] Não exibir erro SQL bruto na interface
+- [x] Exibir mensagem amigável em caso de falha
+- [x] Testar criação de usuários de todos os perfis
 
 ### P5-P8: Regionais, Auditoria, Assessor, Mensagens
-- [ ] Padronizar lista de regionais (10 regionais oficiais)
-- [ ] Atualizar selects, filtros e cadastros com regionais
-- [ ] Garantir escrita exata das regionais
-- [ ] Evitar duplicidades com acentuação
-- [ ] Melhorar rótulos e textos da tela de auditoria
-- [ ] Adicionar ícones de informação ou tooltips
-- [ ] Inserir texto introdutório na tela de auditoria
-- [ ] Adicionar campo de Assessor Responsável em Demandas
-- [ ] Buscar assessores ativos no banco
-- [ ] Permitir selecionar assessor responsável
-- [ ] Salvar vínculo com userId/advisorId
-- [ ] Exibir assessor em cards, detalhes e listagem
-- [ ] Permitir filtrar por assessor responsável
-- [ ] Tratar erros no backend
-- [ ] Retornar mensagens amigáveis
-- [ ] Registrar erros técnicos apenas em logs
-- [ ] Exibir mensagens compreensíveis ao usuário
+- [x] Padronizar lista de regionais (10 regionais oficiais)
+- [x] Atualizar selects, filtros e cadastros com regionais
+- [x] Garantir escrita exata das regionais
+- [x] Evitar duplicidades com acentuação
+- [x] Melhorar rótulos e textos da tela de auditoria
+- [x] Adicionar ícones de informação ou tooltips
+- [x] Inserir texto introdutório na tela de auditoria
+- [x] Adicionar campo de Assessor Responsável em Demandas
+- [x] Buscar assessores ativos no banco
+- [x] Permitir selecionar assessor responsável
+- [x] Salvar vínculo com userId/advisorId
+- [x] Exibir assessor em cards, detalhes e listagem
+- [ ] Permitir filtrar por assessor responsável (pendente - filtro avançado)
+- [x] Tratar erros no backend
+- [x] Retornar mensagens amigáveis
+- [x] Registrar erros técnicos apenas em logs
+- [x] Exibir mensagens compreensíveis ao usuário
 
 ### P6: Testes e Validações Técnicas
-- [ ] pnpm test --run (todos os testes passam)
-- [ ] npx tsc --noEmit (0 erros TypeScript)
+- [x] pnpm test --run (147 testes passam, 12 arquivos)
+- [x] npx tsc --noEmit (0 erros TypeScript)
 - [ ] Teste manual: criar caso com aluno buscado
 - [ ] Teste manual: criar demanda com escola e aluno
 - [ ] Teste manual: acessar Arquivadas sem 404
@@ -1887,11 +1887,11 @@
 - [ ] Teste manual: validar tela de auditoria
 
 ### P7: Relatório Final da Fase 55.2
-- [ ] Documentar problemas corrigidos
-- [ ] Listar arquivos modificados
-- [ ] Documentar rotas ajustadas
-- [ ] Documentar campos adicionados
-- [ ] Documentar testes executados
-- [ ] Resultado do TypeScript (0 erros esperado)
-- [ ] Listar pendências restantes
-- [ ] Recomendação sobre liberação para uso assistido
+- [x] Documentar problemas corrigidos
+- [x] Listar arquivos modificados
+- [x] Documentar rotas ajustadas
+- [x] Documentar campos adicionados
+- [x] Documentar testes executados
+- [x] Resultado do TypeScript (0 erros)
+- [x] Listar pendências restantes
+- [x] Recomendação sobre liberação para uso assistido

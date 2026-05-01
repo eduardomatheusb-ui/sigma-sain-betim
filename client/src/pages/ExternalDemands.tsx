@@ -121,6 +121,7 @@ export default function ExternalDemands() {
     prioridade: 'media',
     prazoResposta: '',
     responsavelNome: '',
+    responsavelId: '',
     schoolId: '',
     studentName: '',
     resumo: '',
@@ -132,6 +133,7 @@ export default function ExternalDemands() {
 
   const { data: demands = [], isLoading, refetch } = trpc.externalDemands.list.useQuery();
   const { data: schools = [] } = trpc.schools.list.useQuery();
+  const { data: advisors = [] } = trpc.farol.listAdvisors.useQuery({ ativo: true });
   const createMutation = trpc.externalDemands.create.useMutation();
   
   // Search queries with enabled: false - will be called on demand
@@ -191,7 +193,8 @@ export default function ExternalDemands() {
         dataRecebimento: formData.dataRecebimento,
         prazoResposta: formData.prazoResposta || undefined,
         prioridade: formData.prioridade as any,
-        responsavelNome: formData.responsavelNome,
+        responsavelNome: formData.responsavelNome || undefined,
+        responsavelId: formData.responsavelId ? parseInt(formData.responsavelId) : undefined,
         schoolId: formData.schoolId ? parseInt(formData.schoolId) : undefined,
         studentName: formData.studentName,
         resumo: formData.resumo,
@@ -208,6 +211,7 @@ export default function ExternalDemands() {
         prioridade: 'media',
         prazoResposta: '',
         responsavelNome: '',
+        responsavelId: '',
         schoolId: '',
         studentName: '',
         resumo: '',
@@ -380,11 +384,29 @@ export default function ExternalDemands() {
                   />
                 </div>
                 <div>
-                  <Label>Responsável Interno</Label>
-                  <Input
-                    value={formData.responsavelNome}
-                    onChange={(e) => setFormData({ ...formData, responsavelNome: e.target.value })}
-                  />
+                  <Label>Assessor Responsável</Label>
+                  <Select
+                    value={formData.responsavelId}
+                    onValueChange={(v) => {
+                      const advisor = (advisors as any[]).find((a: any) => String(a.id) === v);
+                      setFormData({ ...formData, responsavelId: v, responsavelNome: advisor?.nome || '' });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um assessor..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Sem assessor definido</SelectItem>
+                      {(advisors as any[]).map((a: any) => (
+                        <SelectItem key={a.id} value={String(a.id)}>
+                          {a.nome} {a.cargo ? `(${a.cargo})` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {formData.responsavelNome && (
+                    <p className="text-xs text-green-600 mt-1">✓ Assessor: {formData.responsavelNome}</p>
+                  )}
                 </div>
                 <div>
                   <Label>Escola Relacionada</Label>
@@ -672,6 +694,12 @@ export default function ExternalDemands() {
                   <Badge variant="outline">{PRIORIDADE_CONFIG[selectedDemand.prioridade as keyof typeof PRIORIDADE_CONFIG]?.label}</Badge>
                 </div>
               </div>
+              {(selectedDemand as any).responsavelNome && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Assessor Responsável</p>
+                  <p>{(selectedDemand as any).responsavelNome}</p>
+                </div>
+              )}
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Resumo</p>
                 <p>{selectedDemand.resumo}</p>

@@ -2697,7 +2697,8 @@ export const appRouter = router({
           });
           return { success: true, message: "Quadro enviado por e-mail com sucesso!" };
         } catch (err) {
-          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: String(err) });
+          console.error("[QuadroAAP] Error sending by email:", err);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao enviar o quadro por e-mail. Tente novamente." });
         }
       }),
   }),

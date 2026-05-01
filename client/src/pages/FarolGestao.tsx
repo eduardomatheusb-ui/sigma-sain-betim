@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import { REGIONAIS_PADRONIZADAS } from "@shared/standardization";
 import { exportCaseToWord, exportCasesToExcel } from "@/lib/farol-export";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -92,8 +93,8 @@ export default function FarolGestao() {
         if (segmentoSelect) segmentoSelect.value = selectedCase.segmento || '';
         const escolaSelect = form.querySelector('select[name="escola"]') as HTMLSelectElement;
         if (escolaSelect) escolaSelect.value = selectedCase.escola || '';
-        const regionalInput = form.querySelector('input[name="regional"]') as HTMLInputElement;
-        if (regionalInput) regionalInput.value = selectedCase.regional || '';
+        const regionalSelect = form.querySelector('select[name="regional"]') as HTMLSelectElement;
+        if (regionalSelect) regionalSelect.value = selectedCase.regional || '';
         const tipoSelect = form.querySelector('select[name="tipoDemanda"]') as HTMLSelectElement;
         if (tipoSelect) tipoSelect.value = selectedCase.tipoDemanda || '';
         const origemSelect = form.querySelector('select[name="origem"]') as HTMLSelectElement;
@@ -431,7 +432,12 @@ export default function FarolGestao() {
           </div>
           <div>
             <label className="text-sm font-medium">Regional</label>
-            <Input name="regional" placeholder="Regional" className="mt-1" />
+            <select name="regional" className="w-full p-2 border rounded mt-1">
+              <option value="">Selecione a regional</option>
+              {REGIONAIS_PADRONIZADAS.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
           </div>
         </div>
       </div>
@@ -613,8 +619,8 @@ export default function FarolGestao() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todas as regionais</SelectItem>
-                    {Array.from(new Set(cases?.map((c: any) => c.regional).filter(Boolean))).map((r: any) => (
-                      <SelectItem key={r} value={r || ""}>{r}</SelectItem>
+                    {REGIONAIS_PADRONIZADAS.map((r) => (
+                      <SelectItem key={r} value={r}>{r}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
