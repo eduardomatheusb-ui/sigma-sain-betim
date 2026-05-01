@@ -1471,3 +1471,41 @@
 - [x] 138 testes passando (11 arquivos, 0 falhas)
 - [x] 0 erros TypeScript
 - [x] Checkpoint salvo
+
+## Fase 53 — Refinamento Operacional de Demandas Externas
+
+### P1: Seletores de busca para escola e aluno
+- [x] Criar componente SchoolSelector com busca por nome (autocomplete)
+- [x] Criar componente StudentSelector com busca por nome (autocomplete)
+- [x] Integrar seletores no formulário Nova Demanda
+- [x] Preencher automaticamente schoolId ao selecionar escola
+- [x] Preencher automaticamente studentName ao selecionar aluno
+- [x] Validar que escola e aluno existem no banco antes de salvar
+
+### P2: Exportação em CSV/Excel
+- [x] Criar procedure externalDemands.export no backend
+- [x] Filtrar por: período (dataRecebimento), órgão, prioridade, status, responsável, escola
+- [x] Gerar arquivo CSV/Excel com colunas: protocolo, órgão, setor, tipo, prioridade, prazo, responsável, escola, aluno, resumo, status, dataCriacao
+- [x] Adicionar botão de exportação na listagem
+- [x] Validar permissões: apenas admin, assessor, coordenador podem exportar
+
+### P3: Alerta visual de prazo
+- [x] Calcular dias até vencimento: prazoResposta - hoje
+- [x] Demandas com prazo vencido: borda vermelha + badge "VENCIDO"
+- [x] Demandas com prazo a 3 dias: borda amarela + badge "PRÓXIMO"
+- [x] Demandas com prazo > 3 dias: borda normal
+- [x] Aplicar estilos em cards e linhas de listagem
+
+### P4: Testes E2E
+- [x] Criar teste que cria nova demanda
+- [x] Validar protocolo gerado automaticamente
+- [x] Validar toast com protocolo exibido
+- [x] Validar demanda aparece na aba correta (Em Andamento)
+- [x] Validar mudança de status para Arquivada
+- [x] Validar demanda aparece em Arquivadas
+- [x] Validar permissões: escola e profissional externo não conseguem criar
+
+### Testes e Checkpoint
+- [x] 147 testes passando
+- [x] 0 erros TypeScript
+- [x] Checkpoint pronto para salvar
