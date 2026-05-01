@@ -885,6 +885,16 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         const { id, dateOfBirth, ...rest } = input;
+        // VALIDAÇÃO DE ESCOPO: school_user e coordinator só podem editar alunos das suas escolas
+        if (ctx.user.role !== "admin" && ctx.user.role !== "sain_assessor") {
+          const [existingStudent] = await db.select({ schoolId: students.schoolId }).from(students).where(eq(students.id, id));
+          if (existingStudent) {
+            const allowedSchoolIds = await getUserSchoolIds(ctx.user.id, ctx.user.schoolId);
+            if (existingStudent.schoolId && !allowedSchoolIds.includes(existingStudent.schoolId)) {
+              throw new TRPCError({ code: "FORBIDDEN", message: "Você não tem permissão para editar alunos de outras escolas." });
+            }
+          }
+        }
         const data: Record<string, unknown> = {
           ...rest,
           dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
@@ -1422,6 +1432,16 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        // VALIDAÇÃO DE ESCOPO: school_user e coordinator só podem editar atendimentos das suas escolas
+        if (ctx.user.role !== "admin" && ctx.user.role !== "sain_assessor") {
+          const [existing] = await db.select({ schoolId: attendances.schoolId }).from(attendances).where(eq(attendances.id, input.id));
+          if (existing) {
+            const allowedSchoolIds = await getUserSchoolIds(ctx.user.id, ctx.user.schoolId);
+            if (existing.schoolId && !allowedSchoolIds.includes(existing.schoolId)) {
+              throw new TRPCError({ code: "FORBIDDEN", message: "Você não tem permissão para editar atendimentos de outras escolas." });
+            }
+          }
+        }
         const { id, attendanceDate, ...rest } = input;
         const data: Record<string, unknown> = {
           ...rest,
@@ -1442,6 +1462,10 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        // VALIDAÇÃO DE ESCOPO: apenas admin pode excluir atendimentos
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem excluir atendimentos." });
+        }
         try {
           await db.delete(attendances).where(eq(attendances.id, input.id));
           return { success: true };
@@ -1850,14 +1874,20 @@ export const appRouter = router({
         homeCare: z.boolean().optional(),
         needsAttendant: z.enum(["yes", "no", "nam"]).optional(),
       }))
-      .mutation(async ({ ctx, input }) => {
+       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         const { id, dateOfBirth, disabilities, attendantName: newAttendantName, ...rest } = input;
-
-        // Buscar demand atual para sincronização de status
-        const [currentDemand] = await db.select({ attendantName: demands.attendantName }).from(demands).where(eq(demands.id, id));
+        // Buscar demand atual para sincronização de status e validação de escopo
+        const [currentDemand] = await db.select({ attendantName: demands.attendantName, schoolId: demands.schoolId }).from(demands).where(eq(demands.id, id));
         if (!currentDemand) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+        // VALIDAÇÃO DE ESCOPO: school_user e coordinator só podem editar demands das suas escolas
+        if (ctx.user.role !== "admin" && ctx.user.role !== "sain_assessor") {
+          const allowedSchoolIds = await getUserSchoolIds(ctx.user.id, ctx.user.schoolId);
+          if (currentDemand.schoolId && !allowedSchoolIds.includes(currentDemand.schoolId)) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Você não tem permissão para editar alunos de outras escolas." });
+          }
+        }
 
         const data: Record<string, unknown> = {
           ...rest,

@@ -454,7 +454,7 @@ export default function Users() {
                   value={createForm.cargo}
                   onChange={e => setCreateForm(f => ({ ...f, cargo: e.target.value }))}
                 />
-                <p className="text-xs text-muted-foreground mt-1">Será exibido no Farol da Gestão como assessor responsável.</p>
+                <p className="text-xs text-muted-foreground mt-1">Será exibido no Acompanhamento de Casos como assessor responsável.</p>
               </div>
             )}
             <div>

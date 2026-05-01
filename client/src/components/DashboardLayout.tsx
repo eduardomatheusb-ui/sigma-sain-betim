@@ -61,36 +61,46 @@ interface MenuItem {
 
 const adminMenuItems: (MenuItem | MenuGroup)[] = [
   { icon: Home, label: "Página Inicial", path: "/" },
-  { icon: LayoutDashboard, label: "Dashboard Estratégico", path: "/dashboard" },
-  { icon: BarChart3, label: "Dashboard Gerencial", path: "/dashboard-gerencial" },
-  { icon: School, label: "Escolas", path: "/escolas" },
-  { icon: GraduationCap, label: "Alunos", path: "/alunos" },
-  { icon: AlertCircle, label: "Demandas Externas", path: "/demandas" },
-  { icon: BarChart3, label: "Relatórios", path: "/relatorios" },
+  {
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    items: [
+      { icon: LayoutDashboard, label: "Dashboard Estratégico", path: "/dashboard" },
+      { icon: BarChart3, label: "Dashboard Gerencial", path: "/dashboard-gerencial" },
+      { icon: Briefcase, label: "Dashboard de Acompanhamento de Casos", path: "/farol/dashboard" },
+    ],
+  },
+  {
+    label: "Cadastro",
+    icon: GraduationCap,
+    items: [
+      { icon: GraduationCap, label: "Alunos", path: "/alunos" },
+      { icon: School, label: "Escolas", path: "/escolas" },
+    ],
+  },
   {
     label: "Mediadores",
     icon: UserCheck,
     items: [
       { icon: FileText, label: "Quadro de Mediadores", path: "/cadastros" },
       { icon: UserCheck, label: "Mediadores", path: "/mediadores" },
-      { icon: ClipboardList, label: "Atendimentos", path: "/atendimentos" },
     ],
   },
   {
     label: "Acompanhamento de Casos",
     icon: Briefcase,
     items: [
-      { icon: Briefcase, label: "Farol da Gestão", path: "/farol" },
-      { icon: BarChart3, label: "Dashboard Farol", path: "/farol/dashboard" },
-      { icon: Eye, label: "Auditoria do Farol", path: "/farol/auditoria" },
+      { icon: Briefcase, label: "Casos", path: "/farol" },
+      { icon: Eye, label: "Auditoria", path: "/farol/auditoria" },
     ],
   },
+  { icon: BarChart3, label: "Relatórios", path: "/relatorios" },
   {
     label: "Configurações",
     icon: Shield,
     items: [
-      { icon: Shield, label: "Usuários", path: "/usuarios" },
-      { icon: Users, label: "Assessores do Farol", path: "/farol/assessores" },
+      { icon: Shield, label: "Usuários e Segurança", path: "/usuarios" },
+      { icon: Users, label: "Assessores", path: "/farol/assessores" },
     ],
   },
 ];
@@ -107,15 +117,21 @@ const secretaryMenuItems: (MenuItem | MenuGroup)[] = [
 const sainAssessorMenuItems: (MenuItem | MenuGroup)[] = [
   { icon: Home, label: "Página Inicial", path: "/" },
   {
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    items: [
+      { icon: LayoutDashboard, label: "Dashboard Estratégico", path: "/dashboard" },
+      { icon: Briefcase, label: "Dashboard de Acompanhamento de Casos", path: "/farol/dashboard" },
+    ],
+  },
+  {
     label: "Acompanhamento de Casos",
     icon: Briefcase,
     items: [
-      { icon: Briefcase, label: "Farol da Gestão", path: "/farol" },
-      { icon: BarChart3, label: "Dashboard Farol", path: "/farol/dashboard" },
-      { icon: Eye, label: "Auditoria do Farol", path: "/farol/auditoria" },
+      { icon: Briefcase, label: "Casos", path: "/farol" },
+      { icon: Eye, label: "Auditoria", path: "/farol/auditoria" },
     ],
   },
-  { icon: AlertCircle, label: "Demandas Externas", path: "/demandas" },
   { icon: BarChart3, label: "Relatórios", path: "/relatorios" },
 ];
 
@@ -127,9 +143,29 @@ const externalProfessionalMenuItems: (MenuItem | MenuGroup)[] = [
 // Coordenador
 const coordinatorMenuItems: (MenuItem | MenuGroup)[] = [
   { icon: Home, label: "Página Inicial", path: "/" },
-  { icon: LayoutDashboard, label: "Dashboard Estratégico", path: "/dashboard" },
-  { icon: GraduationCap, label: "Alunos", path: "/alunos" },
-  { icon: UserCheck, label: "Mediadores", path: "/mediadores" },
+  {
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    items: [
+      { icon: LayoutDashboard, label: "Dashboard Estratégico", path: "/dashboard" },
+      { icon: BarChart3, label: "Dashboard Gerencial", path: "/dashboard-gerencial" },
+    ],
+  },
+  {
+    label: "Cadastro",
+    icon: GraduationCap,
+    items: [
+      { icon: GraduationCap, label: "Alunos", path: "/alunos" },
+    ],
+  },
+  {
+    label: "Mediadores",
+    icon: UserCheck,
+    items: [
+      { icon: FileText, label: "Quadro de Mediadores", path: "/cadastros" },
+      { icon: UserCheck, label: "Mediadores", path: "/mediadores" },
+    ],
+  },
   { icon: BarChart3, label: "Relatórios", path: "/relatorios" },
 ];
 

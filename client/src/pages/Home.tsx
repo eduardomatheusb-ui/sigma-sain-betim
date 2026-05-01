@@ -287,7 +287,7 @@ function SainAssessorHome({ userName }: { userName: string }) {
   const urgentes = (farolCases as any[]).filter((c: any) => c.alerta).length;
 
   const quickActions = [
-    { label: "Farol da Gestão", desc: "Acompanhar casos intersetoriais", href: "/farol/gestao", icon: <Briefcase className="w-5 h-5" /> },
+    { label: "Acompanhamento de Casos", desc: "Acompanhar casos intersetoriais", href: "/farol", icon: <Briefcase className="w-5 h-5" /> },
     { label: "Assessores", desc: "Gerenciar profissionais externos", href: "/farol/assessores", icon: <Users className="w-5 h-5" /> },
     { label: "Auditoria", desc: "Histórico de ações no sistema", href: "/farol/auditoria", icon: <ClipboardList className="w-5 h-5" /> },
     { label: "Relatórios", desc: "Gerar relatórios e exportar dados", href: "/relatorios", icon: <GraduationCap className="w-5 h-5" /> },

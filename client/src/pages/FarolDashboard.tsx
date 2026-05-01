@@ -73,7 +73,7 @@ export default function FarolDashboard() {
       {/* Cabeçalho */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard Gerencial - Farol da Gestão</h1>
+          <h1 className="text-3xl font-bold">Dashboard - Acompanhamento de Casos</h1>
           <p className="text-gray-600 mt-1">Visão consolidada de casos e métricas</p>
         </div>
         <div className="flex gap-2">

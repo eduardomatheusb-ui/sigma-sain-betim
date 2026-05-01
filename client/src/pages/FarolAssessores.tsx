@@ -65,8 +65,8 @@ export default function FarolAssessores() {
             <Users className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Assessores do Farol</h1>
-            <p className="text-sm text-muted-foreground">Relatório de responsáveis técnicos vinculados aos casos do Farol da Gestão</p>
+            <h1 className="text-2xl font-bold">Assessores</h1>
+            <p className="text-sm text-muted-foreground">Relatório de responsáveis técnicos vinculados aos casos de Acompanhamento</p>
           </div>
         </div>
       </div>

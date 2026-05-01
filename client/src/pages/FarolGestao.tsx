@@ -153,7 +153,7 @@ export default function FarolGestao() {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Você não tem permissão para acessar o Farol da Gestão. Apenas administradores podem usar este módulo.
+            Você não tem permissão para acessar o Acompanhamento de Casos. Apenas administradores podem usar este módulo.
           </AlertDescription>
         </Alert>
       </div>
@@ -523,7 +523,7 @@ export default function FarolGestao() {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Farol da Gestão</h1>
+          <h1 className="text-3xl font-bold">Acompanhamento de Casos</h1>
           <p className="text-gray-600 mt-1">Gestão de casos e acompanhamento de alunos</p>
         </div>
         <Button onClick={() => setShowForm(true)} className="gap-2 bg-blue-600 hover:bg-blue-700">

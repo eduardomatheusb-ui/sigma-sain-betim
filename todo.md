@@ -1318,3 +1318,38 @@
 - [x] 119 testes passando (10 arquivos, 0 falhas)
 - [x] 0 erros TypeScript
 - [x] Checkpoint salvo
+
+## Fase 50 — Auditoria P2, P3 completa e Reestruturação de Menu
+
+### Auditoria P2
+- [x] Mapear todas as procedures e classificar por status de permissão
+- [x] Gerar relatório formal de P2 (entregue ao usuário)
+- [x] demands.update: validação de escopo por ID adicionada
+- [x] students.update: validação de escopo por ID adicionada
+- [x] attendances.update: validação de escopo por ID adicionada
+- [x] attendances.delete: restrito a admin
+
+### P3 — Fonte oficial demands
+- [x] Auditar todas as queries com from(students) no backend
+- [x] schoolStats usa demands como fonte oficial
+- [x] dashboard.stats já usava demands
+- [x] students.listBySchool usa getUserSchoolIds
+- [x] Documentado formalmente em drizzle/MIGRATIONS.md
+
+### Reestruturação de Menu
+- [x] Novo menu: Dashboard (Estratégico, Gerencial, Dashboard de Acompanhamento de Casos)
+- [x] Novo menu: Cadastro (Alunos, Escolas)
+- [x] Novo menu: Mediadores (Quadro de Mediadores, Mediadores)
+- [x] Novo menu: Acompanhamento de Casos (Casos, Auditoria)
+- [x] Novo menu: Relatórios
+- [x] Novo menu: Configurações (Usuários e Segurança, Assessores)
+- [x] Atendimentos e Demandas Externas removidos do menu (arquivos preservados)
+- [x] sainAssessorMenuItems atualizado com nova hierarquia
+- [x] coordinatorMenuItems atualizado com nova hierarquia
+- [x] "Farol da Gestão" renomeado para "Casos" no menu
+- [x] Títulos renomeados em FarolGestao.tsx, FarolDashboard.tsx, FarolAssessores.tsx, FarolAuditDashboard.tsx, Home.tsx, Users.tsx
+
+### Testes e Checkpoint
+- [x] 119 testes passando (10 arquivos, 0 falhas)
+- [x] 0 erros TypeScript
+- [x] Checkpoint salvo
