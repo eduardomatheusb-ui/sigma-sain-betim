@@ -2145,7 +2145,7 @@ export const appRouter = router({
     // Cria nova demanda externa
     create: protectedProcedure
       .input(z.object({
-        protocolo: z.string().optional(),
+        // protocolo é gerado automaticamente — não aceitar do cliente
         origem: z.string().min(1),
         orgaoSetor: z.string().optional(),
         tipoDocumento: z.enum(["oficio","notificacao","recomendacao","requisicao","encaminhamento","solicitacao","denuncia","outros"]).default("oficio"),
@@ -2177,8 +2177,12 @@ export const appRouter = router({
           }
         }
         try {
+          // Gerar protocolo automaticamente
+          const { generateProtocol } = await import("./db");
+          const protocolo = await generateProtocol();
+          
           const [result] = await db.insert(externalDemands).values({
-            protocolo: input.protocolo,
+            protocolo: protocolo,
             origem: input.origem,
             orgaoSetor: input.orgaoSetor,
             tipoDocumento: input.tipoDocumento,
@@ -2207,7 +2211,7 @@ export const appRouter = router({
             userName: ctx.user.name ?? "Sistema",
             userRole: ctx.user.role ?? undefined,
           });
-          return { success: true, id: insertId };
+          return { success: true, id: insertId, protocolo: protocolo };
         } catch (error) {
           console.error("[ExternalDemands] Error creating demand:", error);
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Falha ao criar demanda" });

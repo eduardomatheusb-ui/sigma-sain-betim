@@ -103,12 +103,8 @@ const adminMenuItems: (MenuItem | MenuGroup)[] = [
     label: "Demandas Externas",
     icon: FileText,
     items: [
-      { icon: Plus, label: "Nova Demanda", path: "/demandas-externas/nova" },
-      { icon: FileText, label: "Todas as Demandas", path: "/demandas-externas" },
-      { icon: Clock, label: "Em Andamento", path: "/demandas-externas?tab=andamento" },
-      { icon: AlertTriangle, label: "Aguardando Resposta", path: "/demandas-externas?tab=aguardando" },
-      { icon: ChevronRight, label: "Encaminhadas", path: "/demandas-externas?tab=encaminhadas" },
-      { icon: Archive, label: "Arquivadas", path: "/demandas-externas?tab=arquivadas" },
+      { icon: FileText, label: "Gestão de Demandas", path: "/demandas-externas" },
+      { icon: Archive, label: "Arquivadas", path: "/demandas-externas/arquivadas" },
     ],
   },
   { icon: BarChart3, label: "Relatórios", path: "/relatorios" },
@@ -150,6 +146,14 @@ const sainAssessorMenuItems: (MenuItem | MenuGroup)[] = [
     ],
   },
   { icon: BarChart3, label: "Relatórios", path: "/relatorios" },
+  {
+    label: "Demandas Externas",
+    icon: FileText,
+    items: [
+      { icon: FileText, label: "Gestão de Demandas", path: "/demandas-externas" },
+      { icon: Archive, label: "Arquivadas", path: "/demandas-externas/arquivadas" },
+    ],
+  },
 ];
 
 // Profissional Externo
@@ -184,6 +188,14 @@ const coordinatorMenuItems: (MenuItem | MenuGroup)[] = [
     ],
   },
   { icon: BarChart3, label: "Relatórios", path: "/relatorios" },
+  {
+    label: "Demandas Externas",
+    icon: FileText,
+    items: [
+      { icon: FileText, label: "Gestão de Demandas", path: "/demandas-externas" },
+      { icon: Archive, label: "Arquivadas", path: "/demandas-externas/arquivadas" },
+    ],
+  },
 ];
 
 // ─── Componente separado para grupos expansíveis do menu ────────────────────
