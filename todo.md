@@ -1116,3 +1116,28 @@
 - [x] Expandir filtros por padrão no Farol da Gestão (showFilters = true)
 - [x] Validação de data futura no formulário do Farol (max = hoje)
 - [x] Scroll horizontal em tabelas (overflow-x-auto já implementado)
+
+## Fase 46 — Histórico de Edições no Perfil do Aluno
+
+### 1. Backend - Tabela e Procedures
+- [x] Verificar se student_edit_history já existe no schema (já existia)
+- [x] Garantir campos: studentId, editedBy, editedByName, fieldChanged, oldValue, newValue, editedAt
+- [x] Migration já aplicada (snapshot 0007+)
+- [x] Procedure students.getHistory(studentId) já implementada
+- [x] Registro automático já integrado no students.update mutation
+
+### 2. Frontend - Sheet de Perfil com Abas
+- [x] Criar componente StudentProfileSheet com 3 abas: Dados, Histórico, Atendimentos
+- [x] Aba Histórico: lista de alterações com data/hora, usuário, campo, valor anterior/novo
+- [x] Formatar campos com nomes legíveis (FIELD_LABELS map)
+- [x] Exibir boação de campo alterado com badge
+- [x] Estado vazio com mensagem explicativa
+- [x] ScrollArea para muitas entradas
+- [x] Aba Dados: informações completas do aluno em seções
+- [x] Aba Atendimentos: mediadores vinculados ao aluno
+- [x] Integrar em Students.tsx (botão Histórico abre Sheet na aba Histórico)
+
+### 3. Testes e Validação
+- [x] 119 testes vitest passando (sem regressões)
+- [x] 0 erros TypeScript
+- [x] Dev server rodando normalmente

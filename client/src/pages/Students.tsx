@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { GraduationCap, Pencil, Trash2, Download, Search, UserPlus, X, History } from "lucide-react";
 import { HistoryModal } from "@/components/HistoryModal";
+import { StudentProfileSheet } from "@/components/StudentProfileSheet";
 
 // Lista completa de deficiências/transtornos (idêntica ao Netlify)
 const DISABILITY_OPTIONS = [
@@ -195,13 +196,17 @@ export default function Students() {
   const [studentsPage, setStudentsPage] = useState(1);
   const STUDENTS_PAGE_SIZE = 20;
 
-  // Histórico de alterações
+  // Histórico de alterações (modal legado)
   const [historyDemandId, setHistoryDemandId] = useState<number | null>(null);
   const [historyStudentName, setHistoryStudentName] = useState("");
   const { data: studentHistory = [], isLoading: historyLoading } = trpc.students.getHistory.useQuery(
     { studentId: historyDemandId! },
     { enabled: !!historyDemandId }
   );
+
+  // Perfil do aluno com abas
+  const [profileStudent, setProfileStudent] = useState<any | null>(null);
+  const [profileDefaultTab, setProfileDefaultTab] = useState<"dados" | "historico" | "atendimentos">("dados");
 
   // Busca de alunos existentes para atendimento compartilhado
   const { data: existingStudents = [] } = trpc.demands.searchStudents.useQuery(
@@ -1104,7 +1109,7 @@ export default function Students() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => { setHistoryDemandId(demand.id); setHistoryStudentName(demand.studentName); }}
+                              onClick={() => { setProfileStudent(demand); setProfileDefaultTab("historico"); }}
                               title="Histórico de alterações"
                               className="text-blue-500 hover:text-blue-700"
                             >
@@ -1152,14 +1157,15 @@ export default function Students() {
         </CardContent>
       </Card>
 
-      {/* Modal de histórico de alterações do aluno */}
-      <HistoryModal
-        open={!!historyDemandId}
-        onClose={() => { setHistoryDemandId(null); setHistoryStudentName(""); }}
-        title="Histórico de Alterações"
-        subtitle={historyStudentName ? `Aluno: ${historyStudentName}` : undefined}
-        entries={studentHistory as any[]}
-        isLoading={historyLoading}
+      {/* Modal de histórico de alterações do aluno (legado - mantido para compatibilidade) */}
+      {/* <HistoryModal ... /> */}
+
+      {/* Perfil do aluno com abas: Dados, Histórico, Atendimentos */}
+      <StudentProfileSheet
+        open={!!profileStudent}
+        onClose={() => setProfileStudent(null)}
+        student={profileStudent}
+        defaultTab={profileDefaultTab}
       />
 
       {/* Dialog de confirmação de exclusão */}
