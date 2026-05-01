@@ -11,7 +11,7 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["admin", "school_user"]).default("school_user").notNull(),
+  role: mysqlEnum("role", ["admin", "sain_assessor", "external_professional", "school_user"]).default("school_user").notNull(),
   schoolId: int("schoolId"),
   isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -415,6 +415,7 @@ export type InsertFarolAudit = typeof farolAudit.$inferInsert;
 
 export const farolAdvisors = mysqlTable("farol_advisors", {
   id: int("id").autoincrement().primaryKey(),
+  userId: int("userId"),  // Vinculo com users.id (opcional - para profissionais com login)
   nome: varchar("nome", { length: 255 }).notNull(),
   email: varchar("email", { length: 320 }).notNull(),
   telefone: varchar("telefone", { length: 20 }).notNull(),

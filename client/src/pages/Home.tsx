@@ -37,9 +37,12 @@ export default function Home() {
     );
   }
 
-  const isAdmin = user?.role === "admin";
+  const role = user?.role;
 
-  return isAdmin ? <AdminHome userName={user?.name || ""} /> : <SchoolHome userName={user?.name || ""} />;
+  if (role === "admin") return <AdminHome userName={user?.name || ""} />;
+  if (role === "sain_assessor") return <SainAssessorHome userName={user?.name || ""} />;
+  if (role === "external_professional") return <ExternalProfessionalHome userName={user?.name || ""} />;
+  return <SchoolHome userName={user?.name || ""} />;
 }
 
 function AdminHome({ userName }: { userName: string }) {
@@ -262,6 +265,203 @@ function SchoolHome({ userName }: { userName: string }) {
                 </tbody>
               </table>
             </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Home para Assessor SAIN
+// ─────────────────────────────────────────────────────────────────────────────
+function SainAssessorHome({ userName }: { userName: string }) {
+  const { data: stats } = trpc.dashboard.stats.useQuery();
+  const { data: alerts = [] } = trpc.schools.alerts.useQuery();
+  const { data: farolCases = [] } = trpc.farol.listCases.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
+
+  const ativos = (farolCases as any[]).filter((c: any) => c.situacao === "Ativo").length;
+  const urgentes = (farolCases as any[]).filter((c: any) => c.alerta).length;
+
+  const quickActions = [
+    { label: "Farol da Gestão", desc: "Acompanhar casos intersetoriais", href: "/farol/gestao", icon: <Briefcase className="w-5 h-5" /> },
+    { label: "Assessores", desc: "Gerenciar profissionais externos", href: "/farol/assessores", icon: <Users className="w-5 h-5" /> },
+    { label: "Auditoria", desc: "Histórico de ações no sistema", href: "/farol/auditoria", icon: <ClipboardList className="w-5 h-5" /> },
+    { label: "Relatórios", desc: "Gerar relatórios e exportar dados", href: "/relatorios", icon: <GraduationCap className="w-5 h-5" /> },
+  ];
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Secretaria Adjunta de Inclusão</p>
+        <h1 className="text-2xl font-bold mt-1">Bem-vindo, {userName}!</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Painel do Assessor SAIN
+          <Badge variant="outline" className="ml-2 text-xs bg-blue-50 text-blue-700 border-blue-200">Assessor SAIN</Badge>
+        </p>
+      </div>
+
+      {/* Métricas */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {[
+          { label: "Total de Alunos", value: stats?.totalStudents ?? 0, icon: <GraduationCap className="w-5 h-5 text-primary" /> },
+          { label: "Casos no Farol", value: (farolCases as any[]).length, icon: <Briefcase className="w-5 h-5 text-blue-600" /> },
+          { label: "Casos Ativos", value: ativos, icon: <CheckCircle2 className="w-5 h-5 text-green-600" /> },
+          { label: "Alertas", value: urgentes, icon: <AlertCircle className="w-5 h-5 text-red-500" /> },
+        ].map(m => (
+          <Card key={m.label}>
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center gap-2 mb-1">{m.icon}<p className="text-xs text-muted-foreground">{m.label}</p></div>
+              <p className="text-2xl font-bold">{m.value}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Ações rápidas + Alertas */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-base">Acesso rápido</CardTitle></CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {quickActions.map(a => (
+                  <Link key={a.label} href={a.href}>
+                    <div className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 transition cursor-pointer group">
+                      <div className="p-2 bg-primary/10 rounded-lg text-primary">{a.icon}</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm">{a.label}</p>
+                        <p className="text-xs text-muted-foreground truncate">{a.desc}</p>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-500" /> Alertas
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {alerts.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum alerta no momento.</p>
+            ) : (
+              alerts.slice(0, 5).map((alert: string, i: number) => (
+                <div key={i} className="rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-xs text-amber-800">{alert}</div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Home para Profissional Externo
+// ─────────────────────────────────────────────────────────────────────────────
+function ExternalProfessionalHome({ userName }: { userName: string }) {
+  const { data: meusCasos = [], isLoading } = trpc.farol.getMeusCasos.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
+
+  const ativos = (meusCasos as any[]).filter((c: any) => c.situacao === "Ativo").length;
+  const aguardando = (meusCasos as any[]).filter((c: any) => c.status === "Aguardando retorno").length;
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">SAIN — Prefeitura de Betim</p>
+        <h1 className="text-2xl font-bold mt-1">Bem-vindo, {userName}!</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Painel do Profissional Externo
+          <Badge variant="outline" className="ml-2 text-xs bg-purple-50 text-purple-700 border-purple-200">Profissional Externo</Badge>
+        </p>
+      </div>
+
+      {/* Métricas */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        {[
+          { label: "Meus Casos", value: (meusCasos as any[]).length, icon: <Briefcase className="w-5 h-5 text-primary" /> },
+          { label: "Ativos", value: ativos, icon: <CheckCircle2 className="w-5 h-5 text-green-600" /> },
+          { label: "Aguardando", value: aguardando, icon: <Clock className="w-5 h-5 text-amber-600" /> },
+        ].map(m => (
+          <Card key={m.label}>
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center gap-2 mb-1">{m.icon}<p className="text-xs text-muted-foreground">{m.label}</p></div>
+              <p className="text-2xl font-bold">{m.value}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Acesso rápido */}
+      <Card>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Acesso rápido</CardTitle></CardHeader>
+        <CardContent>
+          <Link href="/meus-casos">
+            <div className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 transition cursor-pointer group">
+              <div className="p-2 bg-primary/10 rounded-lg text-primary"><Briefcase className="w-5 h-5" /></div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm">Meus Casos</p>
+                <p className="text-xs text-muted-foreground">Ver todos os casos sob minha responsabilidade</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition" />
+            </div>
+          </Link>
+        </CardContent>
+      </Card>
+
+      {/* Casos recentes */}
+      {!isLoading && (meusCasos as any[]).length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Casos Recentes</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/30">
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground">Protocolo</th>
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground">Estudante</th>
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground">Status</th>
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground">Atualizado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(meusCasos as any[]).slice(0, 5).map((c: any) => (
+                    <tr key={c.id} className="border-b last:border-0 hover:bg-muted/10">
+                      <td className="px-4 py-2 font-mono text-xs text-muted-foreground">{c.numeroCaso}</td>
+                      <td className="px-4 py-2 font-medium">{c.nomeEstudante}</td>
+                      <td className="px-4 py-2">
+                        <Badge variant="outline" className="text-xs">{c.status}</Badge>
+                      </td>
+                      <td className="px-4 py-2 text-xs text-muted-foreground">
+                        {c.updatedAt ? new Date(c.updatedAt).toLocaleDateString("pt-BR") : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isLoading && (meusCasos as any[]).length === 0 && (
+        <Card>
+          <CardContent className="py-10 text-center text-muted-foreground">
+            <Briefcase className="w-10 h-10 mx-auto mb-3 opacity-30" />
+            <p className="font-medium">Nenhum caso atribuído</p>
+            <p className="text-sm mt-1">Entre em contato com a equipe SAIN para verificar seu cadastro como assessor.</p>
           </CardContent>
         </Card>
       )}

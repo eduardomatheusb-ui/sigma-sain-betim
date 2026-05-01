@@ -95,12 +95,33 @@ const adminMenuItems: (MenuItem | MenuGroup)[] = [
   },
 ];
 
-const schoolMenuItems = [
+// Secretário de Escola
+const secretaryMenuItems: (MenuItem | MenuGroup)[] = [
   { icon: Home, label: "Página Inicial", path: "/" },
-  { icon: LayoutDashboard, label: "Dashboard Estratégico", path: "/dashboard" },
   { icon: FileText, label: "Quadro de Mediadores", path: "/cadastros" },
   { icon: GraduationCap, label: "Alunos", path: "/alunos" },
   { icon: UserCheck, label: "Mediadores", path: "/mediadores" },
+];
+
+// Assessor SAIN
+const sainAssessorMenuItems: (MenuItem | MenuGroup)[] = [
+  { icon: Home, label: "Página Inicial", path: "/" },
+  {
+    label: "Acompanhamento de Casos",
+    icon: Briefcase,
+    items: [
+      { icon: Briefcase, label: "Farol da Gestão", path: "/farol" },
+      { icon: BarChart3, label: "Dashboard Farol", path: "/farol/dashboard" },
+      { icon: Eye, label: "Auditoria do Farol", path: "/farol/auditoria" },
+    ],
+  },
+  { icon: AlertCircle, label: "Demandas Externas", path: "/demandas" },
+  { icon: BarChart3, label: "Relatórios", path: "/relatorios" },
+];
+
+// Profissional Externo
+const externalProfessionalMenuItems: (MenuItem | MenuGroup)[] = [
+  { icon: Briefcase, label: "Meus Casos", path: "/farol/meus-casos" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -186,7 +207,11 @@ function DashboardLayoutContent({
   const sidebarRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
 
-  const menuItems = user?.role === "admin" ? adminMenuItems : schoolMenuItems;
+  const menuItems =
+    user?.role === "admin" ? adminMenuItems :
+    user?.role === "sain_assessor" ? sainAssessorMenuItems :
+    user?.role === "external_professional" ? externalProfessionalMenuItems :
+    secretaryMenuItems;
   const isItemActive = (path: string) => location === path || (path !== "/" && location.startsWith(path));
 
   useEffect(() => {
@@ -326,7 +351,10 @@ function DashboardLayoutContent({
                         {user?.name || "-"}
                       </p>
                       <p className="text-xs text-white/60 truncate mt-1">
-                        {user?.role === "admin" ? "Administrador SAIN" : "Usuário Escola"}
+                        {user?.role === "admin" ? "Administrador" :
+         user?.role === "sain_assessor" ? "Assessor SAIN" :
+         user?.role === "external_professional" ? "Profissional Externo" :
+         "Secretário de Escola"}
                       </p>
                     </div>
                   )}

@@ -21,6 +21,7 @@ import CaseDetail from "@/pages/CaseDetail";
 import FarolAuditDashboard from "@/pages/FarolAuditDashboard";
 import Cadastros from "./pages/Cadastros";
 import DashboardGerencial from "./pages/DashboardGerencial";
+import MeusCasos from "./pages/MeusCasos";
 import { useAuth } from "@/_core/hooks/useAuth";
 
 /** Componente que protege rotas exclusivas do admin */
@@ -28,7 +29,27 @@ function AdminRoute({ component: Component }: { component: React.ComponentType }
   const { user, loading } = useAuth();
   if (loading) return null;
   if (!user || user.role !== "admin") {
-    return <Redirect to="/dashboard" />;
+    return <Redirect to="/" />;
+  }
+  return <Component />;
+}
+
+/** Componente que protege rotas do Farol (admin ou sain_assessor) */
+function SainAssessorRoute({ component: Component }: { component: React.ComponentType }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user || (user.role !== "admin" && user.role !== "sain_assessor")) {
+    return <Redirect to="/" />;
+  }
+  return <Component />;
+}
+
+/** Componente que protege rotas de profissional externo */
+function ExternalProfessionalRoute({ component: Component }: { component: React.ComponentType }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user || (user.role !== "admin" && user.role !== "sain_assessor" && user.role !== "external_professional")) {
+    return <Redirect to="/" />;
   }
   return <Component />;
 }
@@ -45,14 +66,17 @@ function Router() {
       {/* Rotas exclusivas do admin */}
       <Route path="/escolas">{() => <AdminRoute component={Schools} />}</Route>
       <Route path="/atendimentos" component={Attendances} />
-      <Route path="/demandas">{() => <AdminRoute component={ExternalDemands} />}</Route>
       <Route path="/usuarios">{() => <AdminRoute component={Users} />}</Route>
-      <Route path="/relatorios">{() => <AdminRoute component={Reports} />}</Route>
-      <Route path="/farol">{() => <AdminRoute component={FarolGestao} />}</Route>
+      {/* Rotas para admin e sain_assessor */}
+      <Route path="/demandas">{() => <SainAssessorRoute component={ExternalDemands} />}</Route>
+      <Route path="/relatorios">{() => <SainAssessorRoute component={Reports} />}</Route>
+      <Route path="/farol">{() => <SainAssessorRoute component={FarolGestao} />}</Route>
       <Route path="/farol/assessores">{() => <AdminRoute component={FarolAssessores} />}</Route>
-      <Route path="/farol/dashboard">{() => <AdminRoute component={FarolDashboard} />}</Route>
-      <Route path="/farol/casos/:caseId">{() => <AdminRoute component={CaseDetail} />}</Route>
-      <Route path="/farol/auditoria">{() => <AdminRoute component={FarolAuditDashboard} />}</Route>
+      <Route path="/farol/dashboard">{() => <SainAssessorRoute component={FarolDashboard} />}</Route>
+      <Route path="/farol/casos/:caseId">{() => <SainAssessorRoute component={CaseDetail} />}</Route>
+      <Route path="/farol/auditoria">{() => <SainAssessorRoute component={FarolAuditDashboard} />}</Route>
+      {/* Rota para profissional externo */}
+      <Route path="/farol/meus-casos">{() => <ExternalProfessionalRoute component={MeusCasos} />}</Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

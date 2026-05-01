@@ -1,4 +1,4 @@
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, isAdminOrAssessor } from "../_core/trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
@@ -163,7 +163,7 @@ export const farolRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       // Apenas admin pode criar
-      if (ctx.user.role !== "admin") {
+      if (!isAdminOrAssessor(ctx.user.role)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Permissão negada" });
       }
       
@@ -318,7 +318,7 @@ export const farolRouter = router({
     .input(z.object({ id: z.number(), reason: z.string().optional() }))
     .mutation(async ({ ctx, input }) => {
       // Apenas admin pode deletar
-      if (ctx.user.role !== "admin") {
+      if (!isAdminOrAssessor(ctx.user.role)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Permissão negada" });
       }
       
@@ -440,7 +440,7 @@ export const farolRouter = router({
   getAuditTrail: protectedProcedure
     .input(z.object({ caseId: z.number().optional(), limit: z.number().default(50) }))
     .query(async ({ ctx, input }) => {
-      if (ctx.user.role !== "admin") {
+      if (!isAdminOrAssessor(ctx.user.role)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Permissão negada" });
       }
       
@@ -474,7 +474,7 @@ export const farolRouter = router({
       ativo: z.boolean().optional(),
     }).optional())
     .query(async ({ ctx, input }) => {
-      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      if (!isAdminOrAssessor(ctx.user.role)) throw new TRPCError({ code: "FORBIDDEN" });
       const db = await getDb();
       if (!db) return [];
       try {
@@ -503,7 +503,7 @@ export const farolRouter = router({
   getAdvisor: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ ctx, input }) => {
-      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      if (!isAdminOrAssessor(ctx.user.role)) throw new TRPCError({ code: "FORBIDDEN" });
       const db = await getDb();
       if (!db) return null;
       try {
@@ -527,7 +527,7 @@ export const farolRouter = router({
       schools: z.array(z.string()).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      if (!isAdminOrAssessor(ctx.user.role)) throw new TRPCError({ code: "FORBIDDEN" });
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       try {
@@ -564,7 +564,7 @@ export const farolRouter = router({
       active: z.boolean().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      if (!isAdminOrAssessor(ctx.user.role)) throw new TRPCError({ code: "FORBIDDEN" });
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       try {
@@ -594,7 +594,7 @@ export const farolRouter = router({
   deleteAdvisor: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      if (!isAdminOrAssessor(ctx.user.role)) throw new TRPCError({ code: "FORBIDDEN" });
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       try {
@@ -615,7 +615,7 @@ export const farolRouter = router({
   exportCaseToWord: protectedProcedure
     .input(z.object({ caseId: z.number() }))
     .query(async ({ ctx, input }) => {
-      if (ctx.user.role !== "admin") {
+      if (!isAdminOrAssessor(ctx.user.role)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Permissao negada" });
       }
 
@@ -759,8 +759,7 @@ export const farolRouter = router({
           });
         }
 
-        await db.delete(caseEvolutions).where(eq(caseEvolutions.id, input.id));
-
+         await db.delete(caseEvolutions).where(eq(caseEvolutions.id, input.id));
         return {
           success: true,
           message: "Evolução removida com sucesso",
@@ -772,6 +771,41 @@ export const farolRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "Erro ao remover evolução",
         });
+      }
+    }),
+
+  /** Retorna os casos vinculados ao profissional externo logado (via email do assessor) */
+  getMeusCasos: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+
+      try {
+        // Buscar o registro de assessor vinculado ao email do usuário logado
+        const [advisor] = await db
+          .select({ id: farolAdvisors.id })
+          .from(farolAdvisors)
+          .where(and(eq(farolAdvisors.email, ctx.user.email ?? ""), eq(farolAdvisors.isDeleted, false)))
+          .limit(1);
+
+        if (!advisor) return [];
+
+        // Buscar casos onde este assessor é o profissional responsável
+        const cases = await db
+          .select()
+          .from(farolCases)
+          .where(
+            and(
+              eq(farolCases.isDeleted, false),
+              eq(farolCases.profissionalResponsavelId, advisor.id),
+            ),
+          )
+          .orderBy(desc(farolCases.updatedAt));
+
+        return cases;
+      } catch (error) {
+        console.error("[Farol] Error getting meus casos:", error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao obter seus casos" });
       }
     }),
 });

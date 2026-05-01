@@ -1141,3 +1141,98 @@
 - [x] 119 testes vitest passando (sem regressões)
 - [x] 0 erros TypeScript
 - [x] Dev server rodando normalmente
+
+## Fase 47 — Sistema de 4 Perfis de Acesso (Controle de Acesso Completo)
+
+### Mudança 1: Schema do Banco
+- [ ] Expandir role enum: admin, sain_assessor, external_professional, school_user
+- [ ] Gerar migration SQL e aplicar via webdev_execute_sql
+
+### Mudança 2: Menu Lateral (4 Sidebars)
+- [ ] Manter adminMenuItems (administrador)
+- [ ] Renomear schoolMenuItems → secretaryMenuItems (Início, Quadro, Alunos, Mediadores)
+- [ ] Criar sainAssessorMenuItems (Início, Farol, Dashboard Farol, Auditoria, Demandas, Relatórios)
+- [ ] Criar externalProfessionalMenuItems (Meus Casos)
+- [ ] Atualizar seleção de menu por role em DashboardLayout.tsx
+- [ ] Atualizar label do perfil no rodapé do menu
+
+### Mudança 3: Proteção de Rotas no Frontend
+- [ ] Criar SainAssessorRoute em App.tsx
+- [ ] Proteger rotas do Farol com SainAssessorRoute
+- [ ] Manter AdminRoute apenas para /usuarios, /farol/assessores, /escolas
+- [ ] Abrir /demandas e /relatorios para sain_assessor
+- [ ] Adicionar rota /farol/meus-casos
+
+### Mudança 4: Backend - Verificações de Permissão
+- [ ] Criar helper isAdminOrAssessor(role) em routers.ts
+- [ ] Atualizar verificações do Farol para aceitar sain_assessor
+- [ ] Atualizar verificações de Demandas Externas
+- [ ] Atualizar verificações de Relatórios
+- [ ] Manter admin-only: gestão de usuários, escolas, configurações
+
+### Mudança 5: Página Meus Casos
+- [ ] Criar procedure farol.getMeusCasos (buscar por email do usuário logado)
+- [ ] Criar client/src/pages/MeusCasos.tsx
+- [ ] Lista de casos atribuídos ao usuário logado
+- [ ] Botão Ver Detalhes (somente leitura)
+- [ ] Formulário de Evolução (Data, Tipo, Descrição)
+
+### Mudança 6: Vincular farol_advisors a users
+- [ ] Adicionar campo userId (nullable) em farol_advisors no schema
+- [ ] Criar migration SQL para nova coluna
+- [ ] Adicionar UI de vinculação em /farol/assessores
+- [ ] Atualizar getMeusCasos para buscar por userId
+
+### Mudança 7: Melhorias de Interface por Perfil
+- [ ] Home personalizada para secretário (resumo da escola)
+- [ ] Home para assessor SAIN abre direto no Farol
+- [ ] Badge de casos sem atualização há 30+ dias no menu do Farol
+- [ ] Interface minimalista para profissional externo
+- [ ] Página Usuários: separar por perfil com ícones e contadores
+- [ ] Alerta quando assessor não tem usuário vinculado
+
+## Fase 47 — Sistema de 4 Perfis de Acesso (Controle de Acesso)
+
+### 1. Schema e Banco de Dados
+- [x] Expandir enum de roles: admin, sain_assessor, external_professional, school_user
+- [x] Aplicar migration no banco (0013_expand_role_enum.sql)
+- [x] Adicionar campo userId em farol_advisors (0014_farol_advisors_userid.sql)
+- [x] Aplicar migration userId no banco
+
+### 2. DashboardLayout - 4 Menus Distintos
+- [x] Menu admin: acesso total (Dashboard, Escolas, Alunos, Mediadores, Farol, Relatórios, Configurações)
+- [x] Menu sain_assessor: Farol (Gestão, Assessores, Auditoria, Evolução), Alunos, Relatórios
+- [x] Menu external_professional: Meus Casos, Perfil
+- [x] Menu school_user: Quadro Semanal, Alunos, Mediadores, Atendimentos
+- [x] Badge de role no footer do menu lateral
+
+### 3. Proteção de Rotas no Frontend
+- [x] SainAssessorRoute: aceita admin e sain_assessor
+- [x] Rota /meus-casos protegida (external_professional e admin)
+- [x] Rota /farol/* protegida com SainAssessorRoute
+
+### 4. Backend - Permissões Atualizadas
+- [x] sainAssessorProcedure em trpc.ts (aceita admin e sain_assessor)
+- [x] isAdminOrAssessor() helper em trpc.ts
+- [x] farol.ts: todos os checks de role aceitam sain_assessor
+- [x] Importar isAdminOrAssessor em farol.ts
+
+### 5. Página Meus Casos
+- [x] Criar MeusCasos.tsx para profissionais externos
+- [x] Procedure farol.getMeusCasos: busca por email do usuário logado
+- [x] Exibir casos com protocolo, estudante, status, escola, responsável
+
+### 6. Vinculação farol_advisors → users
+- [x] Campo userId adicionado ao schema e banco
+- [x] Auto-match por email ao aplicar migration
+
+### 7. Melhorias de Interface por Perfil
+- [x] Home personalizada para sain_assessor (métricas do Farol, ações rápidas)
+- [x] Home personalizada para external_professional (Meus Casos, casos recentes)
+- [x] Badges de role nas páginas home
+- [x] Home admin e school_user mantidas
+
+### 8. Testes
+- [x] 119 testes vitest passando (sem regressões)
+- [x] 0 erros TypeScript
+- [x] Dev server rodando normalmente após restart
