@@ -28,12 +28,13 @@ export default function FarolAuditDashboard() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     search: '',
-    actionType: '',
+    actionType: 'all',
     userName: '',
-    userRole: '',
+    userRole: 'todos',
     dateFrom: '',
     dateTo: '',
   });
+
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
@@ -65,7 +66,7 @@ export default function FarolAuditDashboard() {
       );
     }
 
-    if (filters.actionType) {
+    if (filters.actionType && filters.actionType !== 'all') {
       filtered = filtered.filter((record) => record.actionType === filters.actionType);
     }
 
@@ -222,7 +223,7 @@ export default function FarolAuditDashboard() {
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas</SelectItem>
+                  <SelectItem value="all">Todas</SelectItem>
                   <SelectItem value="Criação">Criação</SelectItem>
                   <SelectItem value="Atualização">Atualização</SelectItem>
                   <SelectItem value="Deleção">Deleção</SelectItem>
@@ -277,9 +278,9 @@ export default function FarolAuditDashboard() {
                 onClick={() =>
                   setFilters({
                     search: '',
-                    actionType: '',
+                    actionType: 'all',
                     userName: '',
-                    userRole: '',
+                    userRole: 'todos',
                     dateFrom: '',
                     dateTo: '',
                   })
