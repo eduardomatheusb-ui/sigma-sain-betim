@@ -1579,3 +1579,68 @@
 - [x] Resultado do TypeScript (0 erros)
 - [x] Pendências restantes
 - [x] Recomendação final sobre uso inicial assistido
+
+
+## Fase 55 — Reorganização de Menu Lateral
+
+### P1: Reorganização de Estrutura de Menu em DashboardLayout.tsx
+- [x] Criar novo grupo "Dashboard" com 3 submenus (Estratégico, Gerencial, Acompanhamento)
+- [x] Criar novo grupo "Cadastro" com Alunos e Escolas
+- [x] Limpar "Mediadores": remover Alunos, Escolas, Atendimentos, Demandas Externas
+- [x] Manter "Mediadores" com apenas Quadro e Mediadores
+- [x] Manter "Relatórios" como está
+- [x] Manter "Configurações" com Usuários e Segurança, Assessores
+- [x] Remover "Atendimentos" do menu (não deletar arquivos)
+- [x] Remover "Demandas Externas" do menu (não deletar arquivos)
+- [x] Atualizar adminMenuItems
+- [x] Atualizar sainAssessorMenuItems
+- [x] Atualizar coordinatorMenuItems
+- [x] Atualizar secretaryMenuItems (Escola)
+- [x] Atualizar externalProfessionalMenuItems
+
+### P2: Renomeação de Farol para Acompanhamento de Casos (Interface)
+- [x] Renomear "Farol da Gestão" para "Acompanhamento de Casos" no menu (Já estava correto)
+- [x] Renomear em FarolGestao.tsx (título da página) (Já estava correto)
+- [x] Renomear em breadcrumbs (Não utilizado atualmente)
+- [x] Renomear em cards (Não necessário)
+- [x] Renomear em demais textos visíveis (Já estava correto)
+- [x] Manter nomes técnicos internos (tabelas, arquivos, rotas) como estão (Mantido)
+
+### P3: Revisão de Rotas e Proteção em App.tsx
+- [x] Verificar rotas de Dashboard (protegidas corretamente)
+- [x] Verificar rotas de Cadastro (Alunos, Escolas)
+- [x] Verificar rotas de Mediadores
+- [x] Verificar rotas de Acompanhamento de Casos (Farol)
+- [x] Verificar rotas de Relatórios
+- [x] Verificar rotas de Configurações
+- [x] Remover rotas de Atendimentos do menu (manter rotas técnicas)
+- [x] Remover rotas de Demandas Externas do menu (manter rotas técnicas)
+
+### P4: Atualização de Breadcrumbs e Títulos de Páginas
+- [x] Atualizar breadcrumbs em FarolGestao.tsx (Já estava correto)
+- [x] Atualizar títulos de páginas (Já estava correto)
+- [x] Atualizar cards de acesso rápido (Não necessário)
+- [x] Atualizar textos de descrição (Já estava correto)
+
+### P5: Revisão de Permissões por Perfil
+- [x] Admin: Acesso a todos os menus (Dashboard, Cadastro, Mediadores, Acompanhamento, Relatórios, Configurações)
+- [x] SAIN Assessor: Dashboard (Estratégico, Acompanhamento), Acompanhamento de Casos, Relatórios
+- [x] Coordenador: Dashboard (Estratégico, Gerencial), Cadastro, Mediadores, Relatórios
+- [x] Escola: Cadastro (Alunos), Mediadores (Quadro, Mediadores)
+- [x] Profissional Externo: Acompanhamento de Casos (Meus Casos)
+
+### P6: Testes e Validação de Responsividade
+- [x] pnpm test --run (147 testes passam)
+- [x] npx tsc --noEmit (0 erros TypeScript)
+- [x] Testar menu em desktop (Menu renderizado corretamente)
+- [x] Testar menu em tablet (Menu responsível)
+- [x] Testar menu em mobile (Menu responsível)
+- [x] Testar navegação entre menus (Navegação funcionando)
+- [x] Testar collapse/expand de submenus (Submenus funcionando)
+
+### P7: Relatório de Reorganização de Menu
+- [ ] Documentar mudanças realizadas
+- [ ] Listar arquivos modificados
+- [ ] Listar permissões por perfil
+- [ ] Listar testes passando
+- [ ] Listar pendências

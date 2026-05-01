@@ -121,9 +121,21 @@ const adminMenuItems: (MenuItem | MenuGroup)[] = [
 // Secretário de Escola
 const secretaryMenuItems: (MenuItem | MenuGroup)[] = [
   { icon: Home, label: "Página Inicial", path: "/" },
-  { icon: FileText, label: "Quadro de Mediadores", path: "/cadastros" },
-  { icon: GraduationCap, label: "Alunos", path: "/alunos" },
-  { icon: UserCheck, label: "Mediadores", path: "/mediadores" },
+  {
+    label: "Cadastro",
+    icon: GraduationCap,
+    items: [
+      { icon: GraduationCap, label: "Alunos", path: "/alunos" },
+    ],
+  },
+  {
+    label: "Mediadores",
+    icon: UserCheck,
+    items: [
+      { icon: FileText, label: "Quadro de Mediadores", path: "/cadastros" },
+      { icon: UserCheck, label: "Mediadores", path: "/mediadores" },
+    ],
+  },
 ];
 
 // Assessor SAIN
@@ -146,14 +158,6 @@ const sainAssessorMenuItems: (MenuItem | MenuGroup)[] = [
     ],
   },
   { icon: BarChart3, label: "Relatórios", path: "/relatorios" },
-  {
-    label: "Demandas Externas",
-    icon: FileText,
-    items: [
-      { icon: FileText, label: "Gestão de Demandas", path: "/demandas-externas" },
-      { icon: Archive, label: "Arquivadas", path: "/demandas-externas/arquivadas" },
-    ],
-  },
 ];
 
 // Profissional Externo
@@ -177,6 +181,7 @@ const coordinatorMenuItems: (MenuItem | MenuGroup)[] = [
     icon: GraduationCap,
     items: [
       { icon: GraduationCap, label: "Alunos", path: "/alunos" },
+      { icon: School, label: "Escolas", path: "/escolas" },
     ],
   },
   {
@@ -188,14 +193,6 @@ const coordinatorMenuItems: (MenuItem | MenuGroup)[] = [
     ],
   },
   { icon: BarChart3, label: "Relatórios", path: "/relatorios" },
-  {
-    label: "Demandas Externas",
-    icon: FileText,
-    items: [
-      { icon: FileText, label: "Gestão de Demandas", path: "/demandas-externas" },
-      { icon: Archive, label: "Arquivadas", path: "/demandas-externas/arquivadas" },
-    ],
-  },
 ];
 
 // ─── Componente separado para grupos expansíveis do menu ────────────────────
