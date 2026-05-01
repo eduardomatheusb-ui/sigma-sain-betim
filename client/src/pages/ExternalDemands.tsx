@@ -425,10 +425,15 @@ export default function ExternalDemands() {
                 </div>
                 <div>
                   <Label>Aluno Relacionado</Label>
+                  {!formData.schoolId && (
+                    <p className="text-xs text-amber-600 mb-1">Selecione primeiro a escola para buscar os alunos.</p>
+                  )}
                   <SearchComboBox
-                    placeholder="Buscar aluno por nome..."
+                    placeholder={formData.schoolId ? "Buscar aluno por nome..." : "Selecione uma escola primeiro"}
                     onSearch={async (query) => {
-                      setStudentSearchQuery(query);
+                      if (formData.schoolId) {
+                        setStudentSearchQuery(query);
+                      }
                       return [];
                     }}
                     onSelect={(student: any) => {
@@ -440,8 +445,8 @@ export default function ExternalDemands() {
                       setStudentSearchQuery('');
                     }}
                   />
-                  {studentSearchResult.isLoading && <p className="text-xs text-muted-foreground">Carregando alunos...</p>}
-                  {studentSearchResult.data && studentSearchResult.data.length > 0 && (
+                  {formData.schoolId && studentSearchResult.isLoading && <p className="text-xs text-muted-foreground">Carregando alunos...</p>}
+                  {formData.schoolId && studentSearchResult.data && studentSearchResult.data.length > 0 && (
                     <div className="mt-2 p-2 border rounded bg-slate-50 max-h-48 overflow-y-auto">
                       {studentSearchResult.data.map((s: any) => (
                         <button
@@ -456,6 +461,9 @@ export default function ExternalDemands() {
                         </button>
                       ))}
                     </div>
+                  )}
+                  {formData.schoolId && studentSearchResult.data && studentSearchResult.data.length === 0 && studentSearchQuery.length >= 2 && (
+                    <p className="text-xs text-gray-500 mt-2">Aluno não encontrado nesta escola. Verifique se o aluno ja foi cadastrado.</p>
                   )}
                 </div>
               </div>
