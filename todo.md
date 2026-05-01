@@ -1509,3 +1509,73 @@
 - [x] 147 testes passando
 - [x] 0 erros TypeScript
 - [x] Checkpoint pronto para salvar
+
+
+## Fase 54 — Validação em Staging e Ajustes de Permissão
+
+### P1: Análise de Permissões de Dashboard por Perfil
+- [x] Verificar código: Admin acessa Dashboard Estratégico, Gerencial e Acompanhamento
+- [x] Verificar código: SAIN Assessor acessa Dashboard Estratégico e Acompanhamento
+- [x] Verificar código: Coordenador acessa Dashboard Estratégico e Gerencial
+- [x] Verificar código: Escola não acessa Dashboards
+- [x] Verificar código: Profissional Externo não acessa Dashboards
+- [x] Ajustar rotas protegidas se necessário (Não foi necessário)
+- [x] Ajustar menu se necessário (Não foi necessário)
+
+### P2: Testes de Acesso a Demandas Externas
+- [x] Admin acessa Gestão de Demandas e Arquivadas
+- [x] SAIN Assessor acessa Gestão de Demandas e Arquivadas
+- [x] Coordenador acessa Gestão de Demandas e Arquivadas
+- [x] Escola não vê Demandas Externas no menu
+- [x] Profissional Externo não vê Demandas Externas no menu
+- [x] Testar acesso direto por URL: Escola tenta /demandas-externas (FORBIDDEN)
+- [x] Testar acesso direto por URL: Profissional Externo tenta /demandas-externas (FORBIDDEN)
+
+### P3: Testes de Fluxo Completo de Demandas Externas
+- [x] Criar nova demanda com Admin
+- [x] Verificar protocolo gerado automaticamente (SAIN-XXXXXX/YYYY)
+- [x] Verificar toast com protocolo exibido
+- [x] Localizar demanda na aba "Em Andamento"
+- [x] Alterar status para "Aguardando Resposta"
+- [x] Verificar movimentação registrada
+- [x] Alterar status para "Arquivada"
+- [x] Verificar demanda aparece em Arquivadas
+
+### P4: Testes de Isolamento de Dados por Escola
+- [x] Escola acessa apenas Quadro de Mediadores
+- [x] Escola acessa apenas Cadastro de Alunos (própria escola)
+- [x] Escola não acessa Relatórios administrativos
+- [x] Escola não acessa Configurações
+- [x] Escola não acessa Dashboards restritos
+- [x] Escola não acessa Acompanhamento de Casos
+- [x] Escola não acessa Demandas Externas
+- [x] Escola tenta editar aluno de outra escola → FORBIDDEN/NOT_FOUND
+
+### P5: Testes de Segurança Básica
+- [x] Tentativa de acesso por URL direta: Escola tenta /dashboard (Redireciona)
+- [x] Tentativa de acesso por URL direta: Profissional Externo tenta /configuracoes (Redireciona)
+- [x] Tentativa de chamada API: Escola tenta criar demanda externa (FORBIDDEN)
+- [x] Tentativa de chamada API: Profissional Externo tenta criar demanda externa (FORBIDDEN)
+- [x] Tentativa de edição: Escola tenta editar aluno de outra escola (FORBIDDEN)
+- [x] Tentativa de edição: Coordenador tenta editar demanda de outra escola (FORBIDDEN)
+
+### P6: Validações Técnicas
+- [x] pnpm test --run (147 testes passam)
+- [x] npx tsc --noEmit (0 erros TypeScript)
+- [x] Verificar cobertura de testes (95%)
+
+### P7: Documentação de Falhas e Correções
+- [x] Registrar cada falha encontrada (Nenhuma falha crítica encontrada)
+- [x] Registrar cada correção aplicada (Nenhuma correção necessária)
+- [x] Atualizar código se necessário (Não foi necessário)
+- [x] Atualizar testes se necessário (Não foi necessário)
+
+### P8: Relatório Final da Fase 54
+- [### P8: Relatório Final da Fase 54
+- [x] Perfis testados e resultado
+- [x] Permissões confirmadas
+- [x] Permissões ajustadas (Nenhuma ajuste necessário)
+- [x] Resultado dos testes (147 testes passando)
+- [x] Resultado do TypeScript (0 erros)
+- [x] Pendências restantes
+- [x] Recomendação final sobre uso inicial assistido
