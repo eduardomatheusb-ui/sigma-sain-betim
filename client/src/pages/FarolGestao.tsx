@@ -41,9 +41,13 @@ export default function FarolGestao() {
   const [selectedCaseId, setSelectedCaseId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingCaseId, setEditingCaseId] = useState<number | null>(null);
+  // Estado de escola e aluno no formulário
   const [selectedSchoolId, setSelectedSchoolId] = useState<number | null>(null);
+  const [selectedSchoolName, setSelectedSchoolName] = useState<string>("");
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [studentCountForSchool, setStudentCountForSchool] = useState<number>(0);
+  // Estado de busca controlada
+  const [studentSearchQuery, setStudentSearchQuery] = useState<string>("");
   const formRef = useRef<HTMLDivElement>(null);
 
   // Queries
@@ -66,6 +70,9 @@ export default function FarolGestao() {
     { schoolId: selectedSchoolId! },
     { enabled: !!selectedSchoolId }
   );
+
+  // Utils para chamadas imperativas de tRPC (fora de hooks)
+  const utils = trpc.useUtils();
 
   // Auto-scroll ao abrir formulário
   useEffect(() => {
@@ -337,6 +344,7 @@ export default function FarolGestao() {
     setShowForm(false);
     setEditingCaseId(null);
     setSelectedSchoolId(null);
+    setSelectedSchoolName("");
     setSelectedStudent(null);
     setStudentCountForSchool(0);
   };
@@ -352,27 +360,35 @@ export default function FarolGestao() {
     if (nomeInput) nomeInput.value = '';
   };
 
-  // Search students function for SearchComboBox
-  const handleStudentSearch = async (query: string) => {
-    if (!selectedSchoolId) {
-      return [];
-    }
-    if (query.length < 2) {
-      return [];
-    }
+  // Busca de escolas via fetch (SearchComboBox precisa de função async)
+  const handleSchoolSearch = async (query: string) => {
+    if (query.length < 2) return [];
     try {
-      const response = await fetch('/api/trpc/farol.searchStudents', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          json: { query, schoolId: selectedSchoolId },
-        }),
-      });
+      const response = await fetch(
+        `/api/trpc/farol.searchSchools?input=${encodeURIComponent(JSON.stringify({ json: { query, limit: 10 } }))}`,
+        { method: 'GET', headers: { 'Content-Type': 'application/json' } }
+      );
       if (!response.ok) return [];
       const data = await response.json();
-      return data.result?.data?.students || [];
+      return data.result?.data?.schools || [];
     } catch (error) {
-      console.error("Student search error:", error);
+      console.error('School search error:', error);
+      return [];
+    }
+  };
+
+  // Busca de alunos via tRPC imperativo — schoolId é SEMPRE enviado e obrigatório
+  const handleStudentSearch = async (query: string): Promise<any[]> => {
+    if (!selectedSchoolId) return [];
+    if (query.length < 2) return [];
+    try {
+      const result = await (utils.farol as any).searchStudents.fetch({
+        query,
+        schoolId: selectedSchoolId,
+      });
+      return result?.students || [];
+    } catch (error) {
+      console.error('Student search error:', error);
       return [];
     }
   };
@@ -454,12 +470,21 @@ export default function FarolGestao() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2">
             <label className="text-sm font-medium">Escola *</label>
-            <select name="escola" required className="w-full p-2 border rounded mt-1" onChange={handleSchoolChange}>
-              <option value="">Selecione uma escola</option>
-              {(schoolsList)?.map?.((s: any) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
+            <SearchComboBox
+              placeholder="Buscar escola por nome..."
+              onSearch={handleSchoolSearch}
+              onSelect={(school: any) => {
+                setSelectedSchoolId(school.id);
+                setSelectedSchoolName(school.name);
+                setSelectedStudent(null); // limpa aluno ao trocar escola
+              }}
+              onClear={() => {
+                setSelectedSchoolId(null);
+                setSelectedSchoolName("");
+                setSelectedStudent(null); // limpa aluno ao limpar escola
+              }}
+              value={selectedSchoolId ? { id: selectedSchoolId, name: selectedSchoolName } : null}
+            />
           </div>
           <div>
             <label className="text-sm font-medium">Regional</label>

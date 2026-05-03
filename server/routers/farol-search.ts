@@ -61,12 +61,12 @@ export const searchStudents = protectedProcedure
   .input(
     z.object({
       query: z.string().min(1).max(100),
-      schoolId: z.number().int().optional(),
+      schoolId: z.number().int(), // obrigatório: busca sempre filtrada por escola
       limit: z.number().int().min(1).max(50).default(10),
       offset: z.number().int().min(0).default(0),
     })
   )
-  .query(async ({ input }: { input: { query: string; schoolId?: number; limit: number; offset: number } }) => {
+  .query(async ({ input }: { input: { query: string; schoolId: number; limit: number; offset: number } }) => {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
 
@@ -75,11 +75,8 @@ export const searchStudents = protectedProcedure
     const whereConditions = [
       like(students.name, searchPattern),
       eq(students.status, "active"),
+      eq(students.schoolId, input.schoolId), // sempre filtra pela escola
     ];
-
-    if (input.schoolId) {
-      whereConditions.push(eq(students.schoolId, input.schoolId));
-    }
 
     const results = await db
       .select({

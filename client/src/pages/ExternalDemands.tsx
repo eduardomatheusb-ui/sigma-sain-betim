@@ -136,6 +136,8 @@ export default function ExternalDemands() {
   const { data: schools = [] } = trpc.schools.list.useQuery();
   const { data: advisors = [] } = trpc.farol.listAdvisors.useQuery({ ativo: true });
   const createMutation = trpc.externalDemands.create.useMutation();
+  // Utils para chamadas imperativas de tRPC
+  const utils = trpc.useUtils();
   
   // State for selected school and student
   const [selectedSchool, setSelectedSchool] = useState<any>(null);
@@ -298,40 +300,29 @@ export default function ExternalDemands() {
     link.click();
   };
 
-  // Search functions for SearchComboBox
+  // Busca de escolas via tRPC imperativo
   const handleSchoolSearch = async (query: string) => {
     if (query.length < 2) return [];
     try {
-      const response = await fetch('/api/trpc/farol.searchSchools', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          json: { query, limit: 10 },
-        }),
-      });
-      if (!response.ok) return [];
-      const data = await response.json();
-      return data.result?.data?.schools || [];
+      const result = await (utils.farol as any).searchSchools.fetch({ query, limit: 10 });
+      return result?.schools || [];
     } catch (error) {
       console.error('School search error:', error);
       return [];
     }
   };
 
+  // Busca de alunos via tRPC imperativo — schoolId é SEMPRE obrigatório
   const handleStudentSearch = async (query: string) => {
-    if (!formData.schoolId) return [];
+    const schoolIdNum = formData.schoolId ? parseInt(formData.schoolId) : null;
+    if (!schoolIdNum) return []; // bloqueia busca sem escola
     if (query.length < 2) return [];
     try {
-      const response = await fetch('/api/trpc/farol.searchStudents', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          json: { query, schoolId: parseInt(formData.schoolId) },
-        }),
+      const result = await (utils.farol as any).searchStudents.fetch({
+        query,
+        schoolId: schoolIdNum, // sempre envia schoolId
       });
-      if (!response.ok) return [];
-      const data = await response.json();
-      return data.result?.data?.students || [];
+      return result?.students || [];
     } catch (error) {
       console.error('Student search error:', error);
       return [];
