@@ -45,6 +45,7 @@ export default function FarolGestao() {
   const [selectedSchoolId, setSelectedSchoolId] = useState<number | null>(null);
   const [selectedSchoolName, setSelectedSchoolName] = useState<string>("");
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [selectedStudentName, setSelectedStudentName] = useState<string>("");
   const [studentCountForSchool, setStudentCountForSchool] = useState<number>(0);
   // Estado de busca controlada
   const [studentSearchQuery, setStudentSearchQuery] = useState<string>("");
@@ -100,8 +101,8 @@ export default function FarolGestao() {
         if (dataInput && selectedCase.dataEntrada) {
           dataInput.value = new Date(selectedCase.dataEntrada).toISOString().split('T')[0];
         }
-        const nomeInput = form.querySelector('input[name="nomeEstudante"]') as HTMLInputElement;
-        if (nomeInput) nomeInput.value = selectedCase.nomeEstudante || '';
+        // Popula o estado React do nome do aluno (o hidden input usa esse estado)
+        setSelectedStudentName(selectedCase.nomeEstudante || '');
         const idadeInput = form.querySelector('input[name="idade"]') as HTMLInputElement;
         if (idadeInput) idadeInput.value = (selectedCase as any).idade?.toString() || '';
         const segmentoSelect = form.querySelector('select[name="segmento"]') as HTMLSelectElement;
@@ -347,6 +348,7 @@ export default function FarolGestao() {
     setSelectedSchoolId(null);
     setSelectedSchoolName("");
     setSelectedStudent(null);
+    setSelectedStudentName("");
     setStudentCountForSchool(0);
   };
 
@@ -356,9 +358,7 @@ export default function FarolGestao() {
     const schoolId = val ? parseInt(val, 10) : null;
     setSelectedSchoolId(schoolId);
     setSelectedStudent(null);
-    // Clear student input
-    const nomeInput = document.querySelector('input[name="nomeEstudante"]') as HTMLInputElement;
-    if (nomeInput) nomeInput.value = '';
+    setSelectedStudentName("");
   };
 
   // ESCOLA: filtro local no frontend (95 escolas, sem chamada ao backend a cada letra)
@@ -431,15 +431,17 @@ export default function FarolGestao() {
               onSearch={handleStudentSearch}
               onSelect={(student) => {
                 setSelectedStudent(student);
-                const nomeInput = document.querySelector('input[name="nomeEstudante"]') as HTMLInputElement;
-                if (nomeInput) nomeInput.value = student.name;
+                setSelectedStudentName(student?.name || "");
               }}
               onClear={() => {
                 setSelectedStudent(null);
+                setSelectedStudentName("");
               }}
               value={selectedStudent}
               disabled={!selectedSchoolId}
             />
+            {/* Input oculto para garantir que nomeEstudante entre no FormData */}
+            <input type="hidden" name="nomeEstudante" value={selectedStudentName} readOnly />
             {selectedStudent && (
               <p className="text-xs text-green-600 mt-1">✓ Aluno vinculado ao caso</p>
             )}
@@ -473,12 +475,14 @@ export default function FarolGestao() {
               onSelect={(school: any) => {
                 setSelectedSchoolId(school.id);
                 setSelectedSchoolName(school.name);
-                setSelectedStudent(null); // limpa aluno ao trocar escola
+                setSelectedStudent(null);
+                setSelectedStudentName(""); // limpa aluno ao trocar escola
               }}
               onClear={() => {
                 setSelectedSchoolId(null);
                 setSelectedSchoolName("");
-                setSelectedStudent(null); // limpa aluno ao limpar escola
+                setSelectedStudent(null);
+                setSelectedStudentName(""); // limpa aluno ao limpar escola
               }}
               value={selectedSchoolId ? { id: selectedSchoolId, name: selectedSchoolName } : null}
             />
