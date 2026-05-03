@@ -18,6 +18,9 @@ function withRateLimit(limiter: typeof searchRateLimiter) {
   };
 }
 import { notifyOwner } from "./_core/notification";
+import bcrypt from "bcryptjs";
+import { sdk } from "./_core/sdk";
+import { ONE_YEAR_MS } from "@shared/const";
 import { getDb } from "./db";
 import { students, mediators, attendances, externalDemands, externalDemandMovements, externalDemandAudit, schools, users, demands, mediatorStudents, statusHistory, weeklySnapshots, studentEditHistory, mediatorStatusChangeHistory, farolCases, farolCaseHistory, farolCaseMovements, userSchools, farolAdvisors } from "../drizzle/schema";
 import { eq, and, like, sql, desc, inArray } from "drizzle-orm";
@@ -59,6 +62,33 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+    loginWithPassword: publicProcedure
+      .input(z.object({
+        email: z.string().email("E-mail inválido"),
+        password: z.string().min(1, "Senha obrigatória"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        // Buscar usuário pelo e-mail
+        const [user] = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+        if (!user) throw new TRPCError({ code: "UNAUTHORIZED", message: "E-mail ou senha incorretos" });
+        if (!user.isActive) throw new TRPCError({ code: "FORBIDDEN", message: "Usuário inativo. Contate o administrador." });
+        if (!user.passwordHash) throw new TRPCError({ code: "UNAUTHORIZED", message: "Este usuário não possui senha cadastrada. Use o login via Manus." });
+        // Verificar senha
+        const valid = await bcrypt.compare(input.password, user.passwordHash);
+        if (!valid) throw new TRPCError({ code: "UNAUTHORIZED", message: "E-mail ou senha incorretos" });
+        // Criar sessão (mesmo padrão do OAuth)
+        const sessionToken = await sdk.createSessionToken(user.openId, {
+          name: user.name || "",
+          expiresInMs: ONE_YEAR_MS,
+        });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        // Atualizar lastSignedIn
+        await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, user.id));
+        return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
+      }),
   }),
 
   /**
@@ -1681,6 +1711,7 @@ export const appRouter = router({
         telefone: z.string().optional(),
         areaAtuacao: z.string().optional(),
         regional: z.string().optional(),
+        password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres").optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem criar usuários" });
@@ -1698,6 +1729,7 @@ export const appRouter = router({
           schoolId: primarySchoolId,
           isActive: true,
           loginMethod: "pre_registered",
+          passwordHash: input.password ? await bcrypt.hash(input.password, 10) : null,
         });
         const newUserId = (result as any).insertId as number;
         // Insert user_schools links

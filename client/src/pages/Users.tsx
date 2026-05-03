@@ -213,6 +213,8 @@ export default function Users() {
     telefone: "",
     areaAtuacao: "",
     regional: "",
+    password: "",
+    confirmPassword: "",
   });
 
   const createMutation = trpc.users.create.useMutation({
@@ -220,7 +222,7 @@ export default function Users() {
       utils.users.list.invalidate();
       toast.success("Usuário criado com sucesso! Ele poderá fazer login com este e-mail.");
       setShowCreate(false);
-      setCreateForm({ name: "", email: "", role: "school_user", schoolIds: [], cargo: "", telefone: "", areaAtuacao: "", regional: "" });
+      setCreateForm({ name: "", email: "", role: "school_user", schoolIds: [], cargo: "", telefone: "", areaAtuacao: "", regional: "", password: "", confirmPassword: "" });
     },
     onError: (e) => toast.error(e.message),
   });
@@ -232,6 +234,14 @@ export default function Users() {
       toast.error("Selecione a escola vinculada para secretários de escola");
       return;
     }
+    if (createForm.password && createForm.password.length < 6) {
+      toast.error("A senha deve ter no mínimo 6 caracteres");
+      return;
+    }
+    if (createForm.password && createForm.password !== createForm.confirmPassword) {
+      toast.error("As senhas não coincidem");
+      return;
+    }
     createMutation.mutate({
       name: createForm.name.trim(),
       email: createForm.email.trim(),
@@ -241,6 +251,7 @@ export default function Users() {
       telefone: createForm.telefone.trim() || undefined,
       areaAtuacao: createForm.areaAtuacao.trim() || undefined,
       regional: createForm.regional.trim() || undefined,
+      password: createForm.password.trim() || undefined,
     });
   }
 
@@ -495,6 +506,32 @@ export default function Users() {
                   ? "Secretários de escola só visualizam dados da escola vinculada."
                   : "Selecione todas as escolas que este usuário deve acessar (opcional)."}
               </p>
+            </div>
+          </div>
+          {/* Senha */}
+          <div className="border-t pt-4">
+            <p className="text-sm text-muted-foreground mb-3">Defina uma senha para login por e-mail/senha (opcional). Se não definida, o usuário só poderá entrar via Manus OAuth.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Senha</Label>
+                <Input
+                  className="mt-1"
+                  type="password"
+                  placeholder="Mínimo 6 caracteres"
+                  value={createForm.password}
+                  onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>Confirmar Senha</Label>
+                <Input
+                  className="mt-1"
+                  type="password"
+                  placeholder="Repita a senha"
+                  value={createForm.confirmPassword}
+                  onChange={e => setCreateForm(f => ({ ...f, confirmPassword: e.target.value }))}
+                />
+              </div>
             </div>
           </div>
           <DialogFooter className="gap-2 pt-2">

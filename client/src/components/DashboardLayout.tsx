@@ -24,6 +24,10 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 import {
   LayoutDashboard,
   LogOut,
@@ -260,6 +264,12 @@ export default function DashboardLayout({
     return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
   });
   const { loading, user } = useAuth();
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const loginMutation = trpc.auth.loginWithPassword.useMutation({
+    onSuccess: () => { window.location.reload(); },
+    onError: (e) => toast.error(e.message),
+  });
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
@@ -273,8 +283,8 @@ export default function DashboardLayout({
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center p-4">
         <div className="max-w-md w-full">
-          <div className="bg-white rounded-xl shadow-xl p-8 text-center border border-border">
-            <div className="mb-6">
+          <div className="bg-white rounded-xl shadow-xl p-8 border border-border">
+            <div className="mb-6 text-center">
               <div className="flex items-center justify-center mb-4">
                 <img
                   src="/manus-storage/nexus-logo_be12f249.png"
@@ -287,12 +297,52 @@ export default function DashboardLayout({
               <p className="text-xs text-muted-foreground mt-1">NEXUS — SEMED/SAIN</p>
               <p className="text-xs text-muted-foreground">Prefeitura Municipal de Betim</p>
             </div>
+            {/* Login por e-mail e senha */}
+            <div className="space-y-3 mb-4">
+              <div>
+                <Label htmlFor="login-email">E-mail</Label>
+                <Input
+                  id="login-email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={loginEmail}
+                  onChange={e => setLoginEmail(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && loginEmail && loginPassword) loginMutation.mutate({ email: loginEmail, password: loginPassword }); }}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="login-password">Senha</Label>
+                <Input
+                  id="login-password"
+                  type="password"
+                  placeholder="Sua senha"
+                  value={loginPassword}
+                  onChange={e => setLoginPassword(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && loginEmail && loginPassword) loginMutation.mutate({ email: loginEmail, password: loginPassword }); }}
+                  className="mt-1"
+                />
+              </div>
+              <Button
+                onClick={() => loginMutation.mutate({ email: loginEmail, password: loginPassword })}
+                disabled={loginMutation.isPending || !loginEmail || !loginPassword}
+                className="w-full bg-primary hover:bg-primary/90 text-white"
+              >
+                {loginMutation.isPending ? "Entrando..." : "Entrar"}
+              </Button>
+            </div>
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-muted-foreground">ou</span>
+              </div>
+            </div>
             <Button
+              variant="outline"
               onClick={() => { window.location.href = getLoginUrl(); }}
-              size="lg"
-              className="w-full bg-primary hover:bg-primary/90 text-white"
+              className="w-full"
             >
-              Entrar no Sistema
+              Entrar com Manus
             </Button>
           </div>
         </div>
