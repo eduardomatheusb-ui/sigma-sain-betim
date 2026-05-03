@@ -285,38 +285,29 @@ export default function FarolGestao() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
-    const nomeEstudante = formData.get("nomeEstudante") as string;
-    const escolaId = formData.get("escola") as string;
+    // Validar via estado React (campos controlados por SearchComboBox não entram no FormData)
+    const nomeEstudante = selectedStudentName.trim() || (formData.get("nomeEstudante") as string || "").trim();
     const dataEntrada = formData.get("dataEntrada") as string;
 
-    if (!nomeEstudante?.trim()) {
+    if (!nomeEstudante) {
       toast.error("Nome do aluno é obrigatório");
       return;
     }
-
-    if (!escolaId?.trim()) {
-      toast.error("Escola é obrigatória");
+    // Escola validada via estado React (SearchComboBox não usa name= no FormData)
+    if (!selectedSchoolId) {
+      toast.error("Escola é obrigatória. Selecione uma escola antes de salvar.");
       return;
     }
-
     if (!dataEntrada?.trim()) {
       toast.error("Data de entrada é obrigatória");
       return;
     }
-
-    // Validar que schoolId foi salvo (obrigatório)
-    if (!selectedSchoolId) {
-      toast.error("Erro ao processar escola. Tente novamente.");
-      return;
-    }
-
     // Get school name from list
-    const schoolName = schoolsList?.find((s: any) => s.id === selectedSchoolId)?.name || "";
+    const schoolName = selectedSchoolName || schoolsList?.find((s: any) => s.id === selectedSchoolId)?.name || "";
     if (!schoolName) {
-      toast.error("Escola não encontrada");
+       toast.error("Escola não encontrada");
       return;
     }
-
     const caseData = {
       nomeEstudante,
       idade: parseInt(formData.get("idade") as string) || 0,
