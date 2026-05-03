@@ -370,18 +370,22 @@ export default function FarolGestao() {
     ).slice(0, 10);
   };
 
-  // ALUNO: chamada imperativa real ao tRPC — schoolId SEMPRE obrigatório
+  // ALUNO: chamada imperativa real ao tRPC — schoolId forçado como Number para não falhar no Zod
   const handleStudentSearch = async (query: string): Promise<any[]> => {
     if (!selectedSchoolId) return [];
     if (query.length < 2) return [];
     try {
+      // Forçamos a conversão do schoolId para Number para não falhar na validação do tRPC/Zod
       const result = await trpcUtils.farol.searchStudents.fetch({
-        query,
-        schoolId: selectedSchoolId,
+        query: query,
+        schoolId: Number(selectedSchoolId),
       });
-      return (result as any)?.students || [];
+      // O backend pode retornar o array diretamente ou dentro de um objeto. Cobrimos ambos:
+      if (Array.isArray(result)) return result;
+      return (result as any)?.students || (result as any)?.data || (result as any)?.items || [];
     } catch (error) {
-      console.error('Student search error:', error);
+      // Se der erro de Zod ou de rede, aparece no console do navegador (F12)
+      console.error('ERRO NA BUSCA DE ALUNO:', error);
       return [];
     }
   };
