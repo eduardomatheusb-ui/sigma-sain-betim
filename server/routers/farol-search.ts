@@ -67,6 +67,7 @@ export const searchStudents = protectedProcedure
     })
   )
   .query(async ({ input }: { input: { query: string; schoolId: number; limit: number; offset: number } }) => {
+    console.log('[searchStudents] Buscando aluno:', input.query, '| Escola ID:', input.schoolId);
     const db = await getDb();
     if (!db) throw new Error("Database not available");
 

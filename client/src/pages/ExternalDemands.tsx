@@ -133,11 +133,12 @@ export default function ExternalDemands() {
   });
 
   const { data: demands = [], isLoading, refetch } = trpc.externalDemands.list.useQuery();
+  // Lista completa de escolas carregada uma vez — filtro feito localmente no frontend
   const { data: schools = [] } = trpc.schools.list.useQuery();
   const { data: advisors = [] } = trpc.farol.listAdvisors.useQuery({ ativo: true });
   const createMutation = trpc.externalDemands.create.useMutation();
   // Utils para chamadas imperativas de tRPC
-  const utils = trpc.useUtils();
+  const trpcUtils = trpc.useUtils();
   
   // State for selected school and student
   const [selectedSchool, setSelectedSchool] = useState<any>(null);
@@ -300,29 +301,26 @@ export default function ExternalDemands() {
     link.click();
   };
 
-  // Busca de escolas via tRPC imperativo
-  const handleSchoolSearch = async (query: string) => {
-    if (query.length < 2) return [];
-    try {
-      const result = await (utils.farol as any).searchSchools.fetch({ query, limit: 10 });
-      return result?.schools || [];
-    } catch (error) {
-      console.error('School search error:', error);
-      return [];
-    }
+  // ESCOLA: filtro local no frontend (95 escolas, sem chamada ao backend a cada letra)
+  const handleSchoolSearch = async (query: string): Promise<any[]> => {
+    if (query.length < 1) return [];
+    const q = query.toLowerCase();
+    return (schools as any[]).filter((s: any) =>
+      s.name?.toLowerCase().includes(q)
+    ).slice(0, 10);
   };
 
-  // Busca de alunos via tRPC imperativo — schoolId é SEMPRE obrigatório
-  const handleStudentSearch = async (query: string) => {
+  // ALUNO: chamada imperativa real ao tRPC — schoolId SEMPRE obrigatório
+  const handleStudentSearch = async (query: string): Promise<any[]> => {
     const schoolIdNum = formData.schoolId ? parseInt(formData.schoolId) : null;
-    if (!schoolIdNum) return []; // bloqueia busca sem escola
+    if (!schoolIdNum) return []; // bloqueia busca sem escola selecionada
     if (query.length < 2) return [];
     try {
-      const result = await (utils.farol as any).searchStudents.fetch({
+      const result = await trpcUtils.farol.searchStudents.fetch({
         query,
-        schoolId: schoolIdNum, // sempre envia schoolId
+        schoolId: schoolIdNum,
       });
-      return result?.students || [];
+      return (result as any)?.students || [];
     } catch (error) {
       console.error('Student search error:', error);
       return [];

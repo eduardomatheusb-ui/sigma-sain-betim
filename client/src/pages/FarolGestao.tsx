@@ -62,8 +62,10 @@ export default function FarolGestao() {
 
   const { data: advisors = [] } = trpc.farol.listAdvisors.useQuery({ ativo: true });
   const { data: metrics } = trpc.farol.metrics.useQuery();
-  const schoolsQuery = (trpc.schools.list.useQuery() as any);
-  const schoolsList = (schoolsQuery?.data || []) as any[];
+  // Lista completa de escolas carregada uma vez — filtro feito localmente no frontend
+  const { data: schoolsList = [] } = trpc.schools.list.useQuery();
+  // Utils para chamadas imperativas de tRPC
+  const trpcUtils = trpc.useUtils();
 
   // Query to count students for the selected school
   const { data: studentCountData } = trpc.farol.countStudentsBySchool.useQuery(
@@ -71,8 +73,7 @@ export default function FarolGestao() {
     { enabled: !!selectedSchoolId }
   );
 
-  // Utils para chamadas imperativas de tRPC (fora de hooks)
-  const utils = trpc.useUtils();
+  // (utils declarado acima como trpcUtils)
 
   // Auto-scroll ao abrir formulário
   useEffect(() => {
@@ -360,33 +361,25 @@ export default function FarolGestao() {
     if (nomeInput) nomeInput.value = '';
   };
 
-  // Busca de escolas via fetch (SearchComboBox precisa de função async)
-  const handleSchoolSearch = async (query: string) => {
-    if (query.length < 2) return [];
-    try {
-      const response = await fetch(
-        `/api/trpc/farol.searchSchools?input=${encodeURIComponent(JSON.stringify({ json: { query, limit: 10 } }))}`,
-        { method: 'GET', headers: { 'Content-Type': 'application/json' } }
-      );
-      if (!response.ok) return [];
-      const data = await response.json();
-      return data.result?.data?.schools || [];
-    } catch (error) {
-      console.error('School search error:', error);
-      return [];
-    }
+  // ESCOLA: filtro local no frontend (95 escolas, sem chamada ao backend a cada letra)
+  const handleSchoolSearch = async (query: string): Promise<any[]> => {
+    if (query.length < 1) return [];
+    const q = query.toLowerCase();
+    return (schoolsList as any[]).filter((s: any) =>
+      s.name?.toLowerCase().includes(q)
+    ).slice(0, 10);
   };
 
-  // Busca de alunos via tRPC imperativo — schoolId é SEMPRE enviado e obrigatório
+  // ALUNO: chamada imperativa real ao tRPC — schoolId SEMPRE obrigatório
   const handleStudentSearch = async (query: string): Promise<any[]> => {
     if (!selectedSchoolId) return [];
     if (query.length < 2) return [];
     try {
-      const result = await (utils.farol as any).searchStudents.fetch({
+      const result = await trpcUtils.farol.searchStudents.fetch({
         query,
         schoolId: selectedSchoolId,
       });
-      return result?.students || [];
+      return (result as any)?.students || [];
     } catch (error) {
       console.error('Student search error:', error);
       return [];
