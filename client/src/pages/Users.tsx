@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { REGIONAIS_PADRONIZADAS } from "@shared/standardization";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -454,31 +455,12 @@ export default function Users() {
             {(createForm.role === "sain_assessor" || createForm.role === "external_professional") && (
               <>
               <div>
-                <Label>Cargo / Função</Label>
-                <Input
-                  className="mt-1"
-                  placeholder="Ex: Psicólogo, Fonoaudiólogo..."
-                  value={createForm.cargo}
-                  onChange={e => setCreateForm(f => ({ ...f, cargo: e.target.value }))}
-                />
-                <p className="text-xs text-muted-foreground mt-1">Será exibido no Acompanhamento de Casos como assessor responsável.</p>
-              </div>
-              <div>
                 <Label>Telefone</Label>
                 <Input
                   className="mt-1"
                   placeholder="(31) 99999-9999"
                   value={createForm.telefone}
                   onChange={e => setCreateForm(f => ({ ...f, telefone: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label>Área de Atuação</Label>
-                <Input
-                  className="mt-1"
-                  placeholder="Ex: Saúde Mental, Educação Especial..."
-                  value={createForm.areaAtuacao}
-                  onChange={e => setCreateForm(f => ({ ...f, areaAtuacao: e.target.value }))}
                 />
               </div>
               <div>
@@ -490,12 +472,9 @@ export default function Users() {
                   <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione a regional" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Nenhuma</SelectItem>
-                    <SelectItem value="Regional Norte">Regional Norte</SelectItem>
-                    <SelectItem value="Regional Sul">Regional Sul</SelectItem>
-                    <SelectItem value="Regional Leste">Regional Leste</SelectItem>
-                    <SelectItem value="Regional Oeste">Regional Oeste</SelectItem>
-                    <SelectItem value="Regional Centro">Regional Centro</SelectItem>
-                    <SelectItem value="SAIN Central">SAIN Central</SelectItem>
+                    {REGIONAIS_PADRONIZADAS.map(r => (
+                      <SelectItem key={r} value={r}>{r}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
