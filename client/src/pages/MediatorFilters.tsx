@@ -22,7 +22,7 @@ export function MediatorFiltersBar({ schools, filters, setFilters }: any) {
                 <SelectValue placeholder="Todas" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas as escolas</SelectItem>
+                <SelectItem value="all">Todas as escolas</SelectItem>
                 {schools?.map((s: any) => (
                   <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
                 ))}
@@ -36,7 +36,7 @@ export function MediatorFiltersBar({ schools, filters, setFilters }: any) {
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os status</SelectItem>
+                <SelectItem value="all">Todos os status</SelectItem>
                 <SelectItem value="active">Ativo</SelectItem>
                 <SelectItem value="inactive">Inativo</SelectItem>
                 <SelectItem value="on_leave">Licença</SelectItem>
@@ -52,7 +52,7 @@ export function MediatorFiltersBar({ schools, filters, setFilters }: any) {
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="0">Sem alunos</SelectItem>
                 <SelectItem value="1">1 aluno</SelectItem>
                 <SelectItem value="2">2 alunos</SelectItem>

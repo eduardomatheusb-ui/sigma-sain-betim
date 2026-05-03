@@ -399,7 +399,7 @@ export default function ExternalDemands() {
                       <SelectValue placeholder="Selecione um assessor..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Sem assessor definido</SelectItem>
+                      <SelectItem value="none">Sem assessor definido</SelectItem>
                       {(advisors as any[]).map((a: any) => (
                         <SelectItem key={a.id} value={String(a.id)}>
                           {a.nome} {a.cargo ? `(${a.cargo})` : ''}

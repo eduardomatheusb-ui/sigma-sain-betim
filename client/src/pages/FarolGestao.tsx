@@ -62,7 +62,7 @@ export default function FarolGestao() {
   const schoolsList = (schoolsQuery?.data || []) as any[];
 
   // Student autocomplete via searchStudents - only search if school is selected
-  const { data: studentSearchResults = [] } = (trpc.demands.searchStudents.useQuery(
+  const { data: studentSearchResults = [] } = (trpc.farol.searchStudents.useQuery(
     { query: studentSearch, schoolId: selectedSchoolId || undefined },
     { enabled: studentSearch.length >= 2 && !!selectedSchoolId }
   ) as any);
@@ -329,11 +329,9 @@ export default function FarolGestao() {
   // Handle school change - reset student search
   const handleSchoolChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
-    // value is now the school id (numeric string) — fall back to name lookup for safety
-    const byId = schoolsList.find((s: any) => String(s.id) === val);
-    const byName = schoolsList.find((s: any) => s.name === val);
-    const school = byId || byName;
-    setSelectedSchoolId(school?.id ?? null);
+    // value is the school id (numeric string from the select option value)
+    const schoolId = val ? parseInt(val, 10) : null;
+    setSelectedSchoolId(schoolId);
     setStudentSearch("");
     setSelectedStudentId(null);
     // Clear student input

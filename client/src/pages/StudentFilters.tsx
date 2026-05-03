@@ -22,7 +22,7 @@ export function StudentFiltersBar({ schools, filters, setFilters }: any) {
                 <SelectValue placeholder="Todas" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas as escolas</SelectItem>
+                <SelectItem value="all">Todas as escolas</SelectItem>
                 {schools?.map((s: any) => (
                   <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
                 ))}
@@ -36,7 +36,7 @@ export function StudentFiltersBar({ schools, filters, setFilters }: any) {
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os turnos</SelectItem>
+                <SelectItem value="all">Todos os turnos</SelectItem>
                 <SelectItem value="morning">Manhã</SelectItem>
                 <SelectItem value="afternoon">Tarde</SelectItem>
                 <SelectItem value="full">Integral</SelectItem>
@@ -51,7 +51,7 @@ export function StudentFiltersBar({ schools, filters, setFilters }: any) {
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="with_attendant">Com atendente</SelectItem>
                 <SelectItem value="without_attendant">Sem atendente</SelectItem>
                 <SelectItem value="awaiting_substitution">Aguardando substituição</SelectItem>
@@ -66,7 +66,7 @@ export function StudentFiltersBar({ schools, filters, setFilters }: any) {
                 <SelectValue placeholder="Todas" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas as deficiências</SelectItem>
+                <SelectItem value="all">Todas as deficiências</SelectItem>
                 <SelectItem value="TEA">TEA</SelectItem>
                 <SelectItem value="TDAH">TDAH</SelectItem>
                 <SelectItem value="Deficiência visual">Deficiência visual</SelectItem>
