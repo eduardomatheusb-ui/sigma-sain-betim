@@ -408,6 +408,28 @@ export const farolRouter = router({
       }
     }),
 
+  countStudentsBySchool: protectedProcedure
+    .input(z.object({ schoolId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return { count: 0 };
+      
+      try {
+        const result = await db.select({ count: sql`COUNT(*)` })
+          .from(students)
+          .where(and(
+            eq(students.schoolId, input.schoolId),
+            eq(students.status, "active")
+          ));
+        
+        const count = result[0]?.count ? parseInt(result[0].count.toString(), 10) : 0;
+        return { count };
+      } catch (error) {
+        console.error("[Farol] Error counting students:", error);
+        return { count: 0 };
+      }
+    }),
+
   metrics: protectedProcedure
     .query(async ({ ctx }) => {
       const db = await getDb();

@@ -1,6 +1,7 @@
 import { trpc } from "@/lib/trpc";
 import { REGIONAIS_PADRONIZADAS } from "@shared/standardization";
 import { exportCaseToWord, exportCasesToExcel } from "@/lib/farol-export";
+import { SearchComboBox } from "@/components/SearchComboBox";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -40,10 +41,9 @@ export default function FarolGestao() {
   const [selectedCaseId, setSelectedCaseId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingCaseId, setEditingCaseId] = useState<number | null>(null);
-  const [studentSearch, setStudentSearch] = useState("");
-  const [showStudentDropdown, setShowStudentDropdown] = useState(false);
   const [selectedSchoolId, setSelectedSchoolId] = useState<number | null>(null);
-  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [studentCountForSchool, setStudentCountForSchool] = useState<number>(0);
   const formRef = useRef<HTMLDivElement>(null);
 
   // Queries
@@ -61,11 +61,11 @@ export default function FarolGestao() {
   const schoolsQuery = (trpc.schools.list.useQuery() as any);
   const schoolsList = (schoolsQuery?.data || []) as any[];
 
-  // Student autocomplete via searchStudents - only search if school is selected
-  const { data: studentSearchResults = [] } = (trpc.farol.searchStudents.useQuery(
-    { query: studentSearch, schoolId: selectedSchoolId || undefined },
-    { enabled: studentSearch.length >= 2 && !!selectedSchoolId }
-  ) as any);
+  // Query to count students for the selected school
+  const { data: studentCountData } = trpc.farol.countStudentsBySchool.useQuery(
+    { schoolId: selectedSchoolId! },
+    { enabled: !!selectedSchoolId }
+  );
 
   // Auto-scroll ao abrir formulário
   useEffect(() => {
@@ -75,6 +75,13 @@ export default function FarolGestao() {
       }, 100);
     }
   }, [showForm, isMobile]);
+
+  // Update student count when data changes
+  useEffect(() => {
+    if (studentCountData?.count !== undefined) {
+      setStudentCountForSchool(studentCountData.count);
+    }
+  }, [studentCountData]);
 
   // Preencher formulário ao editar
   useEffect(() => {
@@ -92,7 +99,7 @@ export default function FarolGestao() {
         const segmentoSelect = form.querySelector('select[name="segmento"]') as HTMLSelectElement;
         if (segmentoSelect) segmentoSelect.value = selectedCase.segmento || '';
         const escolaSelect = form.querySelector('select[name="escola"]') as HTMLSelectElement;
-        if (escolaSelect) escolaSelect.value = selectedCase.escola || '';
+        if (escolaSelect) escolaSelect.value = selectedCase.schoolId?.toString() || '';
         const regionalSelect = form.querySelector('select[name="regional"]') as HTMLSelectElement;
         if (regionalSelect) regionalSelect.value = selectedCase.regional || '';
         const tipoSelect = form.querySelector('select[name="tipoDemanda"]') as HTMLSelectElement;
@@ -270,7 +277,7 @@ export default function FarolGestao() {
     const formData = new FormData(e.currentTarget);
     
     const nomeEstudante = formData.get("nomeEstudante") as string;
-    const escola = formData.get("escola") as string;
+    const escolaId = formData.get("escola") as string;
     const dataEntrada = formData.get("dataEntrada") as string;
 
     if (!nomeEstudante?.trim()) {
@@ -278,7 +285,7 @@ export default function FarolGestao() {
       return;
     }
 
-    if (!escola?.trim()) {
+    if (!escolaId?.trim()) {
       toast.error("Escola é obrigatória");
       return;
     }
@@ -288,17 +295,25 @@ export default function FarolGestao() {
       return;
     }
 
-    // schoolId: prefer state value, fall back to the select's numeric value (id)
-    const schoolIdFromForm = parseInt(escola) || null;
-    const resolvedSchoolId = selectedSchoolId || schoolIdFromForm;
-    // Also get the school name for display (escola field stores the id, look up the name)
-    const schoolName = schoolsList?.find((s: any) => String(s.id) === String(resolvedSchoolId))?.name || escola;
+    // Validar que schoolId foi salvo (obrigatório)
+    if (!selectedSchoolId) {
+      toast.error("Erro ao processar escola. Tente novamente.");
+      return;
+    }
+
+    // Get school name from list
+    const schoolName = schoolsList?.find((s: any) => s.id === selectedSchoolId)?.name || "";
+    if (!schoolName) {
+      toast.error("Escola não encontrada");
+      return;
+    }
+
     const caseData = {
       nomeEstudante,
       idade: parseInt(formData.get("idade") as string) || 0,
       escola: schoolName,
-      schoolId: resolvedSchoolId || undefined,
-      studentId: selectedStudentId || undefined,
+      schoolId: selectedSchoolId,
+      studentId: selectedStudent?.id || undefined,
       segmento: formData.get("segmento") as string,
       regional: formData.get("regional") as string,
       tipoDemanda: formData.get("tipoDemanda") as string,
@@ -321,25 +336,48 @@ export default function FarolGestao() {
   const handleCloseForm = () => {
     setShowForm(false);
     setEditingCaseId(null);
-    setStudentSearch("");
     setSelectedSchoolId(null);
-    setSelectedStudentId(null);
+    setSelectedStudent(null);
+    setStudentCountForSchool(0);
   };
 
-  // Handle school change - reset student search
+  // Handle school change - reset student selection
   const handleSchoolChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
-    // value is the school id (numeric string from the select option value)
     const schoolId = val ? parseInt(val, 10) : null;
     setSelectedSchoolId(schoolId);
-    setStudentSearch("");
-    setSelectedStudentId(null);
+    setSelectedStudent(null);
     // Clear student input
     const nomeInput = document.querySelector('input[name="nomeEstudante"]') as HTMLInputElement;
     if (nomeInput) nomeInput.value = '';
   };
 
-  // Renderizar formulário como JSX direto (não como sub-componente, para evitar remontagem e perda de estado)
+  // Search students function for SearchComboBox
+  const handleStudentSearch = async (query: string) => {
+    if (!selectedSchoolId) {
+      return [];
+    }
+    if (query.length < 2) {
+      return [];
+    }
+    try {
+      const response = await fetch('/api/trpc/farol.searchStudents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          json: { query, schoolId: selectedSchoolId },
+        }),
+      });
+      if (!response.ok) return [];
+      const data = await response.json();
+      return data.result?.data?.students || [];
+    } catch (error) {
+      console.error("Student search error:", error);
+      return [];
+    }
+  };
+
+  // Renderizar formulário como JSX direto
   const formContentJSX = (
     <form onSubmit={(e) => handleSubmitCase(e, !!editingCaseId)} className="space-y-6">
       {/* Identificação do Caso */}
@@ -367,47 +405,29 @@ export default function FarolGestao() {
       <div>
         <h3 className="font-semibold mb-3">Dados do Estudante</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="relative">
+          <div>
             <label className="text-sm font-medium">Nome do Aluno *</label>
             {!selectedSchoolId && (
               <p className="text-xs text-amber-600 mb-1">Selecione primeiro a escola para buscar os alunos.</p>
             )}
-            <Input
-              name="nomeEstudante"
-              placeholder={selectedSchoolId ? "Digite o nome do aluno" : "Selecione uma escola primeiro"}
-              required
-              disabled={!selectedSchoolId}
-              className="mt-1"
-              onChange={(e) => setStudentSearch(e.target.value)}
-              onFocus={() => selectedSchoolId && setShowStudentDropdown(true)}
-              autoComplete="off"
-            />
-            {showStudentDropdown && selectedSchoolId && studentSearch.length >= 2 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded shadow-lg z-10 max-h-48 overflow-y-auto">
-                {(studentSearchResults as any[]).length > 0 ? (
-                  (studentSearchResults as any[]).map((s: any) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      className="w-full text-left px-3 py-2 hover:bg-gray-100 border-b last:border-b-0"
-                      onMouseDown={() => {
-                        const nomeInput = document.querySelector('input[name="nomeEstudante"]') as HTMLInputElement;
-                        if (nomeInput) nomeInput.value = s.name || '';
-                        setSelectedStudentId(s.id);
-                        setShowStudentDropdown(false);
-                        setStudentSearch('');
-                      }}
-                    >
-                      <div className="font-medium">{s.name}</div>
-                      <div className="text-xs text-gray-500">Matrícula: {s.enrollmentNumber || '-'} | Turma: {s.grade || '-'}</div>
-                    </button>
-                  ))
-                ) : (
-                  <div className="px-3 py-2 text-sm text-gray-500">Aluno não encontrado nesta escola. Verifique se o aluno já foi cadastrado.</div>
-                )}
-              </div>
+            {selectedSchoolId && studentCountForSchool === 0 && (
+              <p className="text-xs text-amber-600 mb-1">Nenhum aluno cadastrado para esta escola.</p>
             )}
-            {selectedStudentId && (
+            <SearchComboBox
+              placeholder={selectedSchoolId ? "Digite o nome do aluno" : "Selecione uma escola primeiro"}
+              onSearch={handleStudentSearch}
+              onSelect={(student) => {
+                setSelectedStudent(student);
+                const nomeInput = document.querySelector('input[name="nomeEstudante"]') as HTMLInputElement;
+                if (nomeInput) nomeInput.value = student.name;
+              }}
+              onClear={() => {
+                setSelectedStudent(null);
+              }}
+              value={selectedStudent}
+              disabled={!selectedSchoolId}
+            />
+            {selectedStudent && (
               <p className="text-xs text-green-600 mt-1">✓ Aluno vinculado ao caso</p>
             )}
           </div>
@@ -515,403 +535,367 @@ export default function FarolGestao() {
       {/* Observações */}
       <div>
         <h3 className="font-semibold mb-3">Observações</h3>
-        <div>
-          <label className="text-sm font-medium">Observação Geral</label>
-          <textarea name="observacaoGeral" placeholder="Observações sobre o caso" className="w-full p-2 border rounded mt-1 min-h-20" />
-        </div>
-        <div className="mt-4">
-          <label className="text-sm font-medium">Encaminhamentos</label>
-          <textarea name="encaminhamentos" placeholder="Encaminhamentos e ações" className="w-full p-2 border rounded mt-1 min-h-20" />
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium">Observação Geral</label>
+            <textarea name="observacaoGeral" placeholder="Observações sobre o caso" className="w-full p-2 border rounded mt-1 min-h-24" />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Encaminhamentos</label>
+            <textarea name="encaminhamentos" placeholder="Encaminhamentos e ações" className="w-full p-2 border rounded mt-1 min-h-24" />
+          </div>
         </div>
       </div>
 
       {/* Botões */}
-      <div className="flex gap-4 justify-end">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleCloseForm}
-        >
+      <div className="flex gap-2 justify-end">
+        <Button type="button" variant="outline" onClick={handleCloseForm}>
           Cancelar
         </Button>
-        <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-          {editingCaseId ? "Atualizar" : "Criar"} Caso
+        <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+          {createMutation.isPending || updateMutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Salvando...
+            </>
+          ) : editingCaseId ? "Atualizar Caso" : "Criar Caso"}
         </Button>
       </div>
     </form>
   );
 
-
-
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="space-y-6 p-6">
+      {/* Cabeçalho */}
+      <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Acompanhamento de Casos</h1>
           <p className="text-gray-600 mt-1">Gestão de casos e acompanhamento de alunos</p>
         </div>
-        <Button onClick={() => setShowForm(true)} className="gap-2 bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4" />
+        <Button onClick={() => setShowForm(!showForm)} size="lg">
+          <Plus className="mr-2 h-4 w-4" />
           Novo Caso
         </Button>
       </div>
 
       {/* Métricas */}
       {metrics && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600">{metrics.total}</div>
-                <div className="text-sm text-gray-600">Total de Casos</div>
-              </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Total de Casos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{metrics.total}</div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-green-600">{metrics.ativo}</div>
-                <div className="text-sm text-gray-600">Casos Ativos</div>
-              </div>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Casos Ativos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{metrics.ativo}</div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-orange-600">{metrics.urgentes}</div>
-                <div className="text-sm text-gray-600">Urgentes</div>
-              </div>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Urgentes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">{metrics.urgentes}</div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600">{metrics.resolvidos}</div>
-                <div className="text-sm text-gray-600">Resolvidos</div>
-              </div>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Resolvidos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">{metrics.resolvidos}</div>
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Formulário */}
+      {showForm && (
+        <Card ref={formRef} className="border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle>Novo Caso</CardTitle>
+            <CardDescription>Preencha os dados do novo caso.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {formContentJSX}
+          </CardContent>
+        </Card>
       )}
 
       {/* Filtros */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
-              Filtros
-            </CardTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowFilters(!showFilters)}
-            >
+          <div className="flex justify-between items-center">
+            <CardTitle>Filtros</CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => setShowFilters(!showFilters)}>
               {showFilters ? "Ocultar" : "Mostrar"}
             </Button>
           </div>
         </CardHeader>
         {showFilters && (
-          <CardContent>
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="text-sm font-medium">Buscar</label>
                 <Input
                   placeholder="Buscar por protocolo ou aluno"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
+                  className="mt-1"
                 />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Protocolo</label>
                 <Input
                   placeholder="Protocolo"
                   value={protocolo}
                   onChange={(e) => setProtocolo(e.target.value)}
+                  className="mt-1"
                 />
-                <Select value={regional} onValueChange={setRegional}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todas as regionais" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todas as regionais</SelectItem>
-                    {REGIONAIS_PADRONIZADAS.map((r) => (
-                      <SelectItem key={r} value={r}>{r}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={escola} onValueChange={setEscola}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todas as escolas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todas as escolas</SelectItem>
-                    {(schoolsList)?.map?.((s: any) => (
-                      <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                <Select value={situacao} onValueChange={setSituacao}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todas as situações" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todas as situações</SelectItem>
-                    {situacaoOptions.map(opt => (
-                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos os status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos os status</SelectItem>
-                    {statusOptions.map(opt => (
-                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={classificacao} onValueChange={setClassificacao}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todas as classificações" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todas as classificações</SelectItem>
-                    {classificacaoOptions.map(opt => (
-                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={responsavel} onValueChange={setResponsavel}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos os profissionais" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos os profissionais</SelectItem>
-                    {advisors.map((adv: any) => (
-                      <SelectItem key={adv.id} value={adv.id.toString()}>{adv.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div>
+                <label className="text-sm font-medium">Regional</label>
+                <select
+                  value={regional}
+                  onChange={(e) => setRegional(e.target.value)}
+                  className="w-full p-2 border rounded mt-1"
+                >
+                  <option value="todos">Todas as regionais</option>
+                  {REGIONAIS_PADRONIZADAS.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label className="text-sm font-medium">Escola</label>
+                <select
+                  value={escola}
+                  onChange={(e) => setEscola(e.target.value)}
+                  className="w-full p-2 border rounded mt-1"
+                >
+                  <option value="todos">Todas as escolas</option>
+                  {schoolsList?.map?.((s: any) => (
+                    <option key={s.id} value={s.name}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Situação</label>
+                <select
+                  value={situacao}
+                  onChange={(e) => setSituacao(e.target.value)}
+                  className="w-full p-2 border rounded mt-1"
+                >
+                  <option value="todos">Todas as situações</option>
+                  {situacaoOptions.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Status</label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="w-full p-2 border rounded mt-1"
+                >
+                  <option value="todos">Todos os status</option>
+                  {statusOptions.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Classificação</label>
+                <select
+                  value={classificacao}
+                  onChange={(e) => setClassificacao(e.target.value)}
+                  className="w-full p-2 border rounded mt-1"
+                >
+                  <option value="todos">Todas as classificações</option>
+                  {classificacaoOptions.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Responsável</label>
+                <select
+                  value={responsavel}
+                  onChange={(e) => setResponsavel(e.target.value)}
+                  className="w-full p-2 border rounded mt-1"
+                >
+                  <option value="todos">Todos os profissionais</option>
+                  {advisors.map((a: any) => (
+                    <option key={a.id} value={a.name}>{a.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Período Inicial</label>
                 <Input
                   type="date"
-                  placeholder="Período inicial"
                   value={dataInicio}
                   onChange={(e) => setDataInicio(e.target.value)}
+                  className="mt-1"
                 />
-
+              </div>
+              <div>
+                <label className="text-sm font-medium">Período Final</label>
                 <Input
                   type="date"
-                  placeholder="Período final"
                   value={dataFim}
                   onChange={(e) => setDataFim(e.target.value)}
+                  className="mt-1"
                 />
-
-                <Select value={ordenacao} onValueChange={setOrdenacao}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Ordenar por" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="updatedAt">Atualizado em</SelectItem>
-                    <SelectItem value="createdAt">Criado em</SelectItem>
-                    <SelectItem value="nomeEstudante">Nome</SelectItem>
-                    <SelectItem value="numeroCaso">Nº do caso</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={ordem} onValueChange={(v) => setOrdem(v as "asc" | "desc")}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Ordem" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="asc">Crescente</SelectItem>
-                    <SelectItem value="desc">Decrescente</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
-
-              <div className="mt-4">
-                <Button variant="outline" onClick={limparFiltros} className="w-full md:w-auto">
-                  Limpar Filtros
-                </Button>
+              <div>
+                <label className="text-sm font-medium">Ordenar por</label>
+                <select
+                  value={ordenacao}
+                  onChange={(e) => setOrdenacao(e.target.value)}
+                  className="w-full p-2 border rounded mt-1"
+                >
+                  <option value="updatedAt">Atualizado em</option>
+                  <option value="dataEntrada">Data de Entrada</option>
+                  <option value="nomeEstudante">Nome do Aluno</option>
+                </select>
               </div>
-            </>
+              <div>
+                <label className="text-sm font-medium">Ordem</label>
+                <select
+                  value={ordem}
+                  onChange={(e) => setOrdem(e.target.value as "asc" | "desc")}
+                  className="w-full p-2 border rounded mt-1"
+                >
+                  <option value="desc">Decrescente</option>
+                  <option value="asc">Crescente</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={limparFiltros}>
+                Limpar Filtros
+              </Button>
+              <Button variant="outline" onClick={() => exportCasesToExcel(filteredCases as any)}>
+                <FileDown className="mr-2 h-4 w-4" />
+                Exportar Excel
+              </Button>
+              <label className="flex items-center gap-2 ml-auto">
+                <input
+                  type="checkbox"
+                  checked={incluirHistorico}
+                  onChange={(e) => setIncluirHistorico(e.target.checked)}
+                  className="rounded"
+                />
+                <span className="text-sm">Incluir histórico consolidado</span>
+              </label>
+            </div>
           </CardContent>
         )}
       </Card>
 
-      {/* Exportação */}
-      <div className="flex flex-col md:flex-row gap-2 items-start md:items-center">
-        <Button
-          onClick={() => {
-            if (filteredCases && filteredCases.length > 0) {
-              exportCasesToExcel(filteredCases as any);
-            }
-          }}
-          variant="outline"
-          disabled={!filteredCases || filteredCases.length === 0}
-          className="gap-2"
-        >
-          <FileDown className="h-4 w-4" />
-          Exportar Excel
-        </Button>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={incluirHistorico}
-            onChange={(e) => setIncluirHistorico(e.target.checked)}
-            className="w-4 h-4"
-          />
-          Incluir histórico consolidado
-        </label>
-        <span className="text-sm text-gray-600 ml-auto">
-          {filteredCases?.length || 0} caso(s) listado(s)
-        </span>
-      </div>
-
-      {/* Formulário - Desktop (inline) */}
-      {showForm && !isMobile && (
-        <div ref={formRef} className="scroll-mt-4">
-          <Card>
-            <CardHeader className="flex flex-row justify-between items-center">
-              <div>
-                <CardTitle>{editingCaseId ? "Editar Caso" : "Novo Caso"}</CardTitle>
-                <CardDescription>{editingCaseId ? "Atualize os dados do caso." : "Preencha os dados do novo caso."}</CardDescription>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCloseForm}
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {formContentJSX}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Formulário - Mobile (drawer) */}
-      {showForm && isMobile && (
-        <Drawer open={showForm} onOpenChange={(open) => {
-          if (!open) handleCloseForm();
-        }}>
-          <DrawerContent>
-            <DrawerHeader>
-              <DrawerTitle>{editingCaseId ? "Editar Caso" : "Novo Caso"}</DrawerTitle>
-              <DrawerClose />
-            </DrawerHeader>
-            <div className="px-4 pb-6 overflow-y-auto max-h-[70vh]">
-              {formContentJSX}
-            </div>
-          </DrawerContent>
-        </Drawer>
-      )}
-
-      {/* Tabela de Casos */}
+      {/* Listagem */}
       <Card>
         <CardHeader>
-          <CardTitle>Casos Cadastrados ({filteredCases.length})</CardTitle>
+          <CardTitle>{filteredCases.length} caso(s) listado(s)</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+            <div className="flex justify-center p-8">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
             </div>
           ) : filteredCases.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">
-              {cases && cases.length === 0 
-                ? "Nenhum caso cadastrado" 
-                : "Nenhum caso encontrado com os filtros selecionados"}
-            </p>
+            <div className="text-center p-8 text-gray-500">
+              Nenhum caso encontrado
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-gray-50">
-                    <th className="text-left py-3 px-2 font-semibold">Protocolo</th>
-                    <th className="text-left py-3 px-2 font-semibold">Estudante</th>
-                    <th className="text-left py-3 px-2 font-semibold">Escola</th>
-                    <th className="text-left py-3 px-2 font-semibold">Regional</th>
-                    <th className="text-left py-3 px-2 font-semibold">Situação</th>
-                    <th className="text-left py-3 px-2 font-semibold">Status</th>
-                    <th className="text-left py-3 px-2 font-semibold">Responsável</th>
-                    <th className="text-left py-3 px-2 font-semibold">Atualizado em</th>
-                    <th className="text-left py-3 px-2 font-semibold">Ações</th>
+                <thead className="border-b bg-gray-50">
+                  <tr>
+                    <th className="text-left p-2">Protocolo</th>
+                    <th className="text-left p-2">Estudante</th>
+                    <th className="text-left p-2">Escola</th>
+                    <th className="text-left p-2">Regional</th>
+                    <th className="text-left p-2">Situação</th>
+                    <th className="text-left p-2">Status</th>
+                    <th className="text-left p-2">Responsável</th>
+                    <th className="text-left p-2">Atualizado em</th>
+                    <th className="text-left p-2">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredCases.map((c: any) => (
                     <tr key={c.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-2 font-mono text-xs font-semibold">{c.numeroCaso}</td>
-                      <td className="py-3 px-2">{c.nomeEstudante}</td>
-                      <td className="py-3 px-2 text-xs">{c.escola}</td>
-                      <td className="py-3 px-2 text-xs">{c.regional || "-"}</td>
-                      <td className="py-3 px-2">
-                        <Badge className={getSituacaoBadge(c.situacao)}>{c.situacao}</Badge>
+                      <td className="p-2 font-medium">{c.numeroCaso}</td>
+                      <td className="p-2">{c.nomeEstudante}</td>
+                      <td className="p-2">{c.escola}</td>
+                      <td className="p-2">{c.regional || "-"}</td>
+                      <td className="p-2">
+                        <Badge className={getSituacaoBadge(c.situacao)}>
+                          {c.situacao}
+                        </Badge>
                       </td>
-                      <td className="py-3 px-2">
-                        <Badge className={getStatusBadge(c.status)}>{c.status}</Badge>
+                      <td className="p-2">
+                        <Badge className={getStatusBadge(c.status)}>
+                          {c.status}
+                        </Badge>
                       </td>
-                      <td className="py-3 px-2 text-xs">
-                        {c.responsavel || "Não informado"}
-                      </td>
-                      <td className="py-3 px-2 text-xs">
+                      <td className="p-2">{c.responsavel || "Não informado"}</td>
+                      <td className="p-2 text-xs text-gray-500">
                         {new Date(c.updatedAt).toLocaleDateString("pt-BR")}
                       </td>
-                      <td className="py-3 px-2">
-                        <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            title="Ver detalhes"
-                            onClick={() => navigate(`/farol/casos/${c.id}`)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            title="Editar"
-                            onClick={() => {
-                              setEditingCaseId(c.id);
-                              setShowForm(true);
-                            }}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            title="Exportar para Word"
-                            onClick={() => exportCaseToWord(c as any)}
-                          >
-                            <FileText className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            title="Arquivar"
-                            onClick={() => {
-                              if (confirm("Tem certeza que deseja arquivar este caso?")) {
-                                deleteMutation.mutate({ id: c.id });
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                      <td className="p-2 flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setSelectedCaseId(c.id)}
+                          title="Ver detalhes"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditingCaseId(c.id);
+                            setShowForm(true);
+                          }}
+                          title="Editar"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => exportCaseToWord(c)}
+                          title="Exportar para Word"
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            if (confirm("Tem certeza que deseja arquivar este caso?")) {
+                              updateMutation.mutate({
+                                id: c.id,
+                                situacao: "Arquivado",
+                              } as any);
+                            }
+                          }}
+                          title="Arquivar"
+                        >
+                          <FileDown className="h-4 w-4" />
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -921,6 +905,54 @@ export default function FarolGestao() {
           )}
         </CardContent>
       </Card>
+
+      {/* Drawer de Detalhes */}
+      {selectedCaseId && (
+        <Drawer open={!!selectedCaseId} onOpenChange={() => setSelectedCaseId(null)}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Detalhes do Caso</DrawerTitle>
+              <DrawerClose />
+            </DrawerHeader>
+            {selectedCase && (
+              <div className="p-6 space-y-4 max-h-96 overflow-y-auto">
+                <div>
+                  <h4 className="font-semibold">Protocolo</h4>
+                  <p>{selectedCase.numeroCaso}</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold">Estudante</h4>
+                  <p>{selectedCase.nomeEstudante}</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold">Escola</h4>
+                  <p>{selectedCase.escola}</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold">Regional</h4>
+                  <p>{selectedCase.regional || "-"}</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold">Status</h4>
+                  <Badge className={getStatusBadge(selectedCase.status)}>
+                    {selectedCase.status}
+                  </Badge>
+                </div>
+                <div>
+                  <h4 className="font-semibold">Situação</h4>
+                  <Badge className={getSituacaoBadge(selectedCase.situacao)}>
+                    {selectedCase.situacao}
+                  </Badge>
+                </div>
+                <div>
+                  <h4 className="font-semibold">Observações</h4>
+                  <p className="text-sm text-gray-700">{selectedCase.observacaoGeral || "-"}</p>
+                </div>
+              </div>
+            )}
+          </DrawerContent>
+        </Drawer>
+      )}
     </div>
   );
 }

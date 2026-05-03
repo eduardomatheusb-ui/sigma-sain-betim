@@ -1912,7 +1912,7 @@
 - [x] Ao trocar escola, limpar aluno selecionado
 - [x] Mensagem "Aluno não encontrado nesta escola." se busca sem resultado
 - [x] Salvar studentId, studentName e schoolId ao selecionar aluno
-- [ ] Mensagem "Nenhum aluno cadastrado para esta escola." (requer query separada)
+- [x] Mensagem "Nenhum aluno cadastrado para esta escola." (requer query separada)
 
 ### P3: Gestão de Demandas Externas (ExternalDemands)
 - [x] Campo Aluno desabilitado até escola ser selecionada
@@ -1922,7 +1922,7 @@
 - [x] Ao trocar escola, limpar aluno selecionado
 - [x] Mensagem "Aluno não encontrado nesta escola." se busca sem resultado
 - [x] Salvar studentId, studentName e schoolId ao selecionar aluno
-- [ ] Mensagem "Nenhum aluno cadastrado para esta escola." (requer query separada)
+- [x] Mensagem "Nenhum aluno cadastrado para esta escola." (requer query separada)
 
 ### P4: Testes e Validação Técnica
 - [x] pnpm test --run (147 testes passam, 12 arquivos)

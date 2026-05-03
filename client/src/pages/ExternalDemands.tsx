@@ -1,5 +1,5 @@
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -137,19 +137,30 @@ export default function ExternalDemands() {
   const { data: advisors = [] } = trpc.farol.listAdvisors.useQuery({ ativo: true });
   const createMutation = trpc.externalDemands.create.useMutation();
   
-  // Search queries with enabled: false - will be called on demand
-  const [schoolSearchQuery, setSchoolSearchQuery] = useState('');
-  const [studentSearchQuery, setStudentSearchQuery] = useState('');
-  
-  const schoolSearchResult = trpc.farol.searchSchools.useQuery(
-    { query: schoolSearchQuery, limit: 10 },
-    { enabled: schoolSearchQuery.length > 0 }
+  // State for selected school and student
+  const [selectedSchool, setSelectedSchool] = useState<any>(null);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [studentCountForSchool, setStudentCountForSchool] = useState<number>(0);
+
+  // Query to count students for the selected school
+  const { data: studentCountData } = trpc.farol.countStudentsBySchool.useQuery(
+    { schoolId: formData.schoolId ? parseInt(formData.schoolId) : 0 },
+    { enabled: !!formData.schoolId }
   );
-  
-  const studentSearchResult = trpc.demands.searchStudents.useQuery(
-    { query: studentSearchQuery, schoolId: formData.schoolId ? parseInt(formData.schoolId) : undefined },
-    { enabled: studentSearchQuery.length > 0 && !!formData.schoolId }
-  );
+
+  // Update student count when data changes
+  useEffect(() => {
+    if (studentCountData?.count !== undefined) {
+      setStudentCountForSchool(studentCountData.count);
+    }
+  }, [studentCountData]);
+
+  // Reset student selection when school changes
+  useEffect(() => {
+    if (selectedSchool?.id !== (formData.schoolId ? parseInt(formData.schoolId) : null)) {
+      setSelectedStudent(null);
+    }
+  }, [formData.schoolId, selectedSchool?.id]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -223,6 +234,8 @@ export default function ExternalDemands() {
         status: 'Recebida',
         observacoes: '',
       });
+      setSelectedSchool(null);
+      setSelectedStudent(null);
       setTab('todas');
       refetch();
     } catch (error: any) {
@@ -256,473 +269,412 @@ export default function ExternalDemands() {
       dataToExport = dataToExport.filter((d) => new Date(d.dataRecebimento) <= toDate);
     }
 
-    if (dataToExport.length === 0) {
-      toast.error('Nenhuma demanda para exportar com os filtros aplicados');
-      return;
-    }
-
-    // Prepare CSV content
     const headers = ['Protocolo', 'Órgão', 'Setor', 'Tipo', 'Prioridade', 'Prazo', 'Responsável', 'Escola', 'Aluno', 'Resumo', 'Status', 'Data Criação'];
-    const rows = dataToExport.map((d) => [
-      d.protocolo || '',
-      d.origem || '',
-      d.orgaoSetor || '',
-      TIPO_DOC_LABELS[d.tipoDocumento] || d.tipoDocumento || '',
-      PRIORIDADE_CONFIG[d.prioridade as keyof typeof PRIORIDADE_CONFIG]?.label || d.prioridade || '',
-      d.prazoResposta ? new Date(d.prazoResposta).toLocaleDateString('pt-BR') : '',
-      d.responsavelNome || '',
-      schools.find((s: any) => s.id === d.schoolId)?.name || '',
-      d.studentName || '',
-      d.resumo || '',
-      d.status || '',
-      new Date(d.createdAt).toLocaleDateString('pt-BR'),
+    const rows = dataToExport.map((d: any) => [
+      d.protocolo,
+      d.origem,
+      d.orgaoSetor,
+      TIPO_DOC_LABELS[d.tipoDocumento] || d.tipoDocumento,
+      PRIORIDADE_CONFIG[d.prioridade as keyof typeof PRIORIDADE_CONFIG]?.label || d.prioridade,
+      d.prazoResposta ? new Date(d.prazoResposta).toLocaleDateString('pt-BR') : '-',
+      d.responsavelNome || '-',
+      d.schoolId ? schools.find((s: any) => s.id === d.schoolId)?.name || '-' : '-',
+      d.studentName || '-',
+      d.resumo,
+      d.status,
+      new Date(d.dataRecebimento).toLocaleDateString('pt-BR'),
     ]);
 
-    // Create CSV string
-    const csvContent = [
+    const csv = [
       headers.join(','),
-      ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
+      ...rows.map((r: any[]) => r.map((cell: any) => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
     ].join('\n');
 
-    // Download CSV
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    const fileName = `demandas-externas-${new Date().toISOString().split('T')[0]}.csv`;
     link.setAttribute('href', url);
-    link.setAttribute('download', fileName);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
+    link.setAttribute('download', `demandas-externas-${new Date().toISOString().split('T')[0]}.csv`);
     link.click();
-    document.body.removeChild(link);
-    toast.success(`Exportadas ${dataToExport.length} demandas para CSV`);
+  };
+
+  // Search functions for SearchComboBox
+  const handleSchoolSearch = async (query: string) => {
+    if (query.length < 2) return [];
+    try {
+      const response = await fetch('/api/trpc/farol.searchSchools', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          json: { query, limit: 10 },
+        }),
+      });
+      if (!response.ok) return [];
+      const data = await response.json();
+      return data.result?.data?.schools || [];
+    } catch (error) {
+      console.error('School search error:', error);
+      return [];
+    }
+  };
+
+  const handleStudentSearch = async (query: string) => {
+    if (!formData.schoolId) return [];
+    if (query.length < 2) return [];
+    try {
+      const response = await fetch('/api/trpc/farol.searchStudents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          json: { query, schoolId: parseInt(formData.schoolId) },
+        }),
+      });
+      if (!response.ok) return [];
+      const data = await response.json();
+      return data.result?.data?.students || [];
+    } catch (error) {
+      console.error('Student search error:', error);
+      return [];
+    }
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Gestão de Demandas Externas</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Expedientes institucionais recebidos pela Secretaria Adjunta de Inclusão
-        </p>
+    <div className="space-y-6 p-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Demandas Externas</h1>
+          <p className="text-gray-600 mt-1">Gestão de demandas e solicitações externas</p>
+        </div>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="nova">Nova Demanda</TabsTrigger>
-          <TabsTrigger value="todas">Todas ({counts.todas})</TabsTrigger>
-          <TabsTrigger value="andamento">Em Andamento ({counts.andamento})</TabsTrigger>
-          <TabsTrigger value="aguardando">Aguardando ({counts.aguardando})</TabsTrigger>
-          <TabsTrigger value="encaminhadas">Encaminhadas ({counts.encaminhadas})</TabsTrigger>
-        </TabsList>
-
-        {/* Aba Nova Demanda */}
-        <TabsContent value="nova" className="space-y-4 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Criar Nova Demanda</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Data de Recebimento *</Label>
-                  <Input
-                    type="date"
-                    value={formData.dataRecebimento}
-                    onChange={(e) => setFormData({ ...formData, dataRecebimento: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Órgão Demandante *</Label>
-                  <Input
-                    value={formData.origem}
-                    onChange={(e) => setFormData({ ...formData, origem: e.target.value })}
-                    placeholder="Ex: Ministério Público"
-                  />
-                </div>
-                <div>
-                  <Label>Setor Demandante</Label>
-                  <Input
-                    value={formData.orgaoSetor}
-                    onChange={(e) => setFormData({ ...formData, orgaoSetor: e.target.value })}
-                    placeholder="Ex: Promotoria de Infância"
-                  />
-                </div>
-                <div>
-                  <Label>Tipo de Demanda</Label>
-                  <Select value={formData.tipoDocumento} onValueChange={(v) => setFormData({ ...formData, tipoDocumento: v })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(TIPO_DOC_LABELS).map(([k, v]) => (
-                        <SelectItem key={k} value={k}>
-                          {v}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Prioridade</Label>
-                  <Select value={formData.prioridade} onValueChange={(v) => setFormData({ ...formData, prioridade: v })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(PRIORIDADE_CONFIG).map(([k, v]) => (
-                        <SelectItem key={k} value={k}>
-                          {v.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Prazo de Resposta</Label>
-                  <Input
-                    type="date"
-                    value={formData.prazoResposta}
-                    onChange={(e) => setFormData({ ...formData, prazoResposta: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Assessor Responsável</Label>
-                  <Select
-                    value={formData.responsavelId}
-                    onValueChange={(v) => {
-                      const advisor = (advisors as any[]).find((a: any) => String(a.id) === v);
-                      setFormData({ ...formData, responsavelId: v, responsavelNome: advisor?.nome || '' });
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um assessor..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sem assessor definido</SelectItem>
-                      {(advisors as any[]).map((a: any) => (
-                        <SelectItem key={a.id} value={String(a.id)}>
-                          {a.nome} {a.cargo ? `(${a.cargo})` : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {formData.responsavelNome && (
-                    <p className="text-xs text-green-600 mt-1">✓ Assessor: {formData.responsavelNome}</p>
-                  )}
-                </div>
-                <div>
-                  <Label>Escola Relacionada</Label>
-                  <SearchComboBox
-                    placeholder="Buscar escola por nome..."
-                    onSearch={async (query) => {
-                      setSchoolSearchQuery(query);
-                      // Return empty while loading, will be filled by query
-                      return [];
-                    }}
-                    onSelect={(school: any) => {
-                      setFormData({ ...formData, schoolId: String(school.id), studentId: '', studentName: '' });
-                      setSchoolSearchQuery('');
-                      setStudentSearchQuery('');
-                    }}
-                    value={formData.schoolId ? { id: parseInt(formData.schoolId), name: schools.find((s: any) => s.id === parseInt(formData.schoolId))?.name || '' } : null}
-                    onClear={() => {
-                      setFormData({ ...formData, schoolId: '', studentId: '', studentName: '' });
-                      setSchoolSearchQuery('');
-                      setStudentSearchQuery('');
-                    }}
-                  />
-                  {schoolSearchResult.isLoading && <p className="text-xs text-muted-foreground">Carregando escolas...</p>}
-                  {schoolSearchResult.data?.schools && schoolSearchResult.data.schools.length > 0 && (
-                    <div className="mt-2 p-2 border rounded bg-slate-50">
-                      {schoolSearchResult.data.schools.map((s: any) => (
-                        <button
-                          key={s.id}
-                          onClick={() => {
-                            setFormData({ ...formData, schoolId: String(s.id), studentId: '', studentName: '' });
-                            setSchoolSearchQuery('');
-                            setStudentSearchQuery('');
-                          }}
-                          className="block w-full text-left px-2 py-1 text-sm hover:bg-slate-200 rounded"
-                        >
-                          {s.name} ({s.code})
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <Label>Aluno Relacionado</Label>
-                  {!formData.schoolId && (
-                    <p className="text-xs text-amber-600 mb-1">Selecione primeiro a escola para buscar os alunos.</p>
-                  )}
-                  <SearchComboBox
-                    placeholder={formData.schoolId ? "Buscar aluno por nome..." : "Selecione uma escola primeiro"}
-                    onSearch={async (query) => {
-                      if (formData.schoolId) {
-                        setStudentSearchQuery(query);
-                      }
-                      return [];
-                    }}
-                    onSelect={(student: any) => {
-                      setFormData({ ...formData, studentName: student.name });
-                      setStudentSearchQuery('');
-                    }}
-                    onClear={() => {
-                      setFormData({ ...formData, studentId: '', studentName: '' });
-                      setStudentSearchQuery('');
-                    }}
-                  />
-                  {formData.schoolId && studentSearchResult.isLoading && <p className="text-xs text-muted-foreground">Carregando alunos...</p>}
-                  {formData.schoolId && studentSearchResult.data && studentSearchResult.data.length > 0 && (
-                    <div className="mt-2 p-2 border rounded bg-slate-50 max-h-48 overflow-y-auto">
-                      {studentSearchResult.data.map((s: any) => (
-                        <button
-                          key={s.id}
-                          onClick={() => {
-                            setFormData({ ...formData, studentId: String(s.id), studentName: s.name });
-                            setStudentSearchQuery('');
-                          }}
-                          className="block w-full text-left px-2 py-1 text-sm hover:bg-slate-200 rounded"
-                        >
-                          {s.name} {s.enrollmentNumber && `(${s.enrollmentNumber})`}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {formData.schoolId && studentSearchResult.data && studentSearchResult.data.length === 0 && studentSearchQuery.length >= 2 && (
-                    <p className="text-xs text-amber-600 mt-2">Aluno não encontrado nesta escola. Verifique se o aluno já foi cadastrado.</p>
-                  )}
-                  {formData.studentName && (
-                    <p className="text-xs text-green-600 mt-1">✓ Aluno selecionado: {formData.studentName}</p>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <Label>Resumo da Demanda *</Label>
-                <Input
-                  value={formData.resumo}
-                  onChange={(e) => setFormData({ ...formData, resumo: e.target.value })}
-                  placeholder="Resumo breve da demanda"
-                />
-              </div>
-
-              <div>
-                <Label>Descrição Detalhada</Label>
-                <Textarea
-                  value={formData.descricaoCompleta}
-                  onChange={(e) => setFormData({ ...formData, descricaoCompleta: e.target.value })}
-                  placeholder="Descrição completa da demanda"
-                  rows={4}
-                />
-              </div>
-
-              <div>
-                <Label>Links Relacionados</Label>
-                <Textarea
-                  value={formData.documentosLinks}
-                  onChange={(e) => setFormData({ ...formData, documentosLinks: e.target.value })}
-                  placeholder="Cole links relacionados (um por linha)"
-                  rows={3}
-                />
-              </div>
-
-              <div className="bg-blue-50 p-3 rounded text-sm text-blue-700">
-                <strong>Nota:</strong> O protocolo SAIN será gerado automaticamente após a criação da demanda.
-              </div>
-
-              <Button onClick={handleCreateDemand} disabled={createMutation.isPending} className="w-full">
-                {createMutation.isPending ? 'Criando...' : 'Criar Demanda'}
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Abas de Listagem */}
-        {['todas', 'andamento', 'aguardando', 'encaminhadas'].map((tabName) => (
-          <TabsContent key={tabName} value={tabName} className="space-y-4 mt-6">
-            <div className="flex gap-2 flex-wrap">
+      {/* Form */}
+      <Card className="border-blue-200 bg-blue-50">
+        <CardHeader>
+          <CardTitle>Nova Demanda</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label>Data de Recebimento *</Label>
               <Input
-                placeholder="Buscar por protocolo, órgão, setor ou resumo..."
+                type="date"
+                value={formData.dataRecebimento}
+                onChange={(e) => setFormData({ ...formData, dataRecebimento: e.target.value })}
+                className="mt-1"
+                max={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+            <div>
+              <Label>Órgão Demandante *</Label>
+              <Input
+                placeholder="Ex: Secretaria de Educação"
+                value={formData.origem}
+                onChange={(e) => setFormData({ ...formData, origem: e.target.value })}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>Setor/Departamento</Label>
+              <Input
+                placeholder="Ex: Departamento de Políticas Educacionais"
+                value={formData.orgaoSetor}
+                onChange={(e) => setFormData({ ...formData, orgaoSetor: e.target.value })}
+                className="mt-1"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label>Tipo de Documento</Label>
+              <select
+                value={formData.tipoDocumento}
+                onChange={(e) => setFormData({ ...formData, tipoDocumento: e.target.value })}
+                className="w-full p-2 border rounded mt-1"
+              >
+                {Object.entries(TIPO_DOC_LABELS).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label>Prioridade</Label>
+              <select
+                value={formData.prioridade}
+                onChange={(e) => setFormData({ ...formData, prioridade: e.target.value })}
+                className="w-full p-2 border rounded mt-1"
+              >
+                <option value="baixa">Baixa</option>
+                <option value="media">Média</option>
+                <option value="alta">Alta</option>
+                <option value="urgente">Urgente</option>
+              </select>
+            </div>
+            <div>
+              <Label>Prazo de Resposta</Label>
+              <Input
+                type="date"
+                value={formData.prazoResposta}
+                onChange={(e) => setFormData({ ...formData, prazoResposta: e.target.value })}
+                className="mt-1"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label>Assessor Responsável</Label>
+              <Select
+                value={formData.responsavelId}
+                onValueChange={(value) => {
+                  const advisor = advisors.find((a: any) => a.id === parseInt(value));
+                  setFormData({
+                    ...formData,
+                    responsavelId: value,
+                    responsavelNome: advisor?.nome || '',
+                  });
+                }}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Selecione um assessor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem assessor definido</SelectItem>
+                  {(advisors as any[]).map((a: any) => (
+                    <SelectItem key={a.id} value={String(a.id)}>
+                      {a.nome} {a.cargo ? `(${a.cargo})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {formData.responsavelNome && (
+                <p className="text-xs text-green-600 mt-1">✓ Assessor: {formData.responsavelNome}</p>
+              )}
+            </div>
+            <div>
+              <Label>Escola Relacionada</Label>
+              <SearchComboBox
+                placeholder="Buscar escola por nome..."
+                onSearch={handleSchoolSearch}
+                onSelect={(school: any) => {
+                  setSelectedSchool(school);
+                  setSelectedStudent(null);
+                  setFormData({ ...formData, schoolId: String(school.id), studentId: '', studentName: '' });
+                }}
+                value={selectedSchool}
+                onClear={() => {
+                  setSelectedSchool(null);
+                  setSelectedStudent(null);
+                  setFormData({ ...formData, schoolId: '', studentId: '', studentName: '' });
+                }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label>Aluno Relacionado</Label>
+            {!formData.schoolId && (
+              <p className="text-xs text-amber-600 mb-1">Selecione primeiro a escola para buscar os alunos.</p>
+            )}
+            {formData.schoolId && studentCountForSchool === 0 && (
+              <p className="text-xs text-amber-600 mb-1">Nenhum aluno cadastrado para esta escola.</p>
+            )}
+            <SearchComboBox
+              placeholder={formData.schoolId ? "Buscar aluno por nome..." : "Selecione uma escola primeiro"}
+              onSearch={handleStudentSearch}
+              onSelect={(student: any) => {
+                setSelectedStudent(student);
+                setFormData({ ...formData, studentId: String(student.id), studentName: student.name });
+              }}
+              value={selectedStudent}
+              onClear={() => {
+                setSelectedStudent(null);
+                setFormData({ ...formData, studentId: '', studentName: '' });
+              }}
+              disabled={!formData.schoolId}
+            />
+            {selectedStudent && (
+              <p className="text-xs text-green-600 mt-1">✓ Aluno vinculado</p>
+            )}
+          </div>
+
+          <div>
+            <Label>Resumo *</Label>
+            <Textarea
+              placeholder="Resumo da demanda"
+              value={formData.resumo}
+              onChange={(e) => setFormData({ ...formData, resumo: e.target.value })}
+              className="mt-1 min-h-24"
+            />
+          </div>
+
+          <div>
+            <Label>Descrição Completa</Label>
+            <Textarea
+              placeholder="Descrição detalhada da demanda"
+              value={formData.descricaoCompleta}
+              onChange={(e) => setFormData({ ...formData, descricaoCompleta: e.target.value })}
+              className="mt-1 min-h-32"
+            />
+          </div>
+
+          <div>
+            <Label>Links de Documentos</Label>
+            <Textarea
+              placeholder="Cole aqui os links dos documentos relacionados (um por linha)"
+              value={formData.documentosLinks}
+              onChange={(e) => setFormData({ ...formData, documentosLinks: e.target.value })}
+              className="mt-1 min-h-20"
+            />
+          </div>
+
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => {
+              setFormData({
+                dataRecebimento: '',
+                origem: '',
+                orgaoSetor: '',
+                tipoDocumento: 'oficio',
+                prioridade: 'media',
+                prazoResposta: '',
+                responsavelNome: '',
+                responsavelId: '',
+                schoolId: '',
+                studentId: '',
+                studentName: '',
+                resumo: '',
+                descricaoCompleta: '',
+                documentosLinks: '',
+                status: 'Recebida',
+                observacoes: '',
+              });
+              setSelectedSchool(null);
+              setSelectedStudent(null);
+            }}>
+              Limpar
+            </Button>
+            <Button onClick={handleCreateDemand} disabled={createMutation.isPending}>
+              {createMutation.isPending ? 'Criando...' : 'Criar Demanda'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tabs and List */}
+      <Card>
+        <CardHeader>
+          <div className="space-y-4">
+            <Tabs value={tab} onValueChange={setTab}>
+              <TabsList>
+                <TabsTrigger value="todas">Todas ({counts.todas})</TabsTrigger>
+                <TabsTrigger value="andamento">Em Andamento ({counts.andamento})</TabsTrigger>
+                <TabsTrigger value="aguardando">Aguardando Resposta ({counts.aguardando})</TabsTrigger>
+                <TabsTrigger value="encaminhadas">Encaminhadas ({counts.encaminhadas})</TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <div className="flex gap-2">
+              <Input
+                placeholder="Buscar..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="flex-1 min-w-[200px]"
+                className="flex-1"
               />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportCSV}
-                className="gap-2"
-              >
-                <Download className="h-4 w-4" />
+              <Button variant="outline" onClick={handleExportCSV}>
+                <Download className="h-4 w-4 mr-2" />
                 Exportar CSV
               </Button>
             </div>
+          </div>
+        </CardHeader>
 
-            {/* Filtros expandidos */}
-            <Card className="bg-slate-50 p-4">
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                <div>
-                  <Label className="text-xs">Órgão</Label>
-                  <Input
-                    placeholder="Filtrar órgão"
-                    value={filterOrigin}
-                    onChange={(e) => setFilterOrigin(e.target.value)}
-                    className="text-sm"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Prioridade</Label>
-                  <Select value={filterPriority} onValueChange={setFilterPriority}>
-                    <SelectTrigger className="text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas</SelectItem>
-                      {Object.entries(PRIORIDADE_CONFIG).map(([k, v]) => (
-                        <SelectItem key={k} value={k}>
-                          {v.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs">Status</Label>
-                  <Select value={filterStatus} onValueChange={setFilterStatus}>
-                    <SelectTrigger className="text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      {STATUS_LIST.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {s}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs">De</Label>
-                  <Input
-                    type="date"
-                    value={filterDateFrom}
-                    onChange={(e) => setFilterDateFrom(e.target.value)}
-                    className="text-sm"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Até</Label>
-                  <Input
-                    type="date"
-                    value={filterDateTo}
-                    onChange={(e) => setFilterDateTo(e.target.value)}
-                    className="text-sm"
-                  />
-                </div>
-              </div>
-            </Card>
-
-            {isLoading ? (
-              <div className="text-center py-8">Carregando demandas...</div>
-            ) : filtered.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">Nenhuma demanda encontrada nesta categoria</div>
-            ) : (
-              <div className="space-y-2">
-                {(filtered as any[]).map((demand) => {
-                  const alertBadge = getDeadlineAlertBadge(demand.prazoResposta ? new Date(demand.prazoResposta) : null);
-                  const alertClass = getDeadlineAlertClass(demand.prazoResposta ? new Date(demand.prazoResposta) : null);
-                  
-                  return (
-                    <Card key={demand.id} className={`cursor-pointer hover:shadow-md transition-shadow ${alertClass}`}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Badge>{demand.protocolo}</Badge>
-                              <Badge variant="outline">{PRIORIDADE_CONFIG[demand.prioridade as keyof typeof PRIORIDADE_CONFIG]?.label}</Badge>
-                              <Badge className={STATUS_CONFIG[demand.status as DemandStatus]?.color}>
-                                {STATUS_CONFIG[demand.status as DemandStatus]?.label}
-                              </Badge>
-                              {alertBadge && (
-                                <Badge className={alertBadge.color}>{alertBadge.label}</Badge>
-                              )}
-                            </div>
-                            <p className="font-medium mt-2">{demand.resumo}</p>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {demand.origem} {demand.orgaoSetor && `- ${demand.orgaoSetor}`}
-                            </p>
+        <CardContent>
+          {isLoading ? (
+            <div className="text-center p-8">Carregando...</div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center p-8 text-gray-500">Nenhuma demanda encontrada</div>
+          ) : (
+            <div className="space-y-3">
+              {filtered.map((demand: any) => {
+                const alertBadge = getDeadlineAlertBadge(demand.prazoResposta ? new Date(demand.prazoResposta) : null);
+                const alertClass = getDeadlineAlertClass(demand.prazoResposta ? new Date(demand.prazoResposta) : null);
+                return (
+                  <Card key={demand.id} className={`cursor-pointer hover:bg-slate-50 ${alertClass}`}>
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-semibold">{demand.protocolo}</span>
+                            <Badge className={PRIORIDADE_CONFIG[demand.prioridade as keyof typeof PRIORIDADE_CONFIG]?.color}>
+                              {PRIORIDADE_CONFIG[demand.prioridade as keyof typeof PRIORIDADE_CONFIG]?.label}
+                            </Badge>
+                            <Badge className={STATUS_CONFIG[demand.status as DemandStatus]?.color}>
+                              {STATUS_CONFIG[demand.status as DemandStatus]?.label}
+                            </Badge>
+                            {alertBadge && (
+                              <Badge className={alertBadge.color}>{alertBadge.label}</Badge>
+                            )}
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setShowDetail(demand.id)}
-                            className="gap-1"
-                          >
-                            <Eye className="h-4 w-4" />
-                            Ver
-                          </Button>
+                          <p className="font-medium">{demand.resumo}</p>
+                          <div className="text-sm text-gray-600 mt-2 space-y-1">
+                            <p>Órgão: {demand.origem}</p>
+                            {demand.schoolId && (
+                              <p>Escola: {schools.find((s: any) => s.id === demand.schoolId)?.name}</p>
+                            )}
+                            {demand.studentName && <p>Aluno: {demand.studentName}</p>}
+                            <p>Recebido em: {new Date(demand.dataRecebimento).toLocaleDateString('pt-BR')}</p>
+                          </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
-        ))}
-      </Tabs>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowDetail(demand.id)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Detail Dialog */}
-      <Dialog open={showDetail !== null} onOpenChange={() => setShowDetail(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Detalhes da Demanda</DialogTitle>
-          </DialogHeader>
-          {selectedDemand && (
+      {selectedDemand && (
+        <Dialog open={!!showDetail} onOpenChange={() => setShowDetail(null)}>
+          <DialogContent className="max-w-2xl max-h-96 overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{selectedDemand.protocolo}</DialogTitle>
+            </DialogHeader>
             <div className="space-y-4">
+              <div>
+                <h4 className="font-semibold">Resumo</h4>
+                <p>{selectedDemand.resumo}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold">Descrição</h4>
+                <p className="text-sm">{selectedDemand.descricaoCompleta || '-'}</p>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Protocolo</p>
-                  <p className="font-mono">{selectedDemand.protocolo}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Status</p>
-                  <Badge className={STATUS_CONFIG[selectedDemand.status as DemandStatus]?.color}>
-                    {STATUS_CONFIG[selectedDemand.status as DemandStatus]?.label}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Órgão Demandante</p>
+                  <h4 className="font-semibold">Órgão</h4>
                   <p>{selectedDemand.origem}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Prioridade</p>
-                  <Badge variant="outline">{PRIORIDADE_CONFIG[selectedDemand.prioridade as keyof typeof PRIORIDADE_CONFIG]?.label}</Badge>
+                  <h4 className="font-semibold">Prioridade</h4>
+                  <Badge className={PRIORIDADE_CONFIG[selectedDemand.prioridade as keyof typeof PRIORIDADE_CONFIG]?.color}>
+                    {PRIORIDADE_CONFIG[selectedDemand.prioridade as keyof typeof PRIORIDADE_CONFIG]?.label}
+                  </Badge>
                 </div>
               </div>
-              {(selectedDemand as any).responsavelNome && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Assessor Responsável</p>
-                  <p>{(selectedDemand as any).responsavelNome}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Resumo</p>
-                <p>{selectedDemand.resumo}</p>
-              </div>
-              {selectedDemand.descricaoCompleta && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Descrição Completa</p>
-                  <p className="text-sm whitespace-pre-wrap">{selectedDemand.descricaoCompleta}</p>
-                </div>
-              )}
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
