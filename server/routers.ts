@@ -1678,6 +1678,9 @@ export const appRouter = router({
         schoolId: z.number().nullable().optional(),
         schoolIds: z.array(z.number()).optional(),
         cargo: z.string().optional(),
+        telefone: z.string().optional(),
+        areaAtuacao: z.string().optional(),
+        regional: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores podem criar usuários" });
@@ -1705,12 +1708,18 @@ export const appRouter = router({
         // Auto-create farolAdvisors for sain_assessor and external_professional
         if (input.role === "sain_assessor" || input.role === "external_professional") {
           await db.insert(farolAdvisors).values({
-            name: input.name,
+            nome: input.name,
             email: input.email,
             cargo: input.cargo ?? (input.role === "sain_assessor" ? "Assessor SAIN" : "Profissional Externo"),
+            telefone: input.telefone ?? "",
+            areaAtuacao: input.areaAtuacao ?? "",
+            regional: input.regional ?? "",
             userId: newUserId,
-            isActive: true,
-          } as any);
+            active: true,
+            role: "advisor",
+            createdBy: ctx.user.id,
+            createdByName: ctx.user.name ?? "",
+          });
         }
         return { success: true };
       }),

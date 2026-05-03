@@ -209,6 +209,9 @@ export default function Users() {
     role: "school_user",
     schoolIds: [] as number[],
     cargo: "",
+    telefone: "",
+    areaAtuacao: "",
+    regional: "",
   });
 
   const createMutation = trpc.users.create.useMutation({
@@ -216,7 +219,7 @@ export default function Users() {
       utils.users.list.invalidate();
       toast.success("Usuário criado com sucesso! Ele poderá fazer login com este e-mail.");
       setShowCreate(false);
-      setCreateForm({ name: "", email: "", role: "school_user", schoolIds: [], cargo: "" });
+      setCreateForm({ name: "", email: "", role: "school_user", schoolIds: [], cargo: "", telefone: "", areaAtuacao: "", regional: "" });
     },
     onError: (e) => toast.error(e.message),
   });
@@ -234,6 +237,9 @@ export default function Users() {
       role: createForm.role as any,
       schoolIds: createForm.schoolIds,
       cargo: createForm.cargo.trim() || undefined,
+      telefone: createForm.telefone.trim() || undefined,
+      areaAtuacao: createForm.areaAtuacao.trim() || undefined,
+      regional: createForm.regional.trim() || undefined,
     });
   }
 
@@ -446,6 +452,7 @@ export default function Users() {
               </Select>
             </div>
             {(createForm.role === "sain_assessor" || createForm.role === "external_professional") && (
+              <>
               <div>
                 <Label>Cargo / Função</Label>
                 <Input
@@ -456,6 +463,43 @@ export default function Users() {
                 />
                 <p className="text-xs text-muted-foreground mt-1">Será exibido no Acompanhamento de Casos como assessor responsável.</p>
               </div>
+              <div>
+                <Label>Telefone</Label>
+                <Input
+                  className="mt-1"
+                  placeholder="(31) 99999-9999"
+                  value={createForm.telefone}
+                  onChange={e => setCreateForm(f => ({ ...f, telefone: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>Área de Atuação</Label>
+                <Input
+                  className="mt-1"
+                  placeholder="Ex: Saúde Mental, Educação Especial..."
+                  value={createForm.areaAtuacao}
+                  onChange={e => setCreateForm(f => ({ ...f, areaAtuacao: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>Regional</Label>
+                <Select
+                  value={createForm.regional || "none"}
+                  onValueChange={v => setCreateForm(f => ({ ...f, regional: v === "none" ? "" : v }))}
+                >
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione a regional" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhuma</SelectItem>
+                    <SelectItem value="Regional Norte">Regional Norte</SelectItem>
+                    <SelectItem value="Regional Sul">Regional Sul</SelectItem>
+                    <SelectItem value="Regional Leste">Regional Leste</SelectItem>
+                    <SelectItem value="Regional Oeste">Regional Oeste</SelectItem>
+                    <SelectItem value="Regional Centro">Regional Centro</SelectItem>
+                    <SelectItem value="SAIN Central">SAIN Central</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              </>
             )}
             <div>
               <Label>
