@@ -13,6 +13,7 @@ import Mediators from "./pages/Mediators";
 import Attendances from "./pages/Attendances";
 import ExternalDemands from "./pages/ExternalDemands";
 import Users from "./pages/Users";
+import { PermissionsAdmin } from "./pages/PermissionsAdmin";
 import Reports from "./pages/Reports";
 import FarolGestao from "@/pages/FarolGestao";
 import FarolDashboard from "@/pages/FarolDashboard";
@@ -68,6 +69,7 @@ function Router() {
       <Route path="/escolas">{() => <AdminRoute component={Schools} />}</Route>
       <Route path="/atendimentos" component={Attendances} />
       <Route path="/usuarios">{() => <AdminRoute component={Users} />}</Route>
+      <Route path="/permissoes">{() => <AdminRoute component={PermissionsAdmin} />}</Route>
       {/* Rotas para admin e craei_assessor */}
       <Route path="/demandas">{() => <SainAssessorRoute component={ExternalDemands} />}</Route>
       <Route path="/demandas-externas">{() => <SainAssessorRoute component={ExternalDemands} />}</Route>
