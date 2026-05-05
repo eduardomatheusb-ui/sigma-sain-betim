@@ -380,9 +380,11 @@ function DashboardLayoutContent({
 
   const menuItems =
     user?.role === "admin" ? adminMenuItems :
-    user?.role === "sain_assessor" ? sainAssessorMenuItems :
+    user?.role === "craei_assessor" ? sainAssessorMenuItems :
     user?.role === "coordinator" ? coordinatorMenuItems :
-    user?.role === "external_professional" ? externalProfessionalMenuItems :
+    user?.role === "coordenacao_adjunta" ? coordinatorMenuItems :
+    user?.role === "setor_atendentes" ? secretaryMenuItems :
+    user?.role === "coordenacao_nucleo" ? adminMenuItems :
     secretaryMenuItems;
   const isItemActive = (path: string) => location === path || (path !== "/" && location.startsWith(path));
 
@@ -494,9 +496,11 @@ function DashboardLayoutContent({
                       </p>
                       <p className="text-xs text-white/60 truncate mt-1">
                         {user?.role === "admin" ? "Administrador" :
-         user?.role === "sain_assessor" ? "Assessor SAIN" :
+         user?.role === "craei_assessor" ? "Assessor CRAEI" :
          user?.role === "coordinator" ? "Coordenador" :
-         user?.role === "external_professional" ? "Profissional Externo" :
+         user?.role === "coordenacao_adjunta" ? "Coordenação Adjunta" :
+         user?.role === "setor_atendentes" ? "Setor de Atendentes" :
+         user?.role === "coordenacao_nucleo" ? "Coordenação de Núcleo" :
          "Secretário de Escola"}
                       </p>
                     </div>

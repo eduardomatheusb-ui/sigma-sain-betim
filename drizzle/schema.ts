@@ -12,7 +12,7 @@ export const users = mysqlTable("users", {
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   passwordHash: varchar("passwordHash", { length: 255 }),
-  role: mysqlEnum("role", ["admin", "sain_assessor", "coordinator", "external_professional", "school_user"]).default("school_user").notNull(),
+  role: mysqlEnum("role", ["admin", "craei_assessor", "coordinator", "school_user", "coordenacao_adjunta", "setor_atendentes", "coordenacao_nucleo"]).default("school_user").notNull(),
   schoolId: int("schoolId"),
   isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -552,3 +552,38 @@ export const userSchools = mysqlTable("user_schools", {
 
 export type UserSchool = typeof userSchools.$inferSelect;
 export type InsertUserSchool = typeof userSchools.$inferInsert;
+
+
+/**
+ * Modules table - Lista de módulos/quadros do sistema
+ * Cada módulo pode ter permissões diferentes por role
+ */
+export const modules = mysqlTable("modules", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+  label: varchar("label", { length: 255 }).notNull(),
+  description: text("description"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Module = typeof modules.$inferSelect;
+export type InsertModule = typeof modules.$inferInsert;
+
+/**
+ * Role-Module Permissions table - Matriz de permissões (Perfil × Módulo × Ação)
+ * Controla visualização, edição e exclusão por perfil
+ */
+export const roleModulePermissions = mysqlTable("role_module_permissions", {
+  id: int("id").autoincrement().primaryKey(),
+  roleId: varchar("roleId", { length: 50 }).notNull(),
+  moduleId: int("moduleId").notNull(),
+  canView: boolean("canView").default(false).notNull(),
+  canEdit: boolean("canEdit").default(false).notNull(),
+  canDelete: boolean("canDelete").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type RoleModulePermission = typeof roleModulePermissions.$inferSelect;
+export type InsertRoleModulePermission = typeof roleModulePermissions.$inferInsert;

@@ -40,9 +40,10 @@ export default function Home() {
   const role = user?.role;
 
   if (role === "admin") return <AdminHome userName={user?.name || ""} />;
-  if (role === "sain_assessor") return <SainAssessorHome userName={user?.name || ""} />;
+  if (role === "craei_assessor") return <SainAssessorHome userName={user?.name || ""} />;
   if (role === "coordinator") return <CoordinatorHome userName={user?.name || ""} />;
-  if (role === "external_professional") return <ExternalProfessionalHome userName={user?.name || ""} />;
+  if (role === "coordenacao_adjunta" || role === "coordenacao_nucleo") return <CoordinatorHome userName={user?.name || ""} />;
+  if (role === "setor_atendentes") return <SchoolHome userName={user?.name || ""} />;
   return <SchoolHome userName={user?.name || ""} />;
 }
 

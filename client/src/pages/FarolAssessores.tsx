@@ -44,7 +44,7 @@ export default function FarolAssessores() {
     comCasos: advisors.filter((a: any) => caseCountByAdvisor[a.id] > 0).length,
   }), [advisors, caseCountByAdvisor]);
 
-  if (!user || !["admin", "sain_assessor"].includes(user.role)) {
+  if (!user || !["admin", "craei_assessor"].includes(user.role)) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4">
         <Users className="w-12 h-12 text-muted-foreground opacity-30" />

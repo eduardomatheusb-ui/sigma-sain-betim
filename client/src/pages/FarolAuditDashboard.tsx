@@ -251,7 +251,7 @@ export default function FarolAuditDashboard() {
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
                   <SelectItem value="admin">Administrador</SelectItem>
-                  <SelectItem value="sain_assessor">Assessor SAIN</SelectItem>
+                  <SelectItem value="craei_assessor">Assessor SAIN</SelectItem>
                   <SelectItem value="coordinator">Coordenador</SelectItem>
                   <SelectItem value="external_professional">Profissional Externo</SelectItem>
                   <SelectItem value="school_user">Secretário de Escola</SelectItem>

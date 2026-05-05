@@ -157,8 +157,8 @@ describe("Bloqueio de Permissão — attendances.delete", () => {
     await expectForbidden(() => caller.attendances.delete({ id: 999999 }));
   });
 
-  it("sain_assessor NÃO pode excluir atendimento (apenas admin)", async () => {
-    const ctx = makeCtx({ id: 4, role: "sain_assessor" });
+  it("craei_assessor NÃO pode excluir atendimento (apenas admin)", async () => {
+    const ctx = makeCtx({ id: 4, role: "craei_assessor" });
     const caller = appRouter.createCaller(ctx);
     await expectForbidden(() => caller.attendances.delete({ id: 999999 }));
   });
@@ -204,8 +204,8 @@ describe("Bloqueio de Perfil — externalDemands.create", () => {
     }
   });
 
-  it("sain_assessor PODE criar demanda externa", async () => {
-    const ctx = makeCtx({ id: 5, role: "sain_assessor" });
+  it("craei_assessor PODE criar demanda externa", async () => {
+    const ctx = makeCtx({ id: 5, role: "craei_assessor" });
     const caller = appRouter.createCaller(ctx);
     try {
       await caller.externalDemands.create(validInput);
@@ -245,11 +245,11 @@ describe("Verificação de Roles — auth.me", () => {
     expect(result?.role).toBe("school_user");
   });
 
-  it("sain_assessor deve ter role sain_assessor", async () => {
-    const ctx = makeCtx({ id: 5, role: "sain_assessor" });
+  it("craei_assessor deve ter role craei_assessor", async () => {
+    const ctx = makeCtx({ id: 5, role: "craei_assessor" });
     const caller = appRouter.createCaller(ctx);
     const result = await caller.auth.me();
-    expect(result?.role).toBe("sain_assessor");
+    expect(result?.role).toBe("craei_assessor");
   });
 
   it("coordinator deve ter role coordinator", async () => {

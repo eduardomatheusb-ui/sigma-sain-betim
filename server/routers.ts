@@ -916,7 +916,7 @@ export const appRouter = router({
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         const { id, dateOfBirth, ...rest } = input;
         // VALIDAÇÃO DE ESCOPO: school_user e coordinator só podem editar alunos das suas escolas
-        if (ctx.user.role !== "admin" && ctx.user.role !== "sain_assessor") {
+        if (ctx.user.role !== "admin" && ctx.user.role !== "craei_assessor") {
           const [existingStudent] = await db.select({ schoolId: students.schoolId }).from(students).where(eq(students.id, id));
           if (existingStudent) {
             const allowedSchoolIds = await getUserSchoolIds(ctx.user.id, ctx.user.schoolId);
@@ -1463,7 +1463,7 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         // VALIDAÇÃO DE ESCOPO: school_user e coordinator só podem editar atendimentos das suas escolas
-        if (ctx.user.role !== "admin" && ctx.user.role !== "sain_assessor") {
+        if (ctx.user.role !== "admin" && ctx.user.role !== "craei_assessor") {
           const [existing] = await db.select({ schoolId: attendances.schoolId }).from(attendances).where(eq(attendances.id, input.id));
           if (existing) {
             const allowedSchoolIds = await getUserSchoolIds(ctx.user.id, ctx.user.schoolId);
@@ -1627,7 +1627,7 @@ export const appRouter = router({
     updateRole: protectedProcedure
       .input(z.object({
         userId: z.number(),
-        role: z.enum(["admin", "sain_assessor", "coordinator", "external_professional", "school_user"]),
+        role: z.enum(["admin", "craei_assessor", "coordinator", "school_user", "coordenacao_adjunta", "setor_atendentes", "coordenacao_nucleo"]),
       }))
       .mutation(async ({ ctx, input }) => {
         if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
@@ -1704,7 +1704,7 @@ export const appRouter = router({
       .input(z.object({
         name: z.string().min(1, "Nome obrigatório"),
         email: z.string().email("E-mail inválido"),
-        role: z.enum(["admin", "sain_assessor", "coordinator", "external_professional", "school_user"]),
+        role: z.enum(["admin", "craei_assessor", "coordinator", "school_user", "coordenacao_adjunta", "setor_atendentes", "coordenacao_nucleo"]),
         schoolId: z.number().nullable().optional(),
         schoolIds: z.array(z.number()).optional(),
         cargo: z.string().optional(),
@@ -1737,12 +1737,12 @@ export const appRouter = router({
         if (allSchoolIds.length > 0) {
           await db.insert(userSchools).values(allSchoolIds.map(sid => ({ userId: newUserId, schoolId: sid })));
         }
-        // Auto-create farolAdvisors for sain_assessor and external_professional
-        if (input.role === "sain_assessor" || input.role === "external_professional") {
+        // Auto-create farolAdvisors for craei_assessor
+        if (input.role === "craei_assessor") {
           await db.insert(farolAdvisors).values({
             nome: input.name,
             email: input.email,
-            cargo: input.cargo ?? (input.role === "sain_assessor" ? "Assessor SAIN" : "Profissional Externo"),
+            cargo: input.cargo ?? "Assessor CRAEI",
             telefone: input.telefone ?? "",
             areaAtuacao: input.areaAtuacao ?? "",
             regional: input.regional ?? "",
@@ -1923,7 +1923,7 @@ export const appRouter = router({
         const [currentDemand] = await db.select({ attendantName: demands.attendantName, schoolId: demands.schoolId }).from(demands).where(eq(demands.id, id));
         if (!currentDemand) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
         // VALIDAÇÃO DE ESCOPO: school_user e coordinator só podem editar demands das suas escolas
-        if (ctx.user.role !== "admin" && ctx.user.role !== "sain_assessor") {
+        if (ctx.user.role !== "admin" && ctx.user.role !== "craei_assessor") {
           const allowedSchoolIds = await getUserSchoolIds(ctx.user.id, ctx.user.schoolId);
           if (currentDemand.schoolId && !allowedSchoolIds.includes(currentDemand.schoolId)) {
             throw new TRPCError({ code: "FORBIDDEN", message: "Você não tem permissão para editar alunos de outras escolas." });
@@ -2230,12 +2230,12 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
-        // P1: Apenas admin, sain_assessor e coordinator podem criar demandas externas institucionais
-        const allowedRoles = ["admin", "sain_assessor", "coordinator"];
+        // P1: Apenas admin, craei_assessor, coordinator e coordenacao_adjunta podem criar demandas externas institucionais
+        const allowedRoles = ["admin", "craei_assessor", "coordinator", "coordenacao_adjunta"];
         if (!allowedRoles.includes(ctx.user.role)) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores, assessores SAIN e coordenadores podem criar demandas externas institucionais." });
+          throw new TRPCError({ code: "FORBIDDEN", message: "Apenas administradores, assessores CRAEI e coordenadores podem criar demandas externas institucionais." });
         }
-        // Se vinculada a escola, validar escopo do usuário (coordinator/sain_assessor)
+        // Se vinculada a escola, validar escopo do usuário (coordinator/craei_assessor/coordenacao_adjunta)
         if (input.schoolId && ctx.user.role !== "admin") {
           const schoolIds = await getUserSchoolIds(ctx.user.id);
           if (schoolIds.length > 0 && !schoolIds.includes(input.schoolId)) {

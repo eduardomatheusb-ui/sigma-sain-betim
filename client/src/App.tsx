@@ -34,11 +34,11 @@ function AdminRoute({ component: Component }: { component: React.ComponentType }
   return <Component />;
 }
 
-/** Componente que protege rotas do Farol e Demandas Externas (admin, sain_assessor ou coordinator) */
+/** Componente que protege rotas do Farol e Demandas Externas (admin, craei_assessor ou coordinator) */
 function SainAssessorRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, loading } = useAuth();
   if (loading) return null;
-  const allowed = ["admin", "sain_assessor", "coordinator"];
+  const allowed = ["admin", "craei_assessor", "coordinator"];
   if (!user || !allowed.includes(user.role)) {
     return <Redirect to="/" />;
   }
@@ -49,7 +49,7 @@ function SainAssessorRoute({ component: Component }: { component: React.Componen
 function ExternalProfessionalRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, loading } = useAuth();
   if (loading) return null;
-  if (!user || (user.role !== "admin" && user.role !== "sain_assessor" && user.role !== "external_professional")) {
+  if (!user || (user.role !== "admin" && user.role !== "craei_assessor")) {
     return <Redirect to="/" />;
   }
   return <Component />;
@@ -68,7 +68,7 @@ function Router() {
       <Route path="/escolas">{() => <AdminRoute component={Schools} />}</Route>
       <Route path="/atendimentos" component={Attendances} />
       <Route path="/usuarios">{() => <AdminRoute component={Users} />}</Route>
-      {/* Rotas para admin e sain_assessor */}
+      {/* Rotas para admin e craei_assessor */}
       <Route path="/demandas">{() => <SainAssessorRoute component={ExternalDemands} />}</Route>
       <Route path="/demandas-externas">{() => <SainAssessorRoute component={ExternalDemands} />}</Route>
       <Route path="/demandas-externas/nova">{() => <SainAssessorRoute component={ExternalDemands} />}</Route>

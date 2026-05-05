@@ -1928,3 +1928,50 @@
 - [x] pnpm test --run (147 testes passam, 12 arquivos)
 - [x] npx tsc --noEmit (0 erros TypeScript)
 - [x] Relatório final da Fase 55.3
+
+
+## Phase 56: Sistema de Permissões Granulares (RBAC)
+
+### P1: Atualizar Schema e Banco de Dados
+- [ ] Renomear enum role: sain_assessor → craei_assessor
+- [ ] Remover enum role: external_professional
+- [ ] Criar tabela modules (id, name, label, description)
+- [ ] Criar tabela role_module_permissions (id, role_id, module_id, can_view, can_edit, can_delete)
+- [ ] Migrar dados: atualizar users com role sain_assessor → craei_assessor
+- [ ] Migrar dados: deletar users com role external_professional
+- [ ] Migrar dados: popular tabela modules com 11 módulos principais
+- [ ] Migrar dados: popular tabela role_module_permissions com permissões padrão
+
+### P2: Procedures tRPC para Gerenciar Permissões
+- [ ] Criar permissions.list (listar todas as permissões com filtro por role)
+- [ ] Criar permissions.update (atualizar can_view, can_edit, can_delete para uma combinação role+module)
+- [ ] Criar permissions.getByRole (retornar todas as permissões de um role específico)
+- [ ] Criar permissions.checkAccess (verificar se um usuário tem permissão para uma ação em um módulo)
+
+### P3: Painel de Administração de Permissões
+- [ ] Criar página PermissionsAdmin.tsx
+- [ ] Componente: Seletor de Role (dropdown com todos os roles)
+- [ ] Componente: Tabela de Módulos com checkboxes (Visualizar, Editar, Excluir)
+- [ ] Integrar trpc.permissions.list para carregar permissões
+- [ ] Integrar trpc.permissions.update para salvar mudanças
+- [ ] Toast de sucesso/erro ao atualizar permissões
+- [ ] Adicionar link no menu de Configurações
+
+### P4: Atualizar Frontend para Mostrar/Esconder Menus
+- [ ] Criar hook useModuleAccess(moduleName, action) que retorna boolean
+- [ ] Atualizar DashboardLayout para filtrar menu items baseado em permissões
+- [ ] Atualizar App.tsx para proteger rotas baseado em permissões
+- [ ] Adicionar fallback "Sem permissão para acessar este módulo" para rotas bloqueadas
+- [ ] Testar visibilidade de menus para cada perfil
+
+### P5: Atualizar Backend para Validar Permissões
+- [ ] Criar middleware checkModuleAccess(moduleName, action) para procedures tRPC
+- [ ] Aplicar middleware em todos os procedures críticos (create, update, delete)
+- [ ] Retornar erro FORBIDDEN se usuário não tem permissão
+- [ ] Testar que operações bloqueadas retornam erro apropriado
+
+### P6: Validação e Checkpoint
+- [ ] TypeScript: 0 erros
+- [ ] Testes: todos passando
+- [ ] Testes manuais: verificar cada perfil tem acesso correto
+- [ ] Salvar checkpoint

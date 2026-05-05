@@ -15,22 +15,26 @@ import { toast } from "sonner";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Administrador",
-  sain_assessor: "Assessor SAIN",
+  craei_assessor: "Assessor CRAEI",
   coordinator: "Coordenador",
-  external_professional: "Profissional Externo",
+  coordenacao_adjunta: "Coordenação Adjunta",
+  setor_atendentes: "Setor de Atendentes",
+  coordenacao_nucleo: "Coordenação de Núcleo",
   school_user: "Secretário de Escola",
 };
 
 const ROLE_BADGE: Record<string, string> = {
   admin: "bg-primary/10 text-primary hover:bg-primary/10",
-  sain_assessor: "bg-purple-100 text-purple-800 hover:bg-purple-100",
+  craei_assessor: "bg-purple-100 text-purple-800 hover:bg-purple-100",
   coordinator: "bg-orange-100 text-orange-800 hover:bg-orange-100",
-  external_professional: "bg-teal-100 text-teal-800 hover:bg-teal-100",
+  coordenacao_adjunta: "bg-indigo-100 text-indigo-800 hover:bg-indigo-100",
+  setor_atendentes: "bg-teal-100 text-teal-800 hover:bg-teal-100",
+  coordenacao_nucleo: "bg-pink-100 text-pink-800 hover:bg-pink-100",
   school_user: "bg-blue-100 text-blue-800 hover:bg-blue-100",
 };
 
 // Roles that support multiple schools
-const MULTI_SCHOOL_ROLES = ["admin", "sain_assessor", "coordinator", "external_professional"];
+const MULTI_SCHOOL_ROLES = ["admin", "craei_assessor", "coordinator", "coordenacao_adjunta", "setor_atendentes", "coordenacao_nucleo"];
 
 function formatDate(value: string | Date | null | undefined) {
   if (!value) return "—";
@@ -153,9 +157,9 @@ function EditUserDialog({
               <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="admin">Administrador</SelectItem>
-                <SelectItem value="sain_assessor">Assessor SAIN</SelectItem>
+                <SelectItem value="craei_assessor">Assessor SAIN</SelectItem>
                 <SelectItem value="coordinator">Coordenador</SelectItem>
-                <SelectItem value="external_professional">Profissional Externo</SelectItem>
+                <SelectItem value="">Profissional Externo</SelectItem>
                 <SelectItem value="school_user">Secretário de Escola</SelectItem>
               </SelectContent>
             </Select>
@@ -285,9 +289,9 @@ export default function Users() {
   const roleMetrics = [
     { label: "Total", value: usersData.length },
     { label: "Administradores", value: usersData.filter((u: any) => u.role === "admin").length },
-    { label: "Assessores SAIN", value: usersData.filter((u: any) => u.role === "sain_assessor").length },
+    { label: "Assessores SAIN", value: usersData.filter((u: any) => u.role === "craei_assessor").length },
     { label: "Coordenadores", value: usersData.filter((u: any) => u.role === "coordinator").length },
-    { label: "Prof. Externos", value: usersData.filter((u: any) => u.role === "external_professional").length },
+    { label: "Prof. Externos", value: usersData.filter((u: any) => u.role === "").length },
     { label: "Secretários", value: usersData.filter((u: any) => u.role === "school_user").length },
   ];
 
@@ -456,14 +460,14 @@ export default function Users() {
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Administrador</SelectItem>
-                  <SelectItem value="sain_assessor">Assessor SAIN</SelectItem>
+                  <SelectItem value="craei_assessor">Assessor SAIN</SelectItem>
                   <SelectItem value="coordinator">Coordenador</SelectItem>
-                  <SelectItem value="external_professional">Profissional Externo</SelectItem>
+                  <SelectItem value="">Profissional Externo</SelectItem>
                   <SelectItem value="school_user">Secretário de Escola</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            {(createForm.role === "sain_assessor" || createForm.role === "external_professional") && (
+            {(createForm.role === "craei_assessor" || createForm.role === "") && (
               <>
               <div>
                 <Label>Telefone</Label>
