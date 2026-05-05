@@ -22,7 +22,7 @@ import bcrypt from "bcryptjs";
 import { sdk } from "./_core/sdk";
 import { ONE_YEAR_MS } from "@shared/const";
 import { getDb } from "./db";
-import { students, mediators, attendances, externalDemands, externalDemandMovements, externalDemandAudit, schools, users, demands, mediatorStudents, statusHistory, weeklySnapshots, studentEditHistory, mediatorStatusChangeHistory, farolCases, farolCaseHistory, farolCaseMovements, userSchools, farolAdvisors } from "../drizzle/schema";
+import { students, mediators, attendances, externalDemands, externalDemandMovements, externalDemandAudit, schools, users, demands, mediatorStudents, statusHistory, weeklySnapshots, studentEditHistory, mediatorStatusChangeHistory, farolCases, farolCaseHistory, farolCaseMovements, userSchools, farolAdvisors, modules, roleModulePermissions } from "../drizzle/schema";
 import { eq, and, like, sql, desc, inArray } from "drizzle-orm";
 
 // Status e tipos de alteração do Quadro de Atendentes (MVP integrado)
@@ -2740,6 +2740,127 @@ export const appRouter = router({
         } catch (err) {
           console.error("[QuadroAAP] Error sending by email:", err);
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao enviar o quadro por e-mail. Tente novamente." });
+        }
+      }),
+  }),
+
+  // RBAC Permissions Management
+  permissions: router({
+    // List all permissions for a given role
+    listByRole: protectedProcedure
+      .input(z.object({ roleId: z.string() }))
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        try {
+          const perms = await db
+            .select()
+            .from(roleModulePermissions)
+            .where(eq(roleModulePermissions.roleId, input.roleId));
+          return perms;
+        } catch (error) {
+          console.error("[Permissions] Error listing by role:", error);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        }
+      }),
+
+    // List all modules
+    listModules: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      try {
+        const mods = await db.select().from(modules);
+        return mods;
+      } catch (error) {
+        console.error("[Permissions] Error listing modules:", error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      }
+    }),
+
+    // Get permission matrix for a role (all modules with their permissions)
+    getMatrix: protectedProcedure
+      .input(z.object({ roleId: z.string() }))
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        try {
+          const mods = await db.select().from(modules);
+          const perms = await db
+            .select()
+            .from(roleModulePermissions)
+            .where(eq(roleModulePermissions.roleId, input.roleId));
+
+          const permMap = new Map(perms.map(p => [p.moduleId, p]));
+          const matrix = mods.map(mod => ({
+            ...mod,
+            canView: permMap.get(mod.id)?.canView ?? false,
+            canEdit: permMap.get(mod.id)?.canEdit ?? false,
+            canDelete: permMap.get(mod.id)?.canDelete ?? false,
+          }));
+          return matrix;
+        } catch (error) {
+          console.error("[Permissions] Error getting matrix:", error);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        }
+      }),
+
+    // Update permission for a role-module combination
+    updatePermission: protectedProcedure
+      .input(z.object({
+        roleId: z.string(),
+        moduleId: z.number(),
+        canView: z.boolean(),
+        canEdit: z.boolean(),
+        canDelete: z.boolean(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        try {
+          // Check if permission exists
+          const existing = await db
+            .select()
+            .from(roleModulePermissions)
+            .where(
+              and(
+                eq(roleModulePermissions.roleId, input.roleId),
+                eq(roleModulePermissions.moduleId, input.moduleId)
+              )
+            );
+
+          if (existing.length > 0) {
+            // Update existing
+            await db
+              .update(roleModulePermissions)
+              .set({
+                canView: input.canView,
+                canEdit: input.canEdit,
+                canDelete: input.canDelete,
+              })
+              .where(
+                and(
+                  eq(roleModulePermissions.roleId, input.roleId),
+                  eq(roleModulePermissions.moduleId, input.moduleId)
+                )
+              );
+          } else {
+            // Insert new
+            await db.insert(roleModulePermissions).values({
+              roleId: input.roleId,
+              moduleId: input.moduleId,
+              canView: input.canView,
+              canEdit: input.canEdit,
+              canDelete: input.canDelete,
+            });
+          }
+          return { success: true };
+        } catch (error) {
+          console.error("[Permissions] Error updating permission:", error);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         }
       }),
   }),
