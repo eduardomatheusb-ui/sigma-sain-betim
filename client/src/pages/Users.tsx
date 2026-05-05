@@ -157,9 +157,11 @@ function EditUserDialog({
               <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="admin">Administrador</SelectItem>
-                <SelectItem value="craei_assessor">Assessor SAIN</SelectItem>
+                <SelectItem value="craei_assessor">Assessor CRAEI</SelectItem>
                 <SelectItem value="coordinator">Coordenador</SelectItem>
-                <SelectItem value="">Profissional Externo</SelectItem>
+                <SelectItem value="coordenacao_adjunta">Coordenação Adjunta</SelectItem>
+                <SelectItem value="setor_atendentes">Setor de Atendentes</SelectItem>
+                <SelectItem value="coordenacao_nucleo">Coordenação de Núcleo</SelectItem>
                 <SelectItem value="school_user">Secretário de Escola</SelectItem>
               </SelectContent>
             </Select>
@@ -460,14 +462,16 @@ export default function Users() {
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Administrador</SelectItem>
-                  <SelectItem value="craei_assessor">Assessor SAIN</SelectItem>
+                  <SelectItem value="craei_assessor">Assessor CRAEI</SelectItem>
                   <SelectItem value="coordinator">Coordenador</SelectItem>
-                  <SelectItem value="">Profissional Externo</SelectItem>
+                  <SelectItem value="coordenacao_adjunta">Coordenação Adjunta</SelectItem>
+                  <SelectItem value="setor_atendentes">Setor de Atendentes</SelectItem>
+                  <SelectItem value="coordenacao_nucleo">Coordenação de Núcleo</SelectItem>
                   <SelectItem value="school_user">Secretário de Escola</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            {(createForm.role === "craei_assessor" || createForm.role === "") && (
+            {(createForm.role === "craei_assessor") && (
               <>
               <div>
                 <Label>Telefone</Label>
