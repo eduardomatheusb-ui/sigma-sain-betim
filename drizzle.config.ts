@@ -1,15 +1,24 @@
-import { defineConfig } from "drizzle-kit";
+import { defineConfig, type Config } from "drizzle-kit";
 
 const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
-  throw new Error("DATABASE_URL is required to run drizzle commands");
+const drizzleCommand = process.argv.slice(2).find((arg) => !arg.startsWith("-"));
+const commandsRequiringDatabase = new Set([
+  "migrate",
+  "push",
+  "pull",
+  "introspect",
+  "studio",
+]);
+
+if (!connectionString && drizzleCommand && commandsRequiringDatabase.has(drizzleCommand)) {
+  throw new Error("DATABASE_URL is required to run this drizzle command");
 }
 
-export default defineConfig({
+const config = {
   schema: "./drizzle/schema.ts",
   out: "./drizzle",
   dialect: "mysql",
-  dbCredentials: {
-    url: connectionString,
-  },
-});
+  ...(connectionString ? { dbCredentials: { url: connectionString } } : {}),
+} satisfies Config;
+
+export default defineConfig(config);
