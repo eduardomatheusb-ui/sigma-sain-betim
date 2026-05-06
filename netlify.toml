@@ -9,8 +9,9 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/index:splat"
+  to = "/.netlify/functions/index/:splat"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/*"
@@ -25,3 +26,7 @@
 
 [context.branch-deploy]
   command = "pnpm build"
+
+[functions]
+  external_node_modules = ["express"]
+  node_bundler = "esbuild"
