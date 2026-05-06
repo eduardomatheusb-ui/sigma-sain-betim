@@ -1,11 +1,14 @@
 [build]
   command = "pnpm build"
-  functions = "dist"
   publish = "dist/public"
+  functions = "dist"
 
 [build.environment]
   NODE_VERSION = "22.13.0"
   NODE_ENV = "production"
+
+[functions]
+  node_bundler = "zisi"
 
 [[redirects]]
   from = "/api/*"
@@ -17,16 +20,3 @@
   from = "/*"
   to = "/index.html"
   status = 200
-
-[context.production]
-  command = "pnpm build"
-
-[context.deploy-preview]
-  command = "pnpm build"
-
-[context.branch-deploy]
-  command = "pnpm build"
-
-[functions]
-  external_node_modules = ["express"]
-  node_bundler = "esbuild"

@@ -78,8 +78,8 @@
 
 import { useEffect, useRef } from "react";
 import { usePersistFn } from "@/hooks/usePersistFn";
+import { getClientEnv } from "@/lib/env";
 import { cn } from "@/lib/utils";
-import { getEnvConfig, getEnvConfigError } from "@/lib/env";
 
 declare global {
   interface Window {
@@ -87,39 +87,13 @@ declare global {
   }
 }
 
-// Get validated environment variables
-let API_KEY: string;
-let MAPS_PROXY_URL: string;
-
-try {
-  const config = getEnvConfig();
-  API_KEY = config.VITE_FRONTEND_FORGE_API_KEY;
-  MAPS_PROXY_URL = `${config.VITE_FRONTEND_FORGE_API_URL}/v1/maps/proxy`;
-} catch (error) {
-  // If env is not configured, we'll show error in MapView component
-  API_KEY = "";
-  MAPS_PROXY_URL = "";
-}
-
 function loadMapScript() {
-  return new Promise((resolve, reject) => {
-    // Check if environment is properly configured
-    const envError = getEnvConfigError();
-    if (envError) {
-      console.error("[MapView] Environment configuration error:", envError);
-      reject(new Error(envError));
-      return;
-    }
+  const { frontendForgeApiKey, frontendForgeApiUrl } = getClientEnv();
+  const mapsProxyUrl = `${frontendForgeApiUrl}/v1/maps/proxy`;
 
-    if (!API_KEY || !MAPS_PROXY_URL) {
-      const error = "Missing Google Maps API configuration";
-      console.error("[MapView]", error);
-      reject(new Error(error));
-      return;
-    }
-
+  return new Promise(resolve => {
     const script = document.createElement("script");
-    script.src = `${MAPS_PROXY_URL}/maps/api/js?key=${API_KEY}&v=weekly&libraries=marker,places,geocoding,geometry`;
+    script.src = `${mapsProxyUrl}/maps/api/js?key=${frontendForgeApiKey}&v=weekly&libraries=marker,places,geocoding,geometry`;
     script.async = true;
     script.crossOrigin = "anonymous";
     script.onload = () => {
@@ -127,9 +101,7 @@ function loadMapScript() {
       script.remove(); // Clean up immediately
     };
     script.onerror = () => {
-      const error = "Failed to load Google Maps script";
-      console.error("[MapView]", error);
-      reject(new Error(error));
+      console.error("Failed to load Google Maps script");
     };
     document.head.appendChild(script);
   });

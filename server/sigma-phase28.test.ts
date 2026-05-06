@@ -4,6 +4,10 @@ import { getDb } from "./db";
 import { demands, mediators, schools } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 
+const describeIfDatabase = process.env.DATABASE_URL?.trim()
+  ? describe
+  : describe.skip;
+
 // Contextos de teste
 const createAdminContext = () => ({
   user: { id: 1, email: "admin@test.com", role: "admin" as const, schoolId: null },
@@ -17,7 +21,7 @@ const createSchoolContext = (schoolId: number) => ({
   res: { clearCookie: () => {} },
 });
 
-describe("SIGMA Phase 28 - Validações Críticas", () => {
+describeIfDatabase("SIGMA Phase 28 - Validacoes Criticas", () => {
   let db: any;
   let testSchoolId: number;
   let testMediatorId: number;
@@ -47,7 +51,7 @@ describe("SIGMA Phase 28 - Validações Críticas", () => {
         cpf: "12345678901",
         schoolId: testSchoolId,
         status: "active",
-        changeType: "Sem alteração",
+        changeType: "Sem alteracao",
         maxAttendances: 20,
       })
       .$returningId();
@@ -81,7 +85,7 @@ describe("SIGMA Phase 28 - Validações Críticas", () => {
     await db.delete(schools).where(eq(schools.id, testSchoolId));
   });
 
-  describe("1. Detecção de Duplicação de Alunos (Implementada na Fase 23)", () => {
+  describe("1. Deteccao de Duplicacao de Alunos (Implementada na Fase 23)", () => {
     it("deve permitir criar alunos com dados diferentes", async () => {
       const ctx = createAdminContext();
       const caller = appRouter.createCaller(ctx);
@@ -101,8 +105,8 @@ describe("SIGMA Phase 28 - Validações Críticas", () => {
     });
   });
 
-  describe("2. Sincronização de Status de Mediadores", () => {
-    it("deve sincronizar status quando mediador é alterado de ativo para inativo", async () => {
+  describe("2. Sincronizacao de Status de Mediadores", () => {
+    it("deve sincronizar status quando mediador e alterado de ativo para inativo", async () => {
       const ctx = createAdminContext();
       const caller = appRouter.createCaller(ctx);
 
@@ -110,7 +114,7 @@ describe("SIGMA Phase 28 - Validações Críticas", () => {
       await caller.mediators.update({
         id: testMediatorId,
         status: "on_leave",
-        inactivityReason: "Licença médica",
+        inactivityReason: "Licenca medica",
         inactivityDate: new Date().toISOString().split("T")[0],
       });
 
@@ -144,8 +148,8 @@ describe("SIGMA Phase 28 - Validações Críticas", () => {
     });
   });
 
-  describe("3. Movimentação de Mediadores com Validação de Status", () => {
-    it("deve rejeitar movimentação para outra escola sem alterar status", async () => {
+  describe("3. Movimentacao de Mediadores com Validacao de Status", () => {
+    it("deve rejeitar movimentacao para outra escola sem alterar status", async () => {
       const ctx = createAdminContext();
       const caller = appRouter.createCaller(ctx);
 
@@ -165,11 +169,11 @@ describe("SIGMA Phase 28 - Validações Críticas", () => {
         await caller.mediators.update({
           id: testMediatorId,
           schoolId: school2.id,
-          // Não alterar status - deveria falhar
+          // Nao alterar status - deveria falhar
         });
       } catch (error: any) {
         errorThrown = true;
-        expect(error.message).toContain("obrigatório alterar seu status");
+        expect(error.message).toContain("obrigatorio alterar seu status");
       }
       expect(errorThrown).toBe(true);
 
@@ -177,7 +181,7 @@ describe("SIGMA Phase 28 - Validações Críticas", () => {
       await db.delete(schools).where(eq(schools.id, school2.id));
     });
 
-    it("deve permitir movimentação para outra escola com alteração de status", async () => {
+    it("deve permitir movimentacao para outra escola com alteracao de status", async () => {
       const ctx = createAdminContext();
       const caller = appRouter.createCaller(ctx);
 
@@ -192,7 +196,7 @@ describe("SIGMA Phase 28 - Validações Críticas", () => {
         })
         .$returningId();
 
-      // Movimentar com alteração de status
+      // Movimentar com alteracao de status
       const result = await caller.mediators.update({
         id: testMediatorId,
         schoolId: school2.id,
@@ -216,8 +220,8 @@ describe("SIGMA Phase 28 - Validações Críticas", () => {
     });
   });
 
-  describe("4. Rejeição de Mediadores Inativos ao Vincular", () => {
-    it("deve rejeitar vinculação de mediador inativo ao criar demand", async () => {
+  describe("4. Rejeicao de Mediadores Inativos ao Vincular", () => {
+    it("deve rejeitar vinculacao de mediador inativo ao criar demand", async () => {
       const ctx = createAdminContext();
       const caller = appRouter.createCaller(ctx);
 
@@ -229,7 +233,7 @@ describe("SIGMA Phase 28 - Validações Críticas", () => {
           cpf: "98765432101",
           schoolId: testSchoolId,
           status: "on_leave",
-          changeType: "Licença médica",
+          changeType: "Licenca medica",
           maxAttendances: 20,
         })
         .$returningId();
