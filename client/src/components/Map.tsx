@@ -79,6 +79,7 @@
 import { useEffect, useRef } from "react";
 import { usePersistFn } from "@/hooks/usePersistFn";
 import { cn } from "@/lib/utils";
+import { getEnvConfig, getEnvConfigError } from "@/lib/env";
 
 declare global {
   interface Window {
@@ -86,14 +87,37 @@ declare global {
   }
 }
 
-const API_KEY = import.meta.env.VITE_FRONTEND_FORGE_API_KEY;
-const FORGE_BASE_URL =
-  import.meta.env.VITE_FRONTEND_FORGE_API_URL ||
-  "https://forge.butterfly-effect.dev";
-const MAPS_PROXY_URL = `${FORGE_BASE_URL}/v1/maps/proxy`;
+// Get validated environment variables
+let API_KEY: string;
+let MAPS_PROXY_URL: string;
+
+try {
+  const config = getEnvConfig();
+  API_KEY = config.VITE_FRONTEND_FORGE_API_KEY;
+  MAPS_PROXY_URL = `${config.VITE_FRONTEND_FORGE_API_URL}/v1/maps/proxy`;
+} catch (error) {
+  // If env is not configured, we'll show error in MapView component
+  API_KEY = "";
+  MAPS_PROXY_URL = "";
+}
 
 function loadMapScript() {
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
+    // Check if environment is properly configured
+    const envError = getEnvConfigError();
+    if (envError) {
+      console.error("[MapView] Environment configuration error:", envError);
+      reject(new Error(envError));
+      return;
+    }
+
+    if (!API_KEY || !MAPS_PROXY_URL) {
+      const error = "Missing Google Maps API configuration";
+      console.error("[MapView]", error);
+      reject(new Error(error));
+      return;
+    }
+
     const script = document.createElement("script");
     script.src = `${MAPS_PROXY_URL}/maps/api/js?key=${API_KEY}&v=weekly&libraries=marker,places,geocoding,geometry`;
     script.async = true;
@@ -103,7 +127,9 @@ function loadMapScript() {
       script.remove(); // Clean up immediately
     };
     script.onerror = () => {
-      console.error("Failed to load Google Maps script");
+      const error = "Failed to load Google Maps script";
+      console.error("[MapView]", error);
+      reject(new Error(error));
     };
     document.head.appendChild(script);
   });
