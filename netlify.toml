@@ -28,5 +28,7 @@
   command = "pnpm build"
 
 [functions]
-  external_node_modules = ["express"]
   node_bundler = "esbuild"
+
+[functions."*"]
+  external_node_modules = ["express", "@tailwindcss/oxide", "lightningcss", "@babel/preset-typescript"]
