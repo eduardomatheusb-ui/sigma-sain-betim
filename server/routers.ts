@@ -1,7 +1,7 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router, adminProcedure } from "./_core/trpc";
 import { farolRouter } from "./routers/farol";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
@@ -22,7 +22,7 @@ import bcrypt from "bcryptjs";
 import { sdk } from "./_core/sdk";
 import { ONE_YEAR_MS } from "@shared/const";
 import { getDb } from "./db";
-import { students, mediators, attendances, externalDemands, externalDemandMovements, externalDemandAudit, schools, users, demands, mediatorStudents, statusHistory, weeklySnapshots, studentEditHistory, mediatorStatusChangeHistory, farolCases, farolCaseHistory, farolCaseMovements, userSchools, farolAdvisors, modules, roleModulePermissions } from "../drizzle/schema";
+import { students, mediators, attendances, externalDemands, externalDemandMovements, externalDemandAudit, schools, users, demands, mediatorStudents, statusHistory, weeklySnapshots, studentEditHistory, mediatorStatusChangeHistory, farolCases, farolCaseHistory, farolCaseMovements, userSchools, farolAdvisors, modules, roleModulePermissions, userModulePermissions, userSchoolsAssignment } from "../drizzle/schema";
 import { eq, and, like, sql, desc, inArray } from "drizzle-orm";
 
 // Status e tipos de alteração do Quadro de Atendentes (MVP integrado)
@@ -2860,6 +2860,146 @@ export const appRouter = router({
           return { success: true };
         } catch (error) {
           console.error("[Permissions] Error updating permission:", error);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        }
+      }),
+  }),
+
+  /**
+   * User Permissions Router - Gerenciar permissões granulares por usuário
+   */
+  userPermissions: router({
+    // Listar todas as permissões de um usuário
+    getByUser: adminProcedure
+      .input(z.object({ userId: z.number() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        try {
+          const perms = await db
+            .select({
+              id: userModulePermissions.id,
+              moduleId: userModulePermissions.moduleId,
+              moduleName: modules.name,
+              moduleLabel: modules.label,
+              canView: userModulePermissions.canView,
+              canEdit: userModulePermissions.canEdit,
+              canDelete: userModulePermissions.canDelete,
+            })
+            .from(userModulePermissions)
+            .leftJoin(modules, eq(userModulePermissions.moduleId, modules.id))
+            .where(eq(userModulePermissions.userId, input.userId));
+          return perms;
+        } catch (error) {
+          console.error("[UserPermissions] Error fetching:", error);
+          return [];
+        }
+      }),
+
+    // Atualizar permissão de um usuário para um módulo
+    updatePermission: adminProcedure
+      .input(z.object({
+        userId: z.number(),
+        moduleId: z.number(),
+        canView: z.boolean(),
+        canEdit: z.boolean(),
+        canDelete: z.boolean(),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        try {
+          // Check if permission already exists
+          const [existing] = await db
+            .select()
+            .from(userModulePermissions)
+            .where(
+              and(
+                eq(userModulePermissions.userId, input.userId),
+                eq(userModulePermissions.moduleId, input.moduleId)
+              )
+            );
+
+          if (existing) {
+            // Update existing
+            await db
+              .update(userModulePermissions)
+              .set({
+                canView: input.canView,
+                canEdit: input.canEdit,
+                canDelete: input.canDelete,
+              })
+              .where(
+                and(
+                  eq(userModulePermissions.userId, input.userId),
+                  eq(userModulePermissions.moduleId, input.moduleId)
+                )
+              );
+          } else {
+            // Insert new
+            await db.insert(userModulePermissions).values({
+              userId: input.userId,
+              moduleId: input.moduleId,
+              canView: input.canView,
+              canEdit: input.canEdit,
+              canDelete: input.canDelete,
+            });
+          }
+          return { success: true };
+        } catch (error) {
+          console.error("[UserPermissions] Error updating:", error);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        }
+      }),
+
+    // Listar escolas vinculadas a um usuário
+    getSchools: adminProcedure
+      .input(z.object({ userId: z.number() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        try {
+          const schoolAssignments = await db
+            .select({
+              id: userSchoolsAssignment.id,
+              schoolId: userSchoolsAssignment.schoolId,
+              schoolName: schools.name,
+            })
+            .from(userSchoolsAssignment)
+            .leftJoin(schools, eq(userSchoolsAssignment.schoolId, schools.id))
+            .where(eq(userSchoolsAssignment.userId, input.userId));
+          return schoolAssignments;
+        } catch (error) {
+          console.error("[UserPermissions] Error fetching schools:", error);
+          return [];
+        }
+      }),
+
+    // Atualizar escolas vinculadas a um usuário
+    updateSchools: adminProcedure
+      .input(z.object({
+        userId: z.number(),
+        schoolIds: z.array(z.number()),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        try {
+          // Delete existing assignments
+          await db.delete(userSchoolsAssignment).where(eq(userSchoolsAssignment.userId, input.userId));
+
+          // Insert new assignments
+          if (input.schoolIds.length > 0) {
+            await db.insert(userSchoolsAssignment).values(
+              input.schoolIds.map(schoolId => ({
+                userId: input.userId,
+                schoolId,
+              }))
+            );
+          }
+          return { success: true };
+        } catch (error) {
+          console.error("[UserPermissions] Error updating schools:", error);
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         }
       }),

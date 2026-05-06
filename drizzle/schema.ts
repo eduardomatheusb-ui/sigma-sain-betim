@@ -587,3 +587,37 @@ export const roleModulePermissions = mysqlTable("role_module_permissions", {
 
 export type RoleModulePermission = typeof roleModulePermissions.$inferSelect;
 export type InsertRoleModulePermission = typeof roleModulePermissions.$inferInsert;
+
+
+/**
+ * User-Module Permissions table - Permissões granulares por usuário
+ * Cada usuário pode ter permissões customizadas para cada módulo
+ * Sobrescreve as permissões do role se existir
+ */
+export const userModulePermissions = mysqlTable("user_module_permissions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  moduleId: int("moduleId").notNull(),
+  canView: boolean("canView").default(false).notNull(),
+  canEdit: boolean("canEdit").default(false).notNull(),
+  canDelete: boolean("canDelete").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type UserModulePermission = typeof userModulePermissions.$inferSelect;
+export type InsertUserModulePermission = typeof userModulePermissions.$inferInsert;
+
+/**
+ * User-Schools table - Escolas vinculadas por usuário
+ * Controla quais escolas cada usuário pode gerenciar
+ */
+export const userSchoolsAssignment = mysqlTable("user_schools_assignment", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  schoolId: int("schoolId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type UserSchoolAssignment = typeof userSchoolsAssignment.$inferSelect;
+export type InsertUserSchoolAssignment = typeof userSchoolsAssignment.$inferInsert;
