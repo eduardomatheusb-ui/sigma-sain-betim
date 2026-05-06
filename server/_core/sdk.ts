@@ -6,7 +6,7 @@ import type { Request } from "express";
 import { SignJWT, jwtVerify } from "jose";
 import type { User } from "../../drizzle/schema";
 import * as db from "../db";
-import { ENV } from "./env";
+import { assertServerEnv, ENV } from "./env";
 import type {
   ExchangeTokenRequest,
   ExchangeTokenResponse,
@@ -30,8 +30,14 @@ const GET_USER_INFO_WITH_JWT_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserI
 
 class OAuthService {
   constructor(private client: ReturnType<typeof axios.create>) {
-    console.log("[OAuth] Initialized with baseURL:", ENV.oAuthServerUrl);
-    if (!ENV.oAuthServerUrl) {
+    const isTestEnv =
+      process.env.NODE_ENV === "test" || process.env.VITEST === "true";
+
+    if (!isTestEnv) {
+      console.log("[OAuth] Initialized with baseURL:", ENV.oAuthServerUrl);
+    }
+
+    if (!ENV.oAuthServerUrl && !isTestEnv) {
       console.error(
         "[OAuth] ERROR: OAUTH_SERVER_URL is not configured! Set OAUTH_SERVER_URL environment variable."
       );
@@ -47,6 +53,8 @@ class OAuthService {
     code: string,
     state: string
   ): Promise<ExchangeTokenResponse> {
+    assertServerEnv(["VITE_APP_ID", "OAUTH_SERVER_URL"], "OAuth token exchange");
+
     const payload: ExchangeTokenRequest = {
       clientId: ENV.appId,
       grantType: "authorization_code",
@@ -65,6 +73,8 @@ class OAuthService {
   async getUserInfoByToken(
     token: ExchangeTokenResponse
   ): Promise<GetUserInfoResponse> {
+    assertServerEnv(["OAUTH_SERVER_URL"], "OAuth user info lookup");
+
     const { data } = await this.client.post<GetUserInfoResponse>(
       GET_USER_INFO_PATH,
       {
@@ -155,6 +165,7 @@ class SDKServer {
   }
 
   private getSessionSecret() {
+    assertServerEnv(["JWT_SECRET"], "session signing");
     const secret = ENV.cookieSecret;
     return new TextEncoder().encode(secret);
   }
@@ -235,6 +246,8 @@ class SDKServer {
   async getUserInfoWithJwt(
     jwtToken: string
   ): Promise<GetUserInfoWithJwtResponse> {
+    assertServerEnv(["VITE_APP_ID", "OAUTH_SERVER_URL"], "JWT user sync");
+
     const payload: GetUserInfoWithJwtRequest = {
       jwtToken,
       projectId: ENV.appId,

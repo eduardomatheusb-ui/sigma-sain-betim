@@ -2,13 +2,14 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getDb } from './db';
 import { users, schools, externalDemands } from '../drizzle/schema';
 import { eq, and } from 'drizzle-orm';
+const describeIfDatabase = process.env.DATABASE_URL?.trim() ? describe : describe.skip;
 
 /**
  * E2E Test: External Demands Lifecycle
  * Validates complete flow: create → protocol check → status change → archiving
  */
 
-describe('External Demands E2E Lifecycle', () => {
+describeIfDatabase('External Demands E2E Lifecycle', () => {
   let db: any;
   let adminUser: any;
   let testSchool: any;

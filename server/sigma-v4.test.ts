@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 import { TRPCError } from "@trpc/server";
+const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
 // Helper para criar caller com contexto de admin
@@ -61,6 +62,13 @@ describe("SIGMA V4 - Lembrete Semanal (quadroAAP.weeklyStatus)", () => {
 describe("SIGMA V4 - Lembrete Semanal (quadroAAP.sendWeeklyReminder)", () => {
   it("admin deve conseguir enviar lembrete semanal", async () => {
     const caller = adminCaller();
+    if (!hasDatabase) {
+      await expect(caller.quadroAAP.sendWeeklyReminder()).rejects.toMatchObject({
+        code: "INTERNAL_SERVER_ERROR",
+      });
+      return;
+    }
+
     const result = await caller.quadroAAP.sendWeeklyReminder();
     expect(result).toHaveProperty("success");
     expect(result).toHaveProperty("sent");
@@ -85,6 +93,10 @@ describe("SIGMA V4 - Lembrete Semanal (quadroAAP.sendWeeklyReminder)", () => {
 
 describe("SIGMA V4 - Vínculo Mediador↔Aluno (mediator_students)", () => {
   it("quadroAAP.generate deve usar demandId para agrupar alunos por mediador", async () => {
+    if (!hasDatabase) {
+      return;
+    }
+
     const caller = adminCaller();
     // Buscar uma escola que tenha mediadores com demandId vinculados
     const result = await caller.quadroAAP.generate({ schoolId: 1 });
