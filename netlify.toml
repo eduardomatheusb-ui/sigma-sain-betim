@@ -8,13 +8,13 @@
   NODE_ENV = "production"
 
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
+  from = "/api/*"
+  to = "/.netlify/functions/index:splat"
   status = 200
 
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/index:splat"
+  from = "/*"
+  to = "/index.html"
   status = 200
 
 [context.production]
